@@ -18,28 +18,39 @@ const { setupSocket } = require('./socket');
 const app = express();
 const server = http.createServer(app);
 
-// Socket.IO — reads CLIENT_URL from env, falls back to '*' for local dev
+// CLIENT_URL comes from Render env vars. Set it to your Vercel URL.
+const allowedOrigins = (process.env.CLIENT_URL || 'https://school-portal-fawn-phi.vercel.app')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+function corsOriginCheck(origin, cb) {
+  // Requests with no origin (curl, Postman, mobile apps) always pass
+  if (!origin) return cb(null, true);
+  if (allowedOrigins.includes(origin)) return cb(null, true);
+  return cb(new Error(`CORS blocked: ${origin}`));
+}
+
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || '*',
-    methods: ['GET', 'POST']
+    origin: corsOriginCheck,
+    methods: ['GET', 'POST'],
+    credentials: true
   }
 });
 setupSocket(io);
 
-// Express CORS — same origin rule
 app.use(cors({
-  origin: process.env.CLIENT_URL || '*'
+  origin: corsOriginCheck,
+  credentials: true
 }));
 app.use(express.json());
 
-// Simple request logger
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.url}`);
   next();
 });
 
-// Static uploads (PDFs, submission files)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.get('/', (req, res) => res.json({ message: 'School Portal API is running' }));
