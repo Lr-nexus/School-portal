@@ -1,0 +1,17 @@
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# Env files
+.env
+.env.local
+
+# Uploads (won't persist on Render anyway)
+server/uploads/
+
+# Build output
+client/build/
+client/dist/
+
+# Logs
+*.log
