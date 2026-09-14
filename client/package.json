@@ -30,5 +30,5 @@
       "last 1 firefox version"
     ]
   },
-  "proxy": "http://localhost:5000"
+  "proxy": "https://school-portal-fawn-phi.vercel.app"
 }

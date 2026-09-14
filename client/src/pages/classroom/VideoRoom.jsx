@@ -8,7 +8,7 @@ import {
 import { api } from '../../api/api';
 import { useAuth } from '../../context/AuthContext';
 
-const SOCKET_URL = 'http://localhost:5000';
+const SOCKET_URL = 'https://school-portal-fawn-phi.vercel.app';
 
 export default function VideoRoom() {
   const { roomId } = useParams();

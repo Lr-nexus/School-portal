@@ -7,7 +7,7 @@ import { api } from '../../api/api';
 import PageHeader from '../../components/PageHeader';
 import Loader from '../../components/Loader';
 
-const BASE_URL = 'http://localhost:5000';
+const BASE_URL = 'https://school-portal-fawn-phi.vercel.app';
 
 export default function StudentNotes() {
   const [notes, setNotes] = useState([]);
