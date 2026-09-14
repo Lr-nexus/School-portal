@@ -1,50 +1,50 @@
 const router = require('express').Router();
-const { notifications } = require('../data/db');
+const pool = require('../db');
 const { protect } = require('../middleware/auth');
 
 router.use(protect);
 
-/* GET /api/notifications/me */
-router.get('/me', (req, res) => {
-  const mine = notifications
-    .filter((n) => n.userId === req.user.id)
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  res.json(mine);
+router.get('/me', async (req, res) => {
+  const [rows] = await pool.execute(
+    'SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC',
+    [req.user.id]
+  );
+  res.json(rows.map(n => ({
+    id: n.id, type: n.type, title: n.title, body: n.body,
+    link: n.link, read: !!n.read, createdAt: n.created_at,
+  })));
 });
 
-/* GET /api/notifications/me/unread-count */
-router.get('/me/unread-count', (req, res) => {
-  const count = notifications.filter((n) => n.userId === req.user.id && !n.read).length;
+router.get('/me/unread-count', async (req, res) => {
+  const [[{ count }]] = await pool.execute(
+    'SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND `read` = 0',
+    [req.user.id]
+  );
   res.json({ count });
 });
 
-/* PATCH /api/notifications/:id/read */
-router.patch('/:id/read', (req, res) => {
-  const n = notifications.find(
-    (x) => x.id === Number(req.params.id) && x.userId === req.user.id
+router.patch('/:id/read', async (req, res) => {
+  const [rows] = await pool.execute(
+    'SELECT id FROM notifications WHERE id = ? AND user_id = ?',
+    [req.params.id, req.user.id]
   );
-  if (!n) return res.status(404).json({ message: 'Notification not found' });
-
-  n.read = true;
-  res.json({ message: 'Marked read', notification: n });
+  if (!rows.length) return res.status(404).json({ message: 'Notification not found' });
+  await pool.execute('UPDATE notifications SET `read` = 1 WHERE id = ?', [req.params.id]);
+  res.json({ message: 'Marked read' });
 });
 
-/* PATCH /api/notifications/read-all */
-router.patch('/read-all', (req, res) => {
-  notifications
-    .filter((n) => n.userId === req.user.id)
-    .forEach((n) => { n.read = true; });
+router.patch('/read-all', async (req, res) => {
+  await pool.execute('UPDATE notifications SET `read` = 1 WHERE user_id = ?', [req.user.id]);
   res.json({ message: 'All marked read' });
 });
 
-/* DELETE /api/notifications/:id */
-router.delete('/:id', (req, res) => {
-  const idx = notifications.findIndex(
-    (n) => n.id === Number(req.params.id) && n.userId === req.user.id
+router.delete('/:id', async (req, res) => {
+  const [rows] = await pool.execute(
+    'SELECT id FROM notifications WHERE id = ? AND user_id = ?',
+    [req.params.id, req.user.id]
   );
-  if (idx === -1) return res.status(404).json({ message: 'Notification not found' });
-
-  notifications.splice(idx, 1);
+  if (!rows.length) return res.status(404).json({ message: 'Notification not found' });
+  await pool.execute('DELETE FROM notifications WHERE id = ?', [req.params.id]);
   res.json({ message: 'Deleted' });
 });
 

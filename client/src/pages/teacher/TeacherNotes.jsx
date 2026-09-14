@@ -1,7 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
+import ReactQuill from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
 import {
   FiUploadCloud, FiFileText, FiTrash2, FiDownload,
-  FiMessageCircle, FiSend, FiX
+  FiMessageCircle, FiSend, FiX, FiEdit3, FiImage
 } from 'react-icons/fi';
 import { api } from '../../api/api';
 import { useAuth } from '../../context/AuthContext';
@@ -15,6 +17,25 @@ const SUBJECTS = [
 ];
 const CLASSES = ['JSS 2A', 'JSS 2B', 'JSS 3A'];
 
+const QUILL_MODULES = {
+  toolbar: [
+    [{ header: [1, 2, 3, false] }],
+    ['bold', 'italic', 'underline', 'strike'],
+    [{ list: 'ordered' }, { list: 'bullet' }],
+    ['blockquote', 'code-block'],
+    ['link', 'image'],
+    ['clean']
+  ]
+};
+
+const QUILL_FORMATS = [
+  'header',
+  'bold', 'italic', 'underline', 'strike',
+  'list', 'bullet',
+  'blockquote', 'code-block',
+  'link', 'image'
+];
+
 export default function TeacherNotes() {
   const { user } = useAuth();
   const [notes, setNotes] = useState([]);
@@ -25,12 +46,15 @@ export default function TeacherNotes() {
   const [commentText, setCommentText] = useState('');
   const fileInputRef = useRef(null);
 
+  const [mode, setMode] = useState('richtext'); // 'richtext' | 'pdf'
+
   const [form, setForm] = useState({
     title: '',
     subject: 'Mathematics',
     className: 'JSS 2A',
     description: '',
-    file: null
+    file: null,
+    content: ''
   });
 
   const load = () =>
@@ -40,6 +64,14 @@ export default function TeacherNotes() {
       .finally(() => setLoading(false));
 
   useEffect(() => { load(); }, []);
+
+  const resetForm = () => {
+    setForm({
+      title: '', subject: 'Mathematics', className: 'JSS 2A',
+      description: '', file: null, content: ''
+    });
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -59,12 +91,9 @@ export default function TeacherNotes() {
     }));
   };
 
-  const submit = async (e) => {
+  const submitPdf = async (e) => {
     e.preventDefault();
-    if (!form.file) {
-      setMessage('Please choose a PDF file');
-      return;
-    }
+    if (!form.file) { setMessage('Please choose a PDF file'); return; }
 
     const fd = new FormData();
     fd.append('file', form.file);
@@ -83,9 +112,36 @@ export default function TeacherNotes() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Upload failed');
 
-      setMessage('Note uploaded');
-      setForm({ title: '', subject: 'Mathematics', className: 'JSS 2A', description: '', file: null });
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      setMessage('PDF note uploaded');
+      resetForm();
+      await load();
+    } catch (err) {
+      setMessage(err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const submitRich = async (e) => {
+    e.preventDefault();
+    const plain = form.content.replace(/<[^>]*>/g, '').trim();
+    if (!plain) { setMessage('Write something in the editor first'); return; }
+    if (!form.title) { setMessage('Give your note a title'); return; }
+
+    setUploading(true);
+    try {
+      await api('/notes/rich', {
+        method: 'POST',
+        body: JSON.stringify({
+          title: form.title,
+          subject: form.subject,
+          className: form.className,
+          description: form.description,
+          content: form.content
+        })
+      });
+      setMessage('Rich text note posted');
+      resetForm();
       await load();
     } catch (err) {
       setMessage(err.message);
@@ -113,18 +169,39 @@ export default function TeacherNotes() {
   };
 
   const downloadFile = async (note) => {
-    try {
-      const res = await fetch(`${BASE_URL}${note.fileUrl}`);
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = note.originalName;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch {
-      setMessage('Download failed');
+    if (note.type === 'pdf' && note.fileUrl) {
+      try {
+        const res = await fetch(`${BASE_URL}${note.fileUrl}`);
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = note.originalName || 'note.pdf';
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch {
+        setMessage('Download failed');
+      }
+      return;
     }
+
+    // Rich text — download as .html or .txt
+    const html = `
+<!doctype html>
+<html><head><meta charset="utf-8"><title>${note.title}</title>
+<style>body{font-family:system-ui;max-width:760px;margin:40px auto;padding:0 20px;line-height:1.6;color:#111}</style>
+</head><body>
+<h1>${note.title}</h1>
+<p><em>${note.subject} · ${note.className} · ${note.teacherName}</em></p>
+${note.content}
+</body></html>`;
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${note.title.replace(/[^a-z0-9]+/gi, '_')}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const addComment = async (e) => {
@@ -150,62 +227,146 @@ export default function TeacherNotes() {
     <div>
       <PageHeader
         title="Notes"
-        subtitle="Upload PDF notes for your classes and reply to students"
+        subtitle="Share PDFs or rich text notes with your classes"
       />
 
       {message && <div className="alert alert--info">{message}</div>}
 
+      {/* ---------- COMPOSER ---------- */}
       <div className="card">
-        <h3><FiUploadCloud size={16} /> Upload PDF Note</h3>
-        <form className="form-grid" onSubmit={submit}>
-          <label className="form-grid__full">
-            PDF File *
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="application/pdf"
-              onChange={handleFile}
-              required
+        <div className="tabs">
+          <button
+            className={`tab ${mode === 'richtext' ? 'tab--active' : ''}`}
+            onClick={() => setMode('richtext')}
+            type="button"
+          >
+            <FiEdit3 size={16} /> Write Rich Text
+          </button>
+          <button
+            className={`tab ${mode === 'pdf' ? 'tab--active' : ''}`}
+            onClick={() => setMode('pdf')}
+            type="button"
+          >
+            <FiUploadCloud size={16} /> Upload PDF
+          </button>
+        </div>
+
+        {mode === 'richtext' ? (
+          <form onSubmit={submitRich}>
+            <div className="form-grid">
+              <label className="form-grid__full">
+                Title *
+                <input name="title" value={form.title} onChange={handleChange} required />
+              </label>
+              <label>
+                Subject
+                <select name="subject" value={form.subject} onChange={handleChange}>
+                  {SUBJECTS.map((s) => <option key={s}>{s}</option>)}
+                </select>
+              </label>
+              <label>
+                Class
+                <select name="className" value={form.className} onChange={handleChange}>
+                  {CLASSES.map((c) => <option key={c}>{c}</option>)}
+                </select>
+              </label>
+              <label className="form-grid__full">
+                Short description (optional)
+                <input
+                  name="description"
+                  value={form.description}
+                  onChange={handleChange}
+                  placeholder="One-line summary"
+                />
+              </label>
+            </div>
+
+            <label className="editor-label">Note content *</label>
+            <ReactQuill
+              theme="snow"
+              value={form.content}
+              onChange={(content) => setForm((prev) => ({ ...prev, content }))}
+              modules={QUILL_MODULES}
+              formats={QUILL_FORMATS}
+              placeholder="Write your note here — use the toolbar to format text, add lists, links, images…"
+              className="editor"
             />
-          </label>
-          <label className="form-grid__full">
-            Title *
-            <input name="title" value={form.title} onChange={handleChange} required />
-          </label>
-          <label>
-            Subject
-            <select name="subject" value={form.subject} onChange={handleChange}>
-              {SUBJECTS.map((s) => <option key={s}>{s}</option>)}
-            </select>
-          </label>
-          <label>
-            Class
-            <select name="className" value={form.className} onChange={handleChange}>
-              {CLASSES.map((c) => <option key={c}>{c}</option>)}
-            </select>
-          </label>
-          <label className="form-grid__full">
-            Description
-            <textarea rows="2" name="description" value={form.description} onChange={handleChange} />
-          </label>
-          <div className="form-grid__full">
-            <button className="btn btn--primary" disabled={uploading}>
-              <FiUploadCloud size={16} /> {uploading ? 'Uploading…' : 'Upload Note'}
-            </button>
-          </div>
-        </form>
+
+            <div className="form-grid__actions">
+              <button type="button" className="btn btn--ghost" onClick={resetForm}>
+                Clear
+              </button>
+              <button className="btn btn--primary" disabled={uploading}>
+                <FiSend size={16} /> {uploading ? 'Posting…' : 'Post Note'}
+              </button>
+            </div>
+          </form>
+        ) : (
+          <form className="form-grid" onSubmit={submitPdf}>
+            <label className="form-grid__full">
+              PDF File *
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/pdf"
+                onChange={handleFile}
+                required
+              />
+            </label>
+            <label className="form-grid__full">
+              Title *
+              <input name="title" value={form.title} onChange={handleChange} required />
+            </label>
+            <label>
+              Subject
+              <select name="subject" value={form.subject} onChange={handleChange}>
+                {SUBJECTS.map((s) => <option key={s}>{s}</option>)}
+              </select>
+            </label>
+            <label>
+              Class
+              <select name="className" value={form.className} onChange={handleChange}>
+                {CLASSES.map((c) => <option key={c}>{c}</option>)}
+              </select>
+            </label>
+            <label className="form-grid__full">
+              Description
+              <textarea
+                rows="2"
+                name="description"
+                value={form.description}
+                onChange={handleChange}
+              />
+            </label>
+            <div className="form-grid__full form-grid__actions">
+              <button type="button" className="btn btn--ghost" onClick={resetForm}>
+                Clear
+              </button>
+              <button className="btn btn--primary" disabled={uploading}>
+                <FiUploadCloud size={16} /> {uploading ? 'Uploading…' : 'Upload PDF'}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
 
-      <h3 className="section-title"><FiFileText /> My Uploaded Notes ({notes.length})</h3>
+      {/* ---------- LIST ---------- */}
+      <h3 className="section-title"><FiFileText /> My Notes ({notes.length})</h3>
       <div className="grid-3">
         {notes.map((n) => (
           <div className="card note-card" key={n.id}>
-            <div className="note-card__icon"><FiFileText size={20} /></div>
+            <div className="note-card__icon">
+              {n.type === 'pdf' ? <FiFileText size={20} /> : <FiEdit3 size={20} />}
+            </div>
+            <span className={`chip ${n.type === 'pdf' ? 'chip--pdf' : 'chip--rich'}`}>
+              {n.type === 'pdf' ? 'PDF' : 'Rich Text'}
+            </span>
             <h3>{n.title}</h3>
             <p className="muted">{n.subject} · {n.className}</p>
             {n.description && <p>{n.description}</p>}
             <p className="muted" style={{ fontSize: 12 }}>
-              {new Date(n.uploadedAt).toLocaleDateString()} · {(n.fileSize / 1024).toFixed(0)} KB
+              {new Date(n.uploadedAt).toLocaleDateString()}
+              {n.type === 'pdf' && n.fileSize && <> · {(n.fileSize / 1024).toFixed(0)} KB</>}
             </p>
 
             <div className="note-card__actions">
@@ -221,27 +382,37 @@ export default function TeacherNotes() {
             </div>
           </div>
         ))}
-        {!notes.length && <p className="muted">No notes uploaded yet.</p>}
+        {!notes.length && <p className="muted">No notes yet.</p>}
       </div>
 
+      {/* ---------- VIEWER ---------- */}
       {active && (
         <div className="modal-backdrop" onClick={() => setActive(null)}>
           <div className="modal modal--wide" onClick={(e) => e.stopPropagation()}>
             <div className="modal__head">
               <div>
                 <h3>{active.title}</h3>
-                <p className="muted">{active.subject} · {active.className} · {active.teacherName}</p>
+                <p className="muted">
+                  {active.subject} · {active.className} · {active.teacherName}
+                </p>
               </div>
               <button className="btn btn--ghost" onClick={() => setActive(null)}>
                 <FiX size={16} />
               </button>
             </div>
 
-            <iframe
-              title={active.title}
-              src={`${BASE_URL}${active.fileUrl}`}
-              className="pdf-viewer"
-            />
+            {active.type === 'richtext' ? (
+              <div
+                className="rich-content"
+                dangerouslySetInnerHTML={{ __html: active.content }}
+              />
+            ) : (
+              <iframe
+                title={active.title}
+                src={`${BASE_URL}${active.fileUrl}`}
+                className="pdf-viewer"
+              />
+            )}
 
             <div className="modal__actions">
               <button className="btn btn--primary" onClick={() => downloadFile(active)}>

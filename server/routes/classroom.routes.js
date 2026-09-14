@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const { classSessions, students, teachers, nextId } = require('../data/db');
+const pool = require('../db');
 const { protect, allow } = require('../middleware/auth');
 const { getRoomParticipants, getAllRooms } = require('../socket');
 const { notifyClassStudents } = require('../utils/notify');
@@ -12,51 +12,45 @@ function makeRoomId(title, className) {
   return `${slug}-${cls}-${Date.now()}`;
 }
 
-/* ==================================================================
-   ADMIN-ONLY MONITOR ROUTES
-================================================================== */
-
-// GET /api/classroom/admin/active — every room currently live
-router.get('/admin/active', allow('admin'), (req, res) => {
+/* ADMIN-ONLY */
+router.get('/admin/active', allow('admin'), async (req, res) => {
   const allRooms = getAllRooms();
-  const live = classSessions
-    .filter((s) => s.status === 'live')
-    .map((s) => ({
-      ...s,
-      participants: allRooms[s.roomId] || []
-    }));
-  res.json(live);
+  const [live] = await pool.execute("SELECT * FROM class_sessions WHERE status = 'live'");
+  res.json(live.map(s => ({ ...s, participants: allRooms[s.room_id] || [] })));
 });
 
-// GET /api/classroom/admin/sessions/:id/participants
-router.get('/admin/sessions/:id/participants', allow('admin'), (req, res) => {
-  const session = classSessions.find((s) => s.id === Number(req.params.id));
-  if (!session) return res.status(404).json({ message: 'Session not found' });
-  res.json(getRoomParticipants(session.roomId));
+router.get('/admin/sessions/:id/participants', allow('admin'), async (req, res) => {
+  const [rows] = await pool.execute('SELECT * FROM class_sessions WHERE id = ?', [req.params.id]);
+  if (!rows.length) return res.status(404).json({ message: 'Session not found' });
+  res.json(getRoomParticipants(rows[0].room_id));
 });
 
-/* ==================================================================
-   SHARED READ ROUTES (student, teacher, admin all pass)
-================================================================== */
-
-// GET /api/classroom/sessions — role-filtered list
-router.get('/sessions', (req, res) => {
-  let list = classSessions;
+/* SHARED READ */
+router.get('/sessions', async (req, res) => {
+  let query = 'SELECT * FROM class_sessions';
+  const params = [];
 
   if (req.user.role === 'student') {
-    const student = students.find((s) => s.id === req.user.profileId);
-    list = classSessions.filter((s) => s.className === student?.className);
+    const [rows] = await pool.execute('SELECT class_name FROM students WHERE user_id = ?', [req.user.id]);
+    if (!rows.length) return res.json([]);
+    query += ' WHERE class_name = ?';
+    params.push(rows[0].class_name);
   } else if (req.user.role === 'teacher') {
-    list = classSessions.filter((s) => s.teacherId === req.user.profileId);
+    const [rows] = await pool.execute('SELECT id FROM teachers WHERE user_id = ?', [req.user.id]);
+    if (!rows.length) return res.json([]);
+    query += ' WHERE teacher_id = ?';
+    params.push(rows[0].id);
   }
-  // admin: sees everything
 
-  const withParticipants = list.map((s) => ({
-    ...s,
-    participants: getRoomParticipants(s.roomId)
-  }));
+  const [sessions] = await pool.execute(query, params);
 
-  const sorted = withParticipants.sort((a, b) => {
+  const sorted = sessions.map(s => ({
+    id: s.id, teacherId: s.teacher_id, title: s.title, subject: s.subject,
+    className: s.class_name, description: s.description,
+    startTime: s.start_time, endTime: s.end_time, status: s.status,
+    roomId: s.room_id,
+    participants: getRoomParticipants(s.room_id),
+  })).sort((a, b) => {
     const order = { live: 0, scheduled: 1, ended: 2 };
     if (order[a.status] !== order[b.status]) return order[a.status] - order[b.status];
     return new Date(a.startTime) - new Date(b.startTime);
@@ -65,100 +59,88 @@ router.get('/sessions', (req, res) => {
   res.json(sorted);
 });
 
-// GET /api/classroom/rooms/:roomId — verify a room is live (used by VideoRoom)
-router.get('/rooms/:roomId', (req, res) => {
-  const session = classSessions.find((s) => s.roomId === req.params.roomId);
-  if (!session) return res.status(404).json({ message: 'Room not found' });
-  if (session.status !== 'live') {
-    return res.status(400).json({ message: 'This class is not live yet' });
-  }
-  res.json(session);
+router.get('/rooms/:roomId', async (req, res) => {
+  const [rows] = await pool.execute('SELECT * FROM class_sessions WHERE room_id = ?', [req.params.roomId]);
+  if (!rows.length) return res.status(404).json({ message: 'Room not found' });
+  if (rows[0].status !== 'live') return res.status(400).json({ message: 'This class is not live yet' });
+  res.json(rows[0]);
 });
 
-// GET /api/classroom/sessions/:id — must be declared AFTER /rooms/:roomId
-router.get('/sessions/:id', (req, res) => {
-  const session = classSessions.find((s) => s.id === Number(req.params.id));
-  if (!session) return res.status(404).json({ message: 'Session not found' });
-  res.json(session);
+router.get('/sessions/:id', async (req, res) => {
+  const [rows] = await pool.execute('SELECT * FROM class_sessions WHERE id = ?', [req.params.id]);
+  if (!rows.length) return res.status(404).json({ message: 'Session not found' });
+  res.json(rows[0]);
 });
 
-/* ==================================================================
-   TEACHER-ONLY ACTION ROUTES
-================================================================== */
-
-// POST /api/classroom/sessions — plan a class
-router.post('/sessions', allow('teacher'), (req, res) => {
+/* TEACHER ACTION */
+router.post('/sessions', allow('teacher'), async (req, res) => {
   const { title, subject, className, description, startTime, endTime } = req.body;
+  if (!title || !className) return res.status(400).json({ message: 'Title and class are required' });
 
-  if (!title || !className) {
-    return res.status(400).json({ message: 'Title and class are required' });
-  }
+  const [teacherRows] = await pool.execute('SELECT id, subjects FROM teachers WHERE user_id = ?', [req.user.id]);
+  if (!teacherRows.length) return res.status(404).json({ message: 'Teacher not found' });
 
-  const teacher = teachers.find((t) => t.id === req.user.profileId);
-  if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
+  const subjects = JSON.parse(teacherRows[0].subjects || '[]');
+  const roomId = makeRoomId(title, className);
 
-  const session = {
-    id: nextId(classSessions),
-    teacherId: teacher.id,
-    teacherName: teacher.name,
-    title,
-    subject: subject || teacher.subjects[0] || 'General',
-    className,
-    description: description || '',
-    startTime: startTime || new Date().toISOString(),
-    endTime: endTime || new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-    status: 'scheduled',
-    roomId: makeRoomId(title, className)
-  };
+  const [result] = await pool.execute(
+    `INSERT INTO class_sessions (teacher_id, title, subject, class_name, description, start_time, end_time, status, room_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, 'scheduled', ?)`,
+    [teacherRows[0].id, title, subject || subjects[0] || 'General', className, description || '',
+     startTime || new Date().toISOString(),
+     endTime || new Date(Date.now() + 3600000).toISOString(), roomId]
+  );
 
-  classSessions.push(session);
-  res.status(201).json({ message: 'Class scheduled', session });
+  const [rows] = await pool.execute('SELECT * FROM class_sessions WHERE id = ?', [result.insertId]);
+  res.status(201).json({ message: 'Class scheduled', session: rows[0] });
 });
 
-// POST /api/classroom/sessions/:id/start — teacher goes live (notifies students)
-router.post('/sessions/:id/start', allow('teacher'), (req, res) => {
-  const session = classSessions.find(
-    (s) => s.id === Number(req.params.id) && s.teacherId === req.user.profileId
+router.post('/sessions/:id/start', allow('teacher'), async (req, res) => {
+  const [teacherRows] = await pool.execute('SELECT id, name FROM teachers WHERE user_id = ?', [req.user.id]);
+  if (!teacherRows.length) return res.status(404).json({ message: 'Teacher not found' });
+
+  const [rows] = await pool.execute(
+    'SELECT * FROM class_sessions WHERE id = ? AND teacher_id = ?',
+    [req.params.id, teacherRows[0].id]
   );
-  if (!session) return res.status(404).json({ message: 'Session not found' });
-  if (session.status === 'ended') {
-    return res.status(400).json({ message: 'This session has already ended' });
-  }
+  if (!rows.length) return res.status(404).json({ message: 'Session not found' });
+  if (rows[0].status === 'ended') return res.status(400).json({ message: 'This session has already ended' });
 
-  session.status = 'live';
-  session.startedAt = new Date().toISOString();
+  await pool.execute("UPDATE class_sessions SET status = 'live', started_at = NOW() WHERE id = ?", [req.params.id]);
 
-  // 📣 Notify every student in this class
-  notifyClassStudents(session.className, {
-    type: 'live_class',
-    title: 'Live class started',
-    body: `${session.teacherName} started "${session.title}"`,
-    link: '/student/classroom'
+  await notifyClassStudents(rows[0].class_name, {
+    type: 'live_class', title: 'Live class started',
+    body: `${teacherRows[0].name} started "${rows[0].title}"`,
+    link: '/student/classroom',
   });
 
-  res.json({ message: 'Class started', session });
+  const [updated] = await pool.execute('SELECT * FROM class_sessions WHERE id = ?', [req.params.id]);
+  res.json({ message: 'Class started', session: updated[0] });
 });
 
-// POST /api/classroom/sessions/:id/end
-router.post('/sessions/:id/end', allow('teacher'), (req, res) => {
-  const session = classSessions.find(
-    (s) => s.id === Number(req.params.id) && s.teacherId === req.user.profileId
-  );
-  if (!session) return res.status(404).json({ message: 'Session not found' });
+router.post('/sessions/:id/end', allow('teacher'), async (req, res) => {
+  const [tRows] = await pool.execute('SELECT id FROM teachers WHERE user_id = ?', [req.user.id]);
+  if (!tRows.length) return res.status(404).json({ message: 'Teacher not found' });
 
-  session.status = 'ended';
-  session.endedAt = new Date().toISOString();
-  res.json({ message: 'Class ended', session });
+  const [rows] = await pool.execute(
+    'SELECT * FROM class_sessions WHERE id = ? AND teacher_id = ?',
+    [req.params.id, tRows[0].id]
+  );
+  if (!rows.length) return res.status(404).json({ message: 'Session not found' });
+
+  await pool.execute("UPDATE class_sessions SET status = 'ended', ended_at = NOW() WHERE id = ?", [req.params.id]);
+  const [updated] = await pool.execute('SELECT * FROM class_sessions WHERE id = ?', [req.params.id]);
+  res.json({ message: 'Class ended', session: updated[0] });
 });
 
-// DELETE /api/classroom/sessions/:id
-router.delete('/sessions/:id', allow('teacher'), (req, res) => {
-  const idx = classSessions.findIndex(
-    (s) => s.id === Number(req.params.id) && s.teacherId === req.user.profileId
-  );
-  if (idx === -1) return res.status(404).json({ message: 'Session not found' });
+router.delete('/sessions/:id', allow('teacher'), async (req, res) => {
+  const [tRows] = await pool.execute('SELECT id FROM teachers WHERE user_id = ?', [req.user.id]);
+  if (!tRows.length) return res.status(404).json({ message: 'Teacher not found' });
 
-  classSessions.splice(idx, 1);
+  await pool.execute(
+    'DELETE FROM class_sessions WHERE id = ? AND teacher_id = ?',
+    [req.params.id, tRows[0].id]
+  );
   res.json({ message: 'Session deleted' });
 });
 

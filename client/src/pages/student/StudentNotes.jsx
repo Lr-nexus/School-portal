@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
-  FiFileText, FiDownload, FiMessageCircle, FiSend, FiX, FiEye
+  FiFileText, FiDownload, FiMessageCircle, FiSend,
+  FiX, FiEye, FiEdit3
 } from 'react-icons/fi';
 import { api } from '../../api/api';
 import PageHeader from '../../components/PageHeader';
@@ -30,18 +31,39 @@ export default function StudentNotes() {
   };
 
   const downloadFile = async (note) => {
-    try {
-      const res = await fetch(`${BASE_URL}${note.fileUrl}`);
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = note.originalName;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch {
-      setMessage('Download failed');
+    if (note.type === 'pdf' && note.fileUrl) {
+      try {
+        const res = await fetch(`${BASE_URL}${note.fileUrl}`);
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = note.originalName || 'note.pdf';
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch {
+        setMessage('Download failed');
+      }
+      return;
     }
+
+    // Rich text — download as HTML
+    const html = `
+<!doctype html>
+<html><head><meta charset="utf-8"><title>${note.title}</title>
+<style>body{font-family:system-ui;max-width:760px;margin:40px auto;padding:0 20px;line-height:1.6;color:#111}</style>
+</head><body>
+<h1>${note.title}</h1>
+<p><em>${note.subject} · ${note.className} · ${note.teacherName}</em></p>
+${note.content}
+</body></html>`;
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${note.title.replace(/[^a-z0-9]+/gi, '_')}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const addComment = async (e) => {
@@ -67,7 +89,7 @@ export default function StudentNotes() {
     <div>
       <PageHeader
         title="Notes"
-        subtitle="PDF notes shared by your teachers — view, download and comment"
+        subtitle="Notes shared by your teachers — view, download, and comment"
       />
 
       {message && <div className="alert alert--info">{message}</div>}
@@ -75,7 +97,12 @@ export default function StudentNotes() {
       <div className="grid-3">
         {notes.map((n) => (
           <div className="card note-card" key={n.id}>
-            <div className="note-card__icon"><FiFileText size={20} /></div>
+            <div className="note-card__icon">
+              {n.type === 'pdf' ? <FiFileText size={20} /> : <FiEdit3 size={20} />}
+            </div>
+            <span className={`chip ${n.type === 'pdf' ? 'chip--pdf' : 'chip--rich'}`}>
+              {n.type === 'pdf' ? 'PDF' : 'Rich Text'}
+            </span>
             <h3>{n.title}</h3>
             <p className="muted">{n.subject} · {n.className}</p>
             {n.description && <p>{n.description}</p>}
@@ -109,18 +136,27 @@ export default function StudentNotes() {
             <div className="modal__head">
               <div>
                 <h3>{active.title}</h3>
-                <p className="muted">{active.subject} · {active.teacherName}</p>
+                <p className="muted">
+                  {active.subject} · {active.teacherName}
+                </p>
               </div>
               <button className="btn btn--ghost" onClick={() => setActive(null)}>
                 <FiX size={16} />
               </button>
             </div>
 
-            <iframe
-              title={active.title}
-              src={`${BASE_URL}${active.fileUrl}`}
-              className="pdf-viewer"
-            />
+            {active.type === 'richtext' ? (
+              <div
+                className="rich-content"
+                dangerouslySetInnerHTML={{ __html: active.content }}
+              />
+            ) : (
+              <iframe
+                title={active.title}
+                src={`${BASE_URL}${active.fileUrl}`}
+                className="pdf-viewer"
+              />
+            )}
 
             <div className="modal__actions">
               <button className="btn btn--primary" onClick={() => downloadFile(active)}>

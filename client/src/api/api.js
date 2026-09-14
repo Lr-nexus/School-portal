@@ -1,4 +1,5 @@
-const BASE_URL = 'https://school-portal-o6o3.onrender.com/api';
+const BASE_URL =
+  process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 const STORAGE_KEY = 'user';
 

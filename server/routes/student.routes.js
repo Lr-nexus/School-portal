@@ -1,113 +1,142 @@
 const router = require('express').Router();
-const { students, classes, results, fees, announcements } = require('../data/db');
+const pool = require('../db');
 const { protect, allow } = require('../middleware/auth');
 const { gradeFor, totalOf } = require('../utils/grades');
 
-// every route below is for logged-in students only
 router.use(protect, allow('student'));
 
 // ---------- PROFILE ----------
-router.get('/me', (req, res) => {
-  const student = students.find((s) => s.id === req.user.profileId);
-  if (!student) return res.status(404).json({ message: 'Student not found' });
-  res.json(student);
+router.get('/me', async (req, res) => {
+  const [rows] = await pool.execute('SELECT * FROM students WHERE user_id = ?', [req.user.id]);
+  if (!rows.length) return res.status(404).json({ message: 'Student not found' });
+  const s = rows[0];
+  res.json({
+    id: s.id,
+    name: s.name,
+    admissionNo: s.admission_no,
+    className: s.class_name,
+    gender: s.gender,
+    dob: s.dob,
+    guardianName: s.guardian_name,
+    guardianPhone: s.guardian_phone,
+    address: s.address,
+    email: s.email,
+    house: s.house,
+  });
 });
 
 // ---------- UPDATE OWN PROFILE ----------
-// PATCH /api/students/me
-router.patch('/me', (req, res) => {
-  const student = students.find((s) => s.id === req.user.profileId);
-  if (!student) return res.status(404).json({ message: 'Student not found' });
+router.patch('/me', async (req, res) => {
+  const [existing] = await pool.execute('SELECT id FROM students WHERE user_id = ?', [req.user.id]);
+  if (!existing.length) return res.status(404).json({ message: 'Student not found' });
 
-  const editable = [
-    'name', 'gender', 'dob', 'email',
-    'guardianName', 'guardianPhone', 'address'
-  ];
-  editable.forEach((field) => {
-    if (req.body[field] !== undefined) student[field] = req.body[field];
+  const map = {
+    name: 'name', gender: 'gender', dob: 'dob', email: 'email',
+    guardianName: 'guardian_name', guardianPhone: 'guardian_phone', address: 'address',
+  };
+  const updates = [], values = [];
+  for (const [key, field] of Object.entries(map)) {
+    if (req.body[key] !== undefined) { updates.push(`${field} = ?`); values.push(req.body[key]); }
+  }
+  if (updates.length) {
+    values.push(req.user.id);
+    await pool.execute(`UPDATE students SET ${updates.join(', ')} WHERE user_id = ?`, values);
+  }
+
+  const [rows] = await pool.execute('SELECT * FROM students WHERE user_id = ?', [req.user.id]);
+  const s = rows[0];
+  res.json({
+    message: 'Profile updated',
+    student: {
+      id: s.id, name: s.name, admissionNo: s.admission_no, className: s.class_name,
+      gender: s.gender, dob: s.dob, guardianName: s.guardian_name,
+      guardianPhone: s.guardian_phone, address: s.address, email: s.email, house: s.house,
+    }
   });
-
-  res.json({ message: 'Profile updated', student });
 });
 
 // ---------- CLASSES ----------
-router.get('/me/classes', (req, res) => {
-  const myClass = classes.find((c) => c.studentIds.includes(req.user.profileId));
-  if (!myClass) return res.json({ className: null, subjects: [], schedule: [], classmates: [] });
+router.get('/me/classes', async (req, res) => {
+  const [studentRows] = await pool.execute('SELECT class_name FROM students WHERE user_id = ?', [req.user.id]);
+  if (!studentRows.length) return res.json({ className: null, subjects: [], schedule: [], classmates: [] });
+  const className = studentRows[0].class_name;
 
-  const classmates = students
-    .filter((s) => myClass.studentIds.includes(s.id))
-    .map((s) => ({ id: s.id, name: s.name, admissionNo: s.admissionNo }));
+  const [classRows] = await pool.execute('SELECT * FROM classes WHERE name = ?', [className]);
+  if (!classRows.length) return res.json({ className, subjects: [], schedule: [], classmates: [] });
 
-  res.json({ ...myClass, classmates });
+  const myClass = classRows[0];
+  const [classmates] = await pool.execute(
+    'SELECT id, name, admission_no FROM students WHERE class_name = ?',
+    [className]
+  );
+
+  res.json({
+    id: myClass.id,
+    name: myClass.name,
+    subjects: JSON.parse(myClass.subjects || '[]'),
+    schedule: JSON.parse(myClass.schedule || '[]'),
+    classmates: classmates.map(c => ({ id: c.id, name: c.name, admissionNo: c.admission_no })),
+  });
 });
 
 // ---------- RESULTS ----------
-router.get('/me/results', (req, res) => {
-  const mine = results.filter((r) => r.studentId === req.user.profileId);
+router.get('/me/results', async (req, res) => {
+  const [studentRows] = await pool.execute('SELECT id FROM students WHERE user_id = ?', [req.user.id]);
+  if (!studentRows.length) return res.json({ session: '', term: '', subjects: [], average: 0, overallGrade: 'F' });
 
-  const formatted = mine.map((r) => {
+  const [rows] = await pool.execute('SELECT * FROM results WHERE student_id = ? ORDER BY subject', [studentRows[0].id]);
+
+  const formatted = rows.map((r) => {
     const total = totalOf(r);
     const { grade, remark } = gradeFor(total);
-    return { ...r, total, grade, remark };
+    return { id: r.id, subject: r.subject, ca: r.ca, exam: r.exam, total, grade, remark };
   });
-
   const average = formatted.length
     ? Math.round(formatted.reduce((sum, r) => sum + r.total, 0) / formatted.length)
     : 0;
 
   res.json({
-    session: formatted[0]?.session || '2024/2025',
-    term: formatted[0]?.term || 'First Term',
+    session: rows[0]?.session || '2024/2025',
+    term: rows[0]?.term || 'First Term',
     subjects: formatted,
     average,
-    overallGrade: gradeFor(average).grade
+    overallGrade: gradeFor(average).grade,
   });
 });
 
 // ---------- FEES ----------
-router.get('/me/fees', (req, res) => {
-  const mine = fees
-    .filter((f) => f.studentId === req.user.profileId)
-    .map((f) => {
-      const total = f.items.reduce((sum, i) => sum + i.amount, 0);
-      const balance = total - f.amountPaid;
-      const status = balance <= 0 ? 'Paid' : f.amountPaid > 0 ? 'Partial' : 'Unpaid';
-      return { ...f, total, balance, status };
-    });
+router.get('/me/fees', async (req, res) => {
+  const [studentRows] = await pool.execute('SELECT id FROM students WHERE user_id = ?', [req.user.id]);
+  if (!studentRows.length) return res.json([]);
 
-  res.json(mine);
-});
-
-// POST /api/students/me/fees/:id/pay
-router.post('/me/fees/:id/pay', (req, res) => {
-  const fee = fees.find(
-    (f) => f.id === Number(req.params.id) && f.studentId === req.user.profileId
-  );
-  if (!fee) return res.status(404).json({ message: 'Fee record not found' });
-
-  const amount = Number(req.body.amount);
-  if (!amount || amount <= 0) {
-    return res.status(400).json({ message: 'Enter a valid amount' });
-  }
-
-  const total = fee.items.reduce((sum, i) => sum + i.amount, 0);
-  fee.amountPaid = Math.min(fee.amountPaid + amount, total);
-  fee.method = req.body.method || 'Card';
-  fee.date = new Date().toISOString().split('T')[0];
-
-  res.json({ message: 'Payment successful', fee });
+  const [rows] = await pool.execute('SELECT * FROM fees WHERE student_id = ?', [studentRows[0].id]);
+  res.json(rows.map((f) => {
+    const items = JSON.parse(f.items || '[]');
+    const total = items.reduce((sum, i) => sum + i.amount, 0);
+    const paid = parseFloat(f.amount_paid);
+    const balance = total - paid;
+    return {
+      id: f.id, session: f.session, term: f.term, items,
+      amountPaid: paid, total, balance,
+      status: balance <= 0 ? 'Paid' : paid > 0 ? 'Partial' : 'Unpaid',
+      date: f.date, reference: f.reference, method: f.method,
+    };
+  }));
 });
 
 // ---------- RECEIPT ----------
-router.get('/me/fees/:id/receipt', (req, res) => {
-  const fee = fees.find(
-    (f) => f.id === Number(req.params.id) && f.studentId === req.user.profileId
-  );
-  if (!fee) return res.status(404).json({ message: 'Fee record not found' });
+router.get('/me/fees/:id/receipt', async (req, res) => {
+  const [studentRows] = await pool.execute('SELECT * FROM students WHERE user_id = ?', [req.user.id]);
+  if (!studentRows.length) return res.status(404).json({ message: 'Student not found' });
+  const student = studentRows[0];
 
-  const student = students.find((s) => s.id === req.user.profileId);
-  const total = fee.items.reduce((sum, i) => sum + i.amount, 0);
+  const [feeRows] = await pool.execute('SELECT * FROM fees WHERE id = ? AND student_id = ?', [req.params.id, student.id]);
+  if (!feeRows.length) return res.status(404).json({ message: 'Fee record not found' });
+  const fee = feeRows[0];
+
+  const items = JSON.parse(fee.items || '[]');
+  const total = items.reduce((sum, i) => sum + i.amount, 0);
+  const paid = parseFloat(fee.amount_paid);
 
   res.json({
     school: 'Bright Future Secondary School',
@@ -115,22 +144,20 @@ router.get('/me/fees/:id/receipt', (req, res) => {
     receiptNo: `RCPT-${fee.reference}`,
     date: fee.date,
     studentName: student.name,
-    admissionNo: student.admissionNo,
-    className: student.className,
+    admissionNo: student.admission_no,
+    className: student.class_name,
     session: fee.session,
     term: fee.term,
-    items: fee.items,
-    total,
-    amountPaid: fee.amountPaid,
-    balance: total - fee.amountPaid,
+    items, total, amountPaid: paid, balance: total - paid,
     method: fee.method,
-    status: total - fee.amountPaid <= 0 ? 'PAID' : 'PART PAYMENT'
+    status: total - paid <= 0 ? 'PAID' : 'PART PAYMENT',
   });
 });
 
 // ---------- ANNOUNCEMENTS ----------
-router.get('/me/announcements', (req, res) => {
-  res.json(announcements);
+router.get('/me/announcements', async (req, res) => {
+  const [rows] = await pool.execute('SELECT * FROM announcements ORDER BY date DESC');
+  res.json(rows);
 });
 
 module.exports = router;

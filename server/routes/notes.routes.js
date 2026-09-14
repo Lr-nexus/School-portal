@@ -2,7 +2,7 @@ const router = require('express').Router();
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
-const { notes, noteComments, students, teachers, nextId } = require('../data/db');
+const pool = require('../db');
 const { protect, allow } = require('../middleware/auth');
 const { notify, notifyClassStudents } = require('../utils/notify');
 
@@ -29,218 +29,203 @@ const upload = multer({
   }
 });
 
-/* GET /api/notes — role-filtered list */
-router.get('/', (req, res) => {
-  let list = notes;
+/* GET /api/notes */
+router.get('/', async (req, res) => {
+  let query = `
+    SELECT n.*, t.name AS teacher_name,
+      (SELECT COUNT(*) FROM note_comments c WHERE c.note_id = n.id) AS comment_count
+    FROM notes n
+    LEFT JOIN teachers t ON t.id = n.teacher_id
+  `;
+  const params = [];
 
   if (req.user.role === 'student') {
-    const student = students.find((s) => s.id === req.user.profileId);
-    list = notes.filter((n) => n.className === student?.className);
+    const [rows] = await pool.execute('SELECT class_name FROM students WHERE user_id = ?', [req.user.id]);
+    if (!rows.length) return res.json([]);
+    query += ' WHERE n.class_name = ?';
+    params.push(rows[0].class_name);
   } else if (req.user.role === 'teacher') {
-    list = notes.filter((n) => n.teacherId === req.user.profileId);
+    const [rows] = await pool.execute('SELECT id FROM teachers WHERE user_id = ?', [req.user.id]);
+    if (!rows.length) return res.json([]);
+    query += ' WHERE n.teacher_id = ?';
+    params.push(rows[0].id);
   }
 
-  const withCounts = list
-    .map((n) => ({
-      id: n.id,
-      teacherId: n.teacherId,
-      teacherName: n.teacherName,
-      title: n.title,
-      subject: n.subject,
-      className: n.className,
-      description: n.description,
-      type: n.type,
-      // Only metadata for lists — the `content` blob is served by GET /:id
-      fileName: n.fileName || null,
-      originalName: n.originalName || null,
-      fileSize: n.fileSize || null,
-      fileUrl: n.fileUrl || null,
-      uploadedAt: n.uploadedAt,
-      commentCount: noteComments.filter((c) => c.noteId === n.id).length
-    }))
-    .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
+  query += ' ORDER BY n.uploaded_at DESC';
 
-  res.json(withCounts);
+  const [notes] = await pool.execute(query, params);
+
+  res.json(notes.map(n => ({
+    id: n.id, teacherId: n.teacher_id, teacherName: n.teacher_name || 'Teacher',
+    title: n.title, subject: n.subject, className: n.class_name, description: n.description,
+    type: n.type, fileName: n.file_name, originalName: n.original_name,
+    fileSize: n.file_size, fileUrl: n.file_url, uploadedAt: n.uploaded_at,
+    commentCount: n.comment_count,
+  })));
 });
 
-/* GET /api/notes/:id — full note + comments */
-router.get('/:id', (req, res) => {
-  const note = notes.find((n) => n.id === Number(req.params.id));
-  if (!note) return res.status(404).json({ message: 'Note not found' });
+/* GET /api/notes/:id */
+router.get('/:id', async (req, res) => {
+  const [rows] = await pool.execute(
+    `SELECT n.*, t.name AS teacher_name FROM notes n
+     LEFT JOIN teachers t ON t.id = n.teacher_id
+     WHERE n.id = ?`,
+    [req.params.id]
+  );
+  if (!rows.length) return res.status(404).json({ message: 'Note not found' });
+  const note = rows[0];
 
   if (req.user.role === 'student') {
-    const student = students.find((s) => s.id === req.user.profileId);
-    if (note.className !== student?.className) {
+    const [sRows] = await pool.execute('SELECT class_name FROM students WHERE user_id = ?', [req.user.id]);
+    if (!sRows.length || sRows[0].class_name !== note.class_name) {
       return res.status(403).json({ message: 'You do not have access to this note' });
     }
-  } else if (req.user.role === 'teacher' && note.teacherId !== req.user.profileId) {
-    return res.status(403).json({ message: 'You do not have access to this note' });
+  } else if (req.user.role === 'teacher') {
+    const [tRows] = await pool.execute('SELECT id FROM teachers WHERE user_id = ?', [req.user.id]);
+    if (!tRows.length || tRows[0].id !== note.teacher_id) {
+      return res.status(403).json({ message: 'You do not have access to this note' });
+    }
   }
 
-  const comments = noteComments
-    .filter((c) => c.noteId === note.id)
-    .sort((a, b) => new Date(a.date) - new Date(b.date));
+  const [comments] = await pool.execute(
+    'SELECT * FROM note_comments WHERE note_id = ? ORDER BY date ASC',
+    [note.id]
+  );
 
-  res.json({ ...note, comments });
+  res.json({
+    id: note.id, teacherId: note.teacher_id, teacherName: note.teacher_name,
+    title: note.title, subject: note.subject, className: note.class_name,
+    description: note.description, type: note.type,
+    fileName: note.file_name, originalName: note.original_name,
+    fileSize: note.file_size, fileUrl: note.file_url, content: note.content,
+    uploadedAt: note.uploaded_at,
+    comments: comments.map(c => ({
+      id: c.id, userId: c.user_id, userName: c.user_name,
+      role: c.role, text: c.text, date: c.date,
+    })),
+  });
 });
 
-/* POST /api/notes — PDF upload (multipart) */
-router.post('/', allow('teacher'), upload.single('file'), (req, res) => {
+/* POST /api/notes — PDF */
+router.post('/', allow('teacher'), upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
-
   const { title, subject, className, description } = req.body;
   if (!title || !className) {
     fs.unlinkSync(req.file.path);
     return res.status(400).json({ message: 'Title and class are required' });
   }
 
-  const teacher = teachers.find((t) => t.id === req.user.profileId);
-  if (!teacher) {
+  const [teacherRows] = await pool.execute('SELECT id, name FROM teachers WHERE user_id = ?', [req.user.id]);
+  if (!teacherRows.length) {
     fs.unlinkSync(req.file.path);
     return res.status(404).json({ message: 'Teacher not found' });
   }
 
-  const note = {
-    id: nextId(notes),
-    teacherId: teacher.id,
-    teacherName: teacher.name,
-    title,
-    subject: subject || teacher.subjects[0] || 'General',
-    className,
-    description: description || '',
-    type: 'pdf',
-    fileName: req.file.filename,
-    originalName: req.file.originalname,
-    fileSize: req.file.size,
-    fileUrl: `/uploads/${req.file.filename}`,
-    uploadedAt: new Date().toISOString()
-  };
+  const [result] = await pool.execute(
+    `INSERT INTO notes (teacher_id, title, subject, class_name, description, type, file_name, original_name, file_size, file_url, uploaded_at)
+     VALUES (?, ?, ?, ?, ?, 'pdf', ?, ?, ?, ?, NOW())`,
+    [teacherRows[0].id, title, subject || 'General', className, description || '',
+     req.file.filename, req.file.originalname, req.file.size, `/uploads/${req.file.filename}`]
+  );
 
-  notes.push(note);
-
-  notifyClassStudents(className, {
-    type: 'note',
-    title: 'New note uploaded',
-    body: `${teacher.name} uploaded "${title}"`,
-    link: '/student/notes'
+  await notifyClassStudents(className, {
+    type: 'note', title: 'New note uploaded',
+    body: `${teacherRows[0].name} uploaded "${title}"`,
+    link: '/student/notes',
   });
 
-  res.status(201).json({ message: 'Note uploaded', note });
+  const [rows] = await pool.execute('SELECT * FROM notes WHERE id = ?', [result.insertId]);
+  res.status(201).json({ message: 'Note uploaded', note: rows[0] });
 });
 
-/* POST /api/notes/rich — rich text note (JSON) */
-router.post('/rich', allow('teacher'), (req, res) => {
+/* POST /api/notes/rich */
+router.post('/rich', allow('teacher'), async (req, res) => {
   const { title, subject, className, description, content } = req.body;
+  if (!title || !className) return res.status(400).json({ message: 'Title and class are required' });
+  if (!content) return res.status(400).json({ message: 'Note content cannot be empty' });
+  const plain = String(content).replace(/<[^>]*>/g, '').trim();
+  if (!plain) return res.status(400).json({ message: 'Note content cannot be empty' });
 
-  if (!title || !className) {
-    return res.status(400).json({ message: 'Title and class are required' });
-  }
-  if (!content) {
-    return res.status(400).json({ message: 'Note content cannot be empty' });
-  }
+  const [teacherRows] = await pool.execute('SELECT id, name FROM teachers WHERE user_id = ?', [req.user.id]);
+  if (!teacherRows.length) return res.status(404).json({ message: 'Teacher not found' });
 
-  // Reject content that is only HTML tags with no real text
-  const plainText = String(content).replace(/<[^>]*>/g, '').trim();
-  if (!plainText) {
-    return res.status(400).json({ message: 'Note content cannot be empty' });
-  }
+  const [result] = await pool.execute(
+    `INSERT INTO notes (teacher_id, title, subject, class_name, description, type, content, uploaded_at)
+     VALUES (?, ?, ?, ?, ?, 'richtext', ?, NOW())`,
+    [teacherRows[0].id, title, subject || 'General', className, description || '', content]
+  );
 
-  const teacher = teachers.find((t) => t.id === req.user.profileId);
-  if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
-
-  const note = {
-    id: nextId(notes),
-    teacherId: teacher.id,
-    teacherName: teacher.name,
-    title,
-    subject: subject || teacher.subjects[0] || 'General',
-    className,
-    description: description || '',
-    type: 'richtext',
-    content,
-    uploadedAt: new Date().toISOString()
-  };
-
-  notes.push(note);
-
-  notifyClassStudents(className, {
-    type: 'note',
-    title: 'New note posted',
-    body: `${teacher.name} posted "${title}"`,
-    link: '/student/notes'
+  await notifyClassStudents(className, {
+    type: 'note', title: 'New note posted',
+    body: `${teacherRows[0].name} posted "${title}"`,
+    link: '/student/notes',
   });
 
-  res.status(201).json({ message: 'Note posted', note });
+  const [rows] = await pool.execute('SELECT * FROM notes WHERE id = ?', [result.insertId]);
+  res.status(201).json({ message: 'Note posted', note: rows[0] });
 });
 
 /* DELETE /api/notes/:id */
-router.delete('/:id', allow('teacher'), (req, res) => {
-  const idx = notes.findIndex(
-    (n) => n.id === Number(req.params.id) && n.teacherId === req.user.profileId
-  );
-  if (idx === -1) return res.status(404).json({ message: 'Note not found' });
+router.delete('/:id', allow('teacher'), async (req, res) => {
+  const [tRows] = await pool.execute('SELECT id FROM teachers WHERE user_id = ?', [req.user.id]);
+  if (!tRows.length) return res.status(404).json({ message: 'Teacher not found' });
 
-  const [removed] = notes.splice(idx, 1);
+  const [rows] = await pool.execute('SELECT * FROM notes WHERE id = ? AND teacher_id = ?', [req.params.id, tRows[0].id]);
+  if (!rows.length) return res.status(404).json({ message: 'Note not found' });
+  const note = rows[0];
 
-  for (let i = noteComments.length - 1; i >= 0; i--) {
-    if (noteComments[i].noteId === removed.id) noteComments.splice(i, 1);
-  }
-
-  if (removed.type === 'pdf' && removed.fileName) {
-    const fp = path.join(uploadDir, removed.fileName);
+  if (note.type === 'pdf' && note.file_name) {
+    const fp = path.join(uploadDir, note.file_name);
     if (fs.existsSync(fp)) fs.unlinkSync(fp);
   }
 
+  await pool.execute('DELETE FROM notes WHERE id = ?', [note.id]);
   res.json({ message: 'Note deleted' });
 });
 
 /* POST /api/notes/:id/comments */
-router.post('/:id/comments', (req, res) => {
-  const note = notes.find((n) => n.id === Number(req.params.id));
-  if (!note) return res.status(404).json({ message: 'Note not found' });
+router.post('/:id/comments', async (req, res) => {
+  const [noteRows] = await pool.execute('SELECT * FROM notes WHERE id = ?', [req.params.id]);
+  if (!noteRows.length) return res.status(404).json({ message: 'Note not found' });
+  const note = noteRows[0];
 
   const text = String(req.body.text || '').trim();
   if (!text) return res.status(400).json({ message: 'Comment cannot be empty' });
 
-  const comment = {
-    id: nextId(noteComments),
-    noteId: note.id,
-    userId: req.user.id,
-    userName: req.user.name,
-    role: req.user.role,
-    text,
-    date: new Date().toISOString()
-  };
-  noteComments.push(comment);
+  const [result] = await pool.execute(
+    'INSERT INTO note_comments (note_id, user_id, user_name, role, text, date) VALUES (?, ?, ?, ?, ?, NOW())',
+    [note.id, req.user.id, req.user.name, req.user.role, text]
+  );
 
-  if (note.teacherId) {
-    const owner = teachers.find((t) => t.id === note.teacherId);
-    if (owner && owner.userId && owner.userId !== req.user.id) {
-      notify({
-        userId: owner.userId,
-        type: 'comment',
+  if (note.teacher_id) {
+    const [tRows] = await pool.execute('SELECT user_id FROM teachers WHERE id = ?', [note.teacher_id]);
+    if (tRows.length && tRows[0].user_id && tRows[0].user_id !== req.user.id) {
+      await notify({
+        userId: tRows[0].user_id, type: 'comment',
         title: 'New comment on your note',
         body: `${req.user.name}: "${text.slice(0, 60)}${text.length > 60 ? '…' : ''}"`,
-        link: '/teacher/notes'
+        link: '/teacher/notes',
       });
     }
   }
 
-  res.status(201).json({ message: 'Comment added', comment });
+  const [rows] = await pool.execute('SELECT * FROM note_comments WHERE id = ?', [result.insertId]);
+  res.status(201).json({ message: 'Comment added', comment: rows[0] });
 });
 
 /* DELETE /api/notes/:id/comments/:commentId */
-router.delete('/:id/comments/:commentId', (req, res) => {
-  const idx = noteComments.findIndex(
-    (c) => c.id === Number(req.params.commentId) && c.noteId === Number(req.params.id)
+router.delete('/:id/comments/:commentId', async (req, res) => {
+  const [rows] = await pool.execute(
+    'SELECT * FROM note_comments WHERE id = ? AND note_id = ?',
+    [req.params.commentId, req.params.id]
   );
-  if (idx === -1) return res.status(404).json({ message: 'Comment not found' });
+  if (!rows.length) return res.status(404).json({ message: 'Comment not found' });
 
-  if (noteComments[idx].userId !== req.user.id && req.user.role !== 'admin') {
+  if (rows[0].user_id !== req.user.id && req.user.role !== 'admin') {
     return res.status(403).json({ message: 'You cannot delete this comment' });
   }
 
-  noteComments.splice(idx, 1);
+  await pool.execute('DELETE FROM note_comments WHERE id = ?', [rows[0].id]);
   res.json({ message: 'Comment deleted' });
 });
 

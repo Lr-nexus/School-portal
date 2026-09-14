@@ -2,10 +2,7 @@ const router = require('express').Router();
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
-const {
-  assignments, assignmentSubmissions, students, teachers,
-  classes, nextId
-} = require('../data/db');
+const pool = require('../db');
 const { protect, allow } = require('../middleware/auth');
 const { notify, notifyClassStudents } = require('../utils/notify');
 
@@ -23,7 +20,6 @@ const storage = multer.diskStorage({
   }
 });
 
-// Accept PDF, DOC, DOCX, images, ZIP — up to 20MB
 const upload = multer({
   storage,
   limits: { fileSize: 20 * 1024 * 1024 },
@@ -40,210 +36,312 @@ const upload = multer({
 });
 
 /* GET /api/assignments */
-router.get('/', (req, res) => {
-  let list = assignments;
+router.get('/', async (req, res) => {
+  let query = 'SELECT * FROM assignments';
+  const params = [];
 
   if (req.user.role === 'student') {
-    const student = students.find((s) => s.id === req.user.profileId);
-    list = assignments.filter((a) => a.className === student?.className);
+    const [studentRows] = await pool.execute(
+      'SELECT class_name FROM students WHERE user_id = ?',
+      [req.user.id]
+    );
+    if (!studentRows.length) return res.json([]);
+    query += ' WHERE class_name = ?';
+    params.push(studentRows[0].class_name);
   } else if (req.user.role === 'teacher') {
-    list = assignments.filter((a) => a.teacherId === req.user.profileId);
+    const [teacherRows] = await pool.execute(
+      'SELECT id FROM teachers WHERE user_id = ?',
+      [req.user.id]
+    );
+    if (!teacherRows.length) return res.json([]);
+    query += ' WHERE teacher_id = ?';
+    params.push(teacherRows[0].id);
   }
 
-  const enriched = list
-    .map((a) => {
-      const subs = assignmentSubmissions.filter((s) => s.assignmentId === a.id);
-      const mySub = req.user.role === 'student'
-        ? subs.find((s) => s.studentId === req.user.profileId)
-        : null;
-      return {
-        ...a,
-        submissionCount: subs.length,
-        mySubmission: mySub || null
-      };
-    })
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  query += ' ORDER BY created_at DESC';
+
+  const [assignments] = await pool.execute(query, params);
+
+  const enriched = await Promise.all(assignments.map(async (a) => {
+    const [[{ submissionCount }]] = await pool.execute(
+      'SELECT COUNT(*) as submissionCount FROM assignment_submissions WHERE assignment_id = ?',
+      [a.id]
+    );
+
+    let mySubmission = null;
+    if (req.user.role === 'student') {
+      const [studentRows] = await pool.execute(
+        'SELECT id FROM students WHERE user_id = ?',
+        [req.user.id]
+      );
+      if (studentRows.length) {
+        const [subs] = await pool.execute(
+          'SELECT * FROM assignment_submissions WHERE assignment_id = ? AND student_id = ?',
+          [a.id, studentRows[0].id]
+        );
+        if (subs.length) mySubmission = subs[0];
+      }
+    }
+
+    return {
+      id: a.id,
+      teacherId: a.teacher_id,
+      title: a.title,
+      subject: a.subject,
+      className: a.class_name,
+      description: a.description,
+      dueDate: a.due_date,
+      totalMarks: a.total_marks,
+      createdAt: a.created_at,
+      submissionCount,
+      mySubmission,
+    };
+  }));
 
   res.json(enriched);
 });
 
 /* GET /api/assignments/:id */
-router.get('/:id', (req, res) => {
-  const a = assignments.find((x) => x.id === Number(req.params.id));
-  if (!a) return res.status(404).json({ message: 'Assignment not found' });
+router.get('/:id', async (req, res) => {
+  const [rows] = await pool.execute(
+    'SELECT * FROM assignments WHERE id = ?',
+    [req.params.id]
+  );
+  if (!rows.length) return res.status(404).json({ message: 'Assignment not found' });
+  const a = rows[0];
 
   if (req.user.role === 'student') {
-    const student = students.find((s) => s.id === req.user.profileId);
-    if (a.className !== student?.className) {
+    const [studentRows] = await pool.execute(
+      'SELECT id, class_name FROM students WHERE user_id = ?',
+      [req.user.id]
+    );
+    if (!studentRows.length || studentRows[0].class_name !== a.class_name) {
       return res.status(403).json({ message: 'Not your class' });
     }
-    const sub = assignmentSubmissions.find(
-      (s) => s.assignmentId === a.id && s.studentId === req.user.profileId
+    const [subs] = await pool.execute(
+      'SELECT * FROM assignment_submissions WHERE assignment_id = ? AND student_id = ?',
+      [a.id, studentRows[0].id]
     );
-    return res.json({ ...a, mySubmission: sub || null });
+    return res.json({
+      ...a,
+      mySubmission: subs.length ? subs[0] : null,
+    });
   }
 
-  // teacher / admin: full submissions
-  const subs = assignmentSubmissions.filter((s) => s.assignmentId === a.id);
+  const [subs] = await pool.execute(
+    'SELECT * FROM assignment_submissions WHERE assignment_id = ?',
+    [a.id]
+  );
   res.json({ ...a, submissions: subs });
 });
 
 /* POST /api/assignments — teacher creates */
-router.post('/', allow('teacher'), (req, res) => {
+router.post('/', allow('teacher'), async (req, res) => {
   const { title, subject, className, description, dueDate, totalMarks } = req.body;
   if (!title || !className) {
     return res.status(400).json({ message: 'Title and class are required' });
   }
 
-  const teacher = teachers.find((t) => t.id === req.user.profileId);
-  if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
+  const [teacherRows] = await pool.execute(
+    'SELECT id, name FROM teachers WHERE user_id = ?',
+    [req.user.id]
+  );
+  if (!teacherRows.length) return res.status(404).json({ message: 'Teacher not found' });
+  const { id: teacherId, name: teacherName } = teacherRows[0];
 
-  const assignment = {
-    id: nextId(assignments),
-    teacherId: teacher.id,
-    teacherName: teacher.name,
-    title,
-    subject: subject || teacher.subjects[0] || 'General',
-    className,
-    description: description || '',
-    dueDate: dueDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    totalMarks: Number(totalMarks) || 10,
-    createdAt: new Date().toISOString()
-  };
+  const [result] = await pool.execute(
+    `INSERT INTO assignments (teacher_id, title, subject, class_name, description, due_date, total_marks, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`,
+    [
+      teacherId,
+      title,
+      subject || 'General',
+      className,
+      description || '',
+      dueDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      Number(totalMarks) || 10,
+    ]
+  );
 
-  assignments.push(assignment);
-
-  notifyClassStudents(className, {
+  await notifyClassStudents(className, {
     type: 'assignment',
     title: 'New assignment',
-    body: `${teacher.name} posted "${title}"`,
-    link: '/student/assignments'
+    body: `${teacherName} posted "${title}"`,
+    link: '/student/assignments',
   });
 
-  res.status(201).json({ message: 'Assignment created', assignment });
+  const [rows] = await pool.execute('SELECT * FROM assignments WHERE id = ?', [result.insertId]);
+  res.status(201).json({ message: 'Assignment created', assignment: rows[0] });
 });
 
 /* DELETE /api/assignments/:id */
-router.delete('/:id', allow('teacher'), (req, res) => {
-  const idx = assignments.findIndex(
-    (a) => a.id === Number(req.params.id) && a.teacherId === req.user.profileId
+router.delete('/:id', allow('teacher'), async (req, res) => {
+  const [teacherRows] = await pool.execute(
+    'SELECT id FROM teachers WHERE user_id = ?',
+    [req.user.id]
   );
-  if (idx === -1) return res.status(404).json({ message: 'Assignment not found' });
+  if (!teacherRows.length) return res.status(404).json({ message: 'Teacher not found' });
 
-  const [removed] = assignments.splice(idx, 1);
-  for (let i = assignmentSubmissions.length - 1; i >= 0; i--) {
-    if (assignmentSubmissions[i].assignmentId === removed.id) {
-      const sub = assignmentSubmissions[i];
-      if (sub.fileName) {
-        const fp = path.join(uploadDir, sub.fileName);
-        if (fs.existsSync(fp)) fs.unlinkSync(fp);
-      }
-      assignmentSubmissions.splice(i, 1);
+  const [rows] = await pool.execute(
+    'SELECT * FROM assignments WHERE id = ? AND teacher_id = ?',
+    [req.params.id, teacherRows[0].id]
+  );
+  if (!rows.length) return res.status(404).json({ message: 'Assignment not found' });
+
+  const [subs] = await pool.execute(
+    'SELECT file_name FROM assignment_submissions WHERE assignment_id = ?',
+    [req.params.id]
+  );
+  subs.forEach((s) => {
+    if (s.file_name) {
+      const fp = path.join(uploadDir, s.file_name);
+      if (fs.existsSync(fp)) fs.unlinkSync(fp);
     }
-  }
+  });
 
+  await pool.execute('DELETE FROM assignments WHERE id = ?', [req.params.id]);
   res.json({ message: 'Assignment deleted' });
 });
 
 /* POST /api/assignments/:id/submit — student submits */
-router.post('/:id/submit', allow('student'), upload.single('file'), (req, res) => {
-  const a = assignments.find((x) => x.id === Number(req.params.id));
-  if (!a) {
+router.post('/:id/submit', allow('student'), upload.single('file'), async (req, res) => {
+  const [rows] = await pool.execute(
+    'SELECT * FROM assignments WHERE id = ?',
+    [req.params.id]
+  );
+  if (!rows.length) {
     if (req.file) fs.unlinkSync(req.file.path);
     return res.status(404).json({ message: 'Assignment not found' });
   }
+  const a = rows[0];
 
-  const student = students.find((s) => s.id === req.user.profileId);
-  if (!student || a.className !== student.className) {
+  const [studentRows] = await pool.execute(
+    'SELECT id, name, class_name FROM students WHERE user_id = ?',
+    [req.user.id]
+  );
+  if (!studentRows.length || studentRows[0].class_name !== a.class_name) {
     if (req.file) fs.unlinkSync(req.file.path);
     return res.status(403).json({ message: 'Not your class' });
   }
+  const student = studentRows[0];
 
   const text = String(req.body.text || '').trim();
   if (!text && !req.file) {
     return res.status(400).json({ message: 'Submit text or a file' });
   }
 
-  const existingIdx = assignmentSubmissions.findIndex(
-    (s) => s.assignmentId === a.id && s.studentId === student.id
+  const [existing] = await pool.execute(
+    'SELECT id, file_name FROM assignment_submissions WHERE assignment_id = ? AND student_id = ?',
+    [a.id, student.id]
   );
 
-  // Remove previous file if resubmitting
-  if (existingIdx !== -1 && assignmentSubmissions[existingIdx].fileName) {
-    const oldPath = path.join(uploadDir, assignmentSubmissions[existingIdx].fileName);
+  if (existing.length && existing[0].file_name) {
+    const oldPath = path.join(uploadDir, existing[0].file_name);
     if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
   }
 
-  const submission = {
-    id: existingIdx !== -1 ? assignmentSubmissions[existingIdx].id : nextId(assignmentSubmissions),
-    assignmentId: a.id,
-    studentId: student.id,
-    studentName: student.name,
-    text,
-    fileName: req.file ? req.file.filename : null,
-    originalName: req.file ? req.file.originalname : null,
-    fileUrl: req.file ? `/uploads/${req.file.filename}` : null,
-    submittedAt: new Date().toISOString(),
-    score: null,
-    feedback: null,
-    gradedAt: null
-  };
-
-  if (existingIdx !== -1) {
-    assignmentSubmissions[existingIdx] = submission;
+  if (existing.length) {
+    await pool.execute(
+      `UPDATE assignment_submissions
+       SET text = ?, file_name = ?, original_name = ?, file_url = ?, submitted_at = NOW(),
+           score = NULL, feedback = NULL, graded_at = NULL
+       WHERE id = ?`,
+      [
+        text,
+        req.file?.filename || null,
+        req.file?.originalname || null,
+        req.file ? `/uploads/${req.file.filename}` : null,
+        existing[0].id,
+      ]
+    );
   } else {
-    assignmentSubmissions.push(submission);
+    await pool.execute(
+      `INSERT INTO assignment_submissions (assignment_id, student_id, text, file_name, original_name, file_url, submitted_at)
+       VALUES (?, ?, ?, ?, ?, ?, NOW())`,
+      [
+        a.id,
+        student.id,
+        text,
+        req.file?.filename || null,
+        req.file?.originalname || null,
+        req.file ? `/uploads/${req.file.filename}` : null,
+      ]
+    );
   }
 
-  // Notify the teacher
-  const teacher = teachers.find((t) => t.id === a.teacherId);
-  if (teacher && teacher.userId) {
-    notify({
-      userId: teacher.userId,
+  const [teacherRows] = await pool.execute(
+    'SELECT user_id FROM teachers WHERE id = ?',
+    [a.teacher_id]
+  );
+  if (teacherRows.length && teacherRows[0].user_id) {
+    await notify({
+      userId: teacherRows[0].user_id,
       type: 'submission',
       title: 'New assignment submission',
       body: `${student.name} submitted "${a.title}"`,
-      link: '/teacher/assignments'
+      link: '/teacher/assignments',
     });
   }
 
-  res.json({ message: 'Submission received', submission });
+  const [subs] = await pool.execute(
+    'SELECT * FROM assignment_submissions WHERE assignment_id = ? AND student_id = ?',
+    [a.id, student.id]
+  );
+
+  res.json({ message: 'Submission received', submission: subs[0] });
 });
 
 /* POST /api/assignments/:id/grade/:studentId — teacher grades */
-router.post('/:id/grade/:studentId', allow('teacher'), (req, res) => {
-  const a = assignments.find(
-    (x) => x.id === Number(req.params.id) && x.teacherId === req.user.profileId
+router.post('/:id/grade/:studentId', allow('teacher'), async (req, res) => {
+  const [teacherRows] = await pool.execute(
+    'SELECT id FROM teachers WHERE user_id = ?',
+    [req.user.id]
   );
-  if (!a) return res.status(404).json({ message: 'Assignment not found' });
+  if (!teacherRows.length) return res.status(404).json({ message: 'Teacher not found' });
 
-  const sub = assignmentSubmissions.find(
-    (s) => s.assignmentId === a.id && s.studentId === Number(req.params.studentId)
+  const [aRows] = await pool.execute(
+    'SELECT * FROM assignments WHERE id = ? AND teacher_id = ?',
+    [req.params.id, teacherRows[0].id]
   );
-  if (!sub) return res.status(404).json({ message: 'Submission not found' });
+  if (!aRows.length) return res.status(404).json({ message: 'Assignment not found' });
+  const a = aRows[0];
+
+  const [subRows] = await pool.execute(
+    'SELECT * FROM assignment_submissions WHERE assignment_id = ? AND student_id = ?',
+    [a.id, req.params.studentId]
+  );
+  if (!subRows.length) return res.status(404).json({ message: 'Submission not found' });
 
   const score = Number(req.body.score);
-  if (isNaN(score) || score < 0 || score > a.totalMarks) {
-    return res.status(400).json({ message: `Score must be between 0 and ${a.totalMarks}` });
+  if (isNaN(score) || score < 0 || score > a.total_marks) {
+    return res.status(400).json({ message: `Score must be between 0 and ${a.total_marks}` });
   }
 
-  sub.score = score;
-  sub.feedback = String(req.body.feedback || '').trim();
-  sub.gradedAt = new Date().toISOString();
+  await pool.execute(
+    'UPDATE assignment_submissions SET score = ?, feedback = ?, graded_at = NOW() WHERE id = ?',
+    [score, String(req.body.feedback || '').trim(), subRows[0].id]
+  );
 
-  // Notify the student
-  const student = students.find((s) => s.id === sub.studentId);
-  if (student && student.userId) {
-    notify({
-      userId: student.userId,
+  const [studentRows] = await pool.execute(
+    'SELECT user_id, name FROM students WHERE id = ?',
+    [req.params.studentId]
+  );
+  if (studentRows.length && studentRows[0].user_id) {
+    await notify({
+      userId: studentRows[0].user_id,
       type: 'grade',
       title: 'Assignment graded',
-      body: `"${a.title}" scored ${score}/${a.totalMarks}`,
-      link: '/student/assignments'
+      body: `"${a.title}" scored ${score}/${a.total_marks}`,
+      link: '/student/assignments',
     });
   }
 
-  res.json({ message: 'Graded', submission: sub });
+  const [updated] = await pool.execute(
+    'SELECT * FROM assignment_submissions WHERE id = ?',
+    [subRows[0].id]
+  );
+
+  res.json({ message: 'Graded', submission: updated[0] });
 });
 
 module.exports = router;

@@ -1468,3 +1468,205 @@ textarea { resize: vertical; min-height: 60px; }
   .profile-form__actions .btn { width: 100%; }
   .login__demo-btns { flex-direction: column; }
 }
+
+/* ==================================================
+   TABS (Notes composer)
+================================================== */
+.tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0;
+}
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  transition: color .15s, border-color .15s;
+  margin-bottom: -1px;
+}
+.tab:hover { color: var(--text-2); }
+.tab--active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* ==================================================
+   QUILL EDITOR (react-quill-new)
+================================================== */
+.editor-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-2);
+  margin: 16px 0 6px;
+}
+
+.editor .ql-toolbar.ql-snow {
+  border: 1px solid var(--border);
+  border-radius: 12px 12px 0 0;
+  background: var(--surface-2);
+  font-family: inherit;
+  padding: 8px 10px;
+}
+.editor .ql-container.ql-snow {
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+  background: var(--surface);
+  font-family: inherit;
+  font-size: 14px;
+  min-height: 240px;
+}
+.editor .ql-editor {
+  min-height: 240px;
+  color: var(--text);
+  line-height: 1.65;
+  padding: 16px 18px;
+}
+.editor .ql-editor.ql-blank::before {
+  color: var(--muted-2);
+  font-style: normal;
+  left: 18px;
+}
+.editor .ql-editor h1,
+.editor .ql-editor h2,
+.editor .ql-editor h3 { color: var(--text); margin: 14px 0 8px; }
+.editor .ql-editor blockquote {
+  border-left: 4px solid var(--accent);
+  padding-left: 14px;
+  color: var(--muted);
+  margin: 10px 0;
+}
+.editor .ql-editor pre {
+  background: var(--surface-3);
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+.editor .ql-editor a { color: var(--accent); }
+
+/* Icon + picker colors in both themes */
+.editor .ql-snow .ql-stroke { stroke: var(--text-2); }
+.editor .ql-snow .ql-fill  { fill: var(--text-2); }
+.editor .ql-snow .ql-picker { color: var(--text-2); }
+.editor .ql-snow .ql-picker-options {
+  background: var(--surface);
+  border-color: var(--border);
+}
+.editor .ql-snow .ql-tooltip {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+  box-shadow: var(--shadow-md);
+}
+.editor .ql-snow .ql-tooltip input[type=text] {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.editor .ql-snow .ql-tooltip a { color: var(--accent); }
+
+.editor .ql-snow .ql-active .ql-stroke { stroke: var(--accent); }
+.editor .ql-snow .ql-active .ql-fill  { fill: var(--accent); }
+.editor .ql-snow .ql-active           { color: var(--accent); }
+.editor .ql-snow button:hover .ql-stroke { stroke: var(--accent); }
+.editor .ql-snow button:hover .ql-fill  { fill: var(--accent); }
+.editor .ql-snow .ql-picker-label:hover { color: var(--accent); }
+
+/* ==================================================
+   RICH CONTENT (view mode for both roles)
+================================================== */
+.rich-content {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text);
+  padding: 22px 24px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  max-height: 55vh;
+  overflow-y: auto;
+}
+.rich-content h1 { font-size: 24px; margin: 8px 0 12px; color: var(--text); }
+.rich-content h2 { font-size: 20px; margin: 16px 0 10px; color: var(--text); }
+.rich-content h3 { font-size: 16px; margin: 14px 0 8px; color: var(--text); }
+.rich-content p  { margin-bottom: 10px; }
+.rich-content ul,
+.rich-content ol { margin: 8px 0 12px 24px; }
+.rich-content li { margin-bottom: 4px; }
+.rich-content blockquote {
+  border-left: 4px solid var(--accent);
+  padding: 4px 14px;
+  margin: 12px 0;
+  color: var(--muted);
+  font-style: italic;
+  background: var(--accent-soft);
+  border-radius: 0 8px 8px 0;
+}
+.rich-content pre {
+  background: var(--surface-3);
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  overflow-x: auto;
+  margin: 10px 0;
+}
+.rich-content code {
+  background: var(--surface-3);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+.rich-content a {
+  color: var(--accent);
+  text-decoration: underline;
+}
+.rich-content img {
+  max-width: 100%;
+  border-radius: 10px;
+  margin: 10px 0;
+  box-shadow: var(--shadow-sm);
+}
+
+/* ==================================================
+   NOTE TYPE CHIPS
+================================================== */
+.chip--pdf {
+  background: rgba(220, 38, 38, .12);
+  color: #b91c1c;
+  font-weight: 600;
+  font-size: 10px;
+  letter-spacing: .4px;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  align-self: flex-start;
+}
+.chip--rich {
+  background: rgba(37, 99, 235, .12);
+  color: #1d4ed8;
+  font-weight: 600;
+  font-size: 10px;
+  letter-spacing: .4px;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  align-self: flex-start;
+}
+[data-theme="dark"] .chip--pdf {
+  background: rgba(239, 68, 68, .18);
+  color: #fca5a5;
+}
+[data-theme="dark"] .chip--rich {
+  background: rgba(96, 165, 250, .18);
+  color: #bfdbfe;
+}
