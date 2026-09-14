@@ -1,5 +1,5 @@
 const BASE_URL =
-  process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+  process.env.REACT_APP_API_URL || 'https://school-portal-unva.onrender.com/api';
 
 const STORAGE_KEY = 'user';
 
