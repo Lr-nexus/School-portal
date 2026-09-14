@@ -1,4 +1,4 @@
-const BASE_URL = 'https://school-portal-unva.onrender.com/api';
+const BASE_URL = 'https://school-portal-unva.onrender.com';
 
 const STORAGE_KEY = 'user';
 
