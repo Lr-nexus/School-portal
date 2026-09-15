@@ -19,7 +19,7 @@ const app = express();
 const server = http.createServer(app);
 
 // CLIENT_URL comes from Render env vars. Set it to your Vercel URL.
-const allowedOrigins = (process.env.CLIENT_URL || 'https://school-portal-fawn-phi.vercel.app')
+const allowedOrigins = (process.env.CLIENT_URL || 'https://nexus-ten-woad-56.vercel.app')
   .split(',')
   .map((s) => s.trim())
   .filter(Boolean);
