@@ -30,5 +30,5 @@
       "last 1 firefox version"
     ]
   },
-  "proxy": "https://nexus-nexus-1876.vercel.app/p"
+  "proxy": "https://nexus-nexus-1876.vercel.app"
 }

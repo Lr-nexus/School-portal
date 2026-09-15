@@ -8,7 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import PageHeader from '../../components/PageHeader';
 import Loader from '../../components/Loader';
 
-const BASE_URL = 'https://nexus-nexus-1876.vercel.app/p';
+const BASE_URL = 'https://nexus-nexus-1876.vercel.app';
 
 export default function StudentAssignments() {
   const { user } = useAuth();
