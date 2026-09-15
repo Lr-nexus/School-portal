@@ -1,4 +1,4 @@
-const BASE_URL = 'https://school-portal-unva.onrender.com/api';
+const BASE_URL = 'https://school-portal-1-xaio.onrender.com/api';
 const STORAGE_KEY = 'user';
 
 function currentUser() {
