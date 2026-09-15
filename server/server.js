@@ -18,32 +18,39 @@ const { setupSocket } = require('./socket');
 const app = express();
 const server = http.createServer(app);
 
-// CLIENT_URL comes from Render env vars. Set it to your Vercel URL.
-const allowedOrigins = (process.env.CLIENT_URL || 'https://nexus-ten-woad-56.vercel.app')
+const allowedOrigins = (
+  process.env.CLIENT_URL ||
+  'https://nexus-nexus-1876.vercel.app'
+)
   .split(',')
   .map((s) => s.trim())
   .filter(Boolean);
 
 function corsOriginCheck(origin, cb) {
-  // Requests with no origin (curl, Postman, mobile apps) always pass
   if (!origin) return cb(null, true);
-  if (allowedOrigins.includes(origin)) return cb(null, true);
+
+  if (allowedOrigins.includes(origin)) {
+    return cb(null, true);
+  }
+
   return cb(new Error(`CORS blocked: ${origin}`));
 }
 
 const io = new Server(server, {
   cors: {
     origin: corsOriginCheck,
-    methods: ['GET', 'POST'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     credentials: true
   }
 });
+
 setupSocket(io);
 
 app.use(cors({
   origin: corsOriginCheck,
   credentials: true
 }));
+
 app.use(express.json());
 
 app.use((req, res, next) => {
@@ -51,9 +58,16 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use(
+  '/uploads',
+  express.static(path.join(__dirname, 'uploads'))
+);
 
-app.get('/', (req, res) => res.json({ message: 'School Portal API is running' }));
+app.get('/', (req, res) => {
+  res.json({
+    message: 'School Portal API is running'
+  });
+});
 
 app.use('/api/auth', authRoutes);
 app.use('/api/students', studentRoutes);
@@ -65,7 +79,14 @@ app.use('/api/notes', notesRoutes);
 app.use('/api/assignments', assignmentsRoutes);
 app.use('/api/notifications', notificationsRoutes);
 
-app.use((req, res) => res.status(404).json({ message: 'Route not found' }));
+app.use((req, res) => {
+  res.status(404).json({
+    message: 'Route not found'
+  });
+});
 
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+
+server.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});
