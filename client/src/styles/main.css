@@ -1707,3 +1707,12 @@ textarea { resize: vertical; min-height: 60px; }
   font-size: 12px;
   color: var(--text);
 }
+
+.btn--sm {
+  padding: 6px 12px;
+  font-size: 12px;
+  gap: 6px;
+}
+.btn--sm svg {
+  flex-shrink: 0;
+}

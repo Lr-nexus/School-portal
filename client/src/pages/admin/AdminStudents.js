@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
-import { FiUserPlus, FiCopy, FiCheck } from 'react-icons/fi';
+import {
+  FiUserPlus, FiCopy, FiCheck,
+  FiTrash2, FiX, FiAlertTriangle
+} from 'react-icons/fi';
 import { api } from '../../api/api';
 import PageHeader from '../../components/PageHeader';
 
@@ -7,8 +10,8 @@ const emptyForm = {
   name: '',
   email: '',
   password: '',
-  className: '',
-  gender: '',
+  className: 'JSS 2A',
+  gender: 'Female',
   guardianName: '',
   guardianPhone: '',
   address: ''
@@ -21,6 +24,8 @@ export default function AdminStudents() {
   const [credentials, setCredentials] = useState(null);
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [confirmDelete, setConfirmDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = () =>
     api('/admin/students')
@@ -76,6 +81,21 @@ export default function AdminStudents() {
     });
   };
 
+  const performDelete = async () => {
+    if (!confirmDelete) return;
+    setDeleting(true);
+    try {
+      await api(`/admin/students/${confirmDelete.id}`, { method: 'DELETE' });
+      setMessage(`Removed ${confirmDelete.name}`);
+      setConfirmDelete(null);
+      await load();
+    } catch (err) {
+      setMessage(err.message);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   if (loading) return <div className="loader">Loading…</div>;
 
   return (
@@ -92,7 +112,9 @@ export default function AdminStudents() {
           <div className="credentials-card__head">
             <h3><FiCheck size={16} /> Account Created — Share With the Student</h3>
             <button className="btn btn--ghost" onClick={copyCredentials}>
-              {copied ? <><FiCheck size={14} /> Copied</> : <><FiCopy size={14} /> Copy</>}
+              {copied
+                ? <><FiCheck size={14} /> Copied</>
+                : <><FiCopy size={14} /> Copy</>}
             </button>
           </div>
           <div className="credentials-card__body">
@@ -110,7 +132,7 @@ export default function AdminStudents() {
       <div className="card">
         <h3><FiUserPlus size={16} /> Enroll New Student</h3>
         <form className="form-grid" onSubmit={handleSubmit}>
-          <label>Full Name
+          <label>Full Name *
             <input
               name="name"
               value={form.name}
@@ -119,8 +141,7 @@ export default function AdminStudents() {
               required
             />
           </label>
-
-          <label>Email
+          <label>Email *
             <input
               type="email"
               name="email"
@@ -130,17 +151,15 @@ export default function AdminStudents() {
               required
             />
           </label>
-
           <label>Password
             <input
               name="password"
               value={form.password}
               onChange={handleChange}
-              placeholder=""
+              placeholder="Leave blank → changeme123"
             />
           </label>
-
-          <label>Class
+          <label>Class *
             <input
               name="className"
               value={form.className}
@@ -149,14 +168,12 @@ export default function AdminStudents() {
               required
             />
           </label>
-
           <label>Gender
             <select name="gender" value={form.gender} onChange={handleChange}>
               <option>Female</option>
               <option>Male</option>
             </select>
           </label>
-
           <label>Guardian Name
             <input
               name="guardianName"
@@ -165,7 +182,6 @@ export default function AdminStudents() {
               placeholder="Mr. Peter Obi"
             />
           </label>
-
           <label>Guardian Phone
             <input
               name="guardianPhone"
@@ -174,7 +190,6 @@ export default function AdminStudents() {
               placeholder="0803 111 2222"
             />
           </label>
-
           <label className="form-grid__full">Address
             <input
               name="address"
@@ -183,7 +198,6 @@ export default function AdminStudents() {
               placeholder="12 Allen Avenue, Ikeja, Lagos"
             />
           </label>
-
           <div className="form-grid__full">
             <button className="btn btn--primary">
               <FiUserPlus size={16} /> Enroll Student
@@ -204,6 +218,7 @@ export default function AdminStudents() {
               <th>Email</th>
               <th>Gender</th>
               <th>Guardian</th>
+              <th style={{ textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -216,11 +231,20 @@ export default function AdminStudents() {
                 <td>{s.email || '—'}</td>
                 <td>{s.gender}</td>
                 <td>{s.guardianName || '—'}</td>
+                <td style={{ textAlign: 'right' }}>
+                  <button
+                    className="btn btn--danger btn--sm"
+                    onClick={() => setConfirmDelete(s)}
+                    title="Remove student"
+                  >
+                    <FiTrash2 size={14} /> Remove
+                  </button>
+                </td>
               </tr>
             ))}
             {!students.length && (
               <tr>
-                <td colSpan="7" className="muted">
+                <td colSpan="8" className="muted">
                   No students enrolled yet.
                 </td>
               </tr>
@@ -228,6 +252,69 @@ export default function AdminStudents() {
           </tbody>
         </table>
       </div>
+
+      {/* Delete confirmation modal */}
+      {confirmDelete && (
+        <div
+          className="modal-backdrop"
+          onClick={() => !deleting && setConfirmDelete(null)}
+        >
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal__head">
+              <h3><FiAlertTriangle size={18} /> Remove Student?</h3>
+              <button
+                className="btn btn--ghost"
+                onClick={() => setConfirmDelete(null)}
+                disabled={deleting}
+              >
+                <FiX size={16} />
+              </button>
+            </div>
+
+            <p style={{ marginBottom: 8 }}>
+              You are about to permanently remove{' '}
+              <strong>{confirmDelete.name}</strong> ({confirmDelete.admissionNo}).
+            </p>
+
+            <p className="muted" style={{ fontSize: 13, marginBottom: 8 }}>
+              This will delete:
+            </p>
+            <ul
+              className="muted"
+              style={{ fontSize: 13, marginLeft: 20, marginBottom: 16 }}
+            >
+              <li>The student's login account</li>
+              <li>Their results</li>
+              <li>Their fee records</li>
+              <li>Their quiz submissions</li>
+              <li>Their assignment submissions</li>
+              <li>Their notifications and comments</li>
+            </ul>
+
+            <p className="muted" style={{ fontSize: 12, color: 'var(--red)' }}>
+              This action cannot be undone.
+            </p>
+
+            <div className="modal__actions">
+              <button
+                className="btn btn--ghost"
+                onClick={() => setConfirmDelete(null)}
+                disabled={deleting}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn--danger"
+                onClick={performDelete}
+                disabled={deleting}
+              >
+                <FiTrash2 size={14} />{' '}
+                {deleting ? 'Removing…' : 'Yes, Remove Student'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

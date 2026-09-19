@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
-import { FiUserPlus, FiCopy, FiCheck } from 'react-icons/fi';
+import {
+  FiUserPlus, FiCopy, FiCheck,
+  FiTrash2, FiX, FiAlertTriangle
+} from 'react-icons/fi';
 import { api } from '../../api/api';
 import PageHeader from '../../components/PageHeader';
 
@@ -21,6 +24,8 @@ export default function AdminTeachers() {
   const [credentials, setCredentials] = useState(null);
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [confirmDelete, setConfirmDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = () =>
     api('/admin/teachers')
@@ -37,6 +42,12 @@ export default function AdminTeachers() {
     e.preventDefault();
     setMessage('');
     setCredentials(null);
+
+    if (!form.email.trim()) {
+      setMessage('Email is required');
+      return;
+    }
+
     try {
       const res = await api('/admin/teachers', {
         method: 'POST',
@@ -58,11 +69,31 @@ export default function AdminTeachers() {
 
   const copyCredentials = () => {
     if (!credentials) return;
-    const text = `Login credentials\nEmail: ${credentials.email}\nPassword: ${credentials.password}\nStaff No: ${credentials.staffNo}`;
+    const text =
+      `Login credentials\n` +
+      `Name: ${credentials.name}\n` +
+      `Email: ${credentials.email}\n` +
+      `Password: ${credentials.password}\n` +
+      `Staff No: ${credentials.staffNo}`;
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
+  };
+
+  const performDelete = async () => {
+    if (!confirmDelete) return;
+    setDeleting(true);
+    try {
+      await api(`/admin/teachers/${confirmDelete.id}`, { method: 'DELETE' });
+      setMessage(`Removed ${confirmDelete.name}`);
+      setConfirmDelete(null);
+      await load();
+    } catch (err) {
+      setMessage(err.message);
+    } finally {
+      setDeleting(false);
+    }
   };
 
   if (loading) return <div className="loader">Loading…</div>;
@@ -79,9 +110,11 @@ export default function AdminTeachers() {
       {credentials && (
         <div className="card credentials-card">
           <div className="credentials-card__head">
-            <h3><FiCheck size={16} /> Account Created — Share These With the Teacher</h3>
+            <h3><FiCheck size={16} /> Account Created — Share With the Teacher</h3>
             <button className="btn btn--ghost" onClick={copyCredentials}>
-              {copied ? <><FiCheck size={14} /> Copied</> : <><FiCopy size={14} /> Copy</>}
+              {copied
+                ? <><FiCheck size={14} /> Copied</>
+                : <><FiCopy size={14} /> Copy</>}
             </button>
           </div>
           <div className="credentials-card__body">
@@ -99,16 +132,22 @@ export default function AdminTeachers() {
       <div className="card">
         <h3><FiUserPlus size={16} /> Enroll New Teacher</h3>
         <form className="form-grid" onSubmit={handleSubmit}>
-          <label>Full Name
-            <input name="name" value={form.name} onChange={handleChange} required />
+          <label>Full Name *
+            <input
+              name="name"
+              value={form.name}
+              onChange={handleChange}
+              placeholder="John Bello"
+              required
+            />
           </label>
-          <label>Email
+          <label>Email *
             <input
               type="email"
               name="email"
               value={form.email}
               onChange={handleChange}
-              placeholder="teacher@school.com"
+              placeholder="john@school.com"
               required
             />
           </label>
@@ -117,13 +156,18 @@ export default function AdminTeachers() {
               name="password"
               value={form.password}
               onChange={handleChange}
-              placeholder=""
+              placeholder="Leave blank → changeme123"
             />
           </label>
           <label>Phone
-            <input name="phone" value={form.phone} onChange={handleChange} />
+            <input
+              name="phone"
+              value={form.phone}
+              onChange={handleChange}
+              placeholder="0802 000 1111"
+            />
           </label>
-          <label>Subjects
+          <label>Subjects (comma separated)
             <input
               name="subjects"
               value={form.subjects}
@@ -148,7 +192,12 @@ export default function AdminTeachers() {
             />
           </label>
           <label className="form-grid__full">Address
-            <input name="address" value={form.address} onChange={handleChange} />
+            <input
+              name="address"
+              value={form.address}
+              onChange={handleChange}
+              placeholder="5 Unity Close, Ibadan"
+            />
           </label>
           <div className="form-grid__full">
             <button className="btn btn--primary">
@@ -163,8 +212,14 @@ export default function AdminTeachers() {
         <table className="table table--striped">
           <thead>
             <tr>
-              <th>#</th><th>Name</th><th>Staff No</th><th>Email</th>
-              <th>Subjects</th><th>Form Class</th><th>Phone</th>
+              <th>#</th>
+              <th>Name</th>
+              <th>Staff No</th>
+              <th>Email</th>
+              <th>Subjects</th>
+              <th>Form Class</th>
+              <th>Phone</th>
+              <th style={{ textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -177,14 +232,93 @@ export default function AdminTeachers() {
                 <td>{t.subjects.join(', ') || '—'}</td>
                 <td>{t.formClass}</td>
                 <td>{t.phone || '—'}</td>
+                <td style={{ textAlign: 'right' }}>
+                  <button
+                    className="btn btn--danger btn--sm"
+                    onClick={() => setConfirmDelete(t)}
+                    title="Remove teacher"
+                  >
+                    <FiTrash2 size={14} /> Remove
+                  </button>
+                </td>
               </tr>
             ))}
             {!teachers.length && (
-              <tr><td colSpan="7" className="muted">No teachers enrolled yet.</td></tr>
+              <tr>
+                <td colSpan="8" className="muted">
+                  No teachers enrolled yet.
+                </td>
+              </tr>
             )}
           </tbody>
         </table>
       </div>
+
+      {/* Delete confirmation modal */}
+      {confirmDelete && (
+        <div
+          className="modal-backdrop"
+          onClick={() => !deleting && setConfirmDelete(null)}
+        >
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal__head">
+              <h3><FiAlertTriangle size={18} /> Remove Teacher?</h3>
+              <button
+                className="btn btn--ghost"
+                onClick={() => setConfirmDelete(null)}
+                disabled={deleting}
+              >
+                <FiX size={16} />
+              </button>
+            </div>
+
+            <p style={{ marginBottom: 8 }}>
+              You are about to permanently remove{' '}
+              <strong>{confirmDelete.name}</strong> ({confirmDelete.staffNo}).
+            </p>
+
+            <p className="muted" style={{ fontSize: 13, marginBottom: 8 }}>
+              This will delete:
+            </p>
+            <ul
+              className="muted"
+              style={{ fontSize: 13, marginLeft: 20, marginBottom: 16 }}
+            >
+              <li>The teacher's login account</li>
+              <li>Their uploaded notes and their comments</li>
+              <li>Their assignments and student submissions</li>
+              <li>Their quizzes and student submissions</li>
+              <li>Their scheduled/live class sessions</li>
+            </ul>
+
+            <p className="muted" style={{ fontSize: 13, marginBottom: 8 }}>
+              Classes they were a form teacher of stay in the system with no teacher assigned.
+            </p>
+
+            <p className="muted" style={{ fontSize: 12, color: 'var(--red)' }}>
+              This action cannot be undone.
+            </p>
+
+            <div className="modal__actions">
+              <button
+                className="btn btn--ghost"
+                onClick={() => setConfirmDelete(null)}
+                disabled={deleting}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn--danger"
+                onClick={performDelete}
+                disabled={deleting}
+              >
+                <FiTrash2 size={14} />{' '}
+                {deleting ? 'Removing…' : 'Yes, Remove Teacher'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
