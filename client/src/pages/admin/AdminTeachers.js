@@ -132,7 +132,7 @@ export default function AdminTeachers() {
       <div className="card">
         <h3><FiUserPlus size={16} /> Enroll New Teacher</h3>
         <form className="form-grid" onSubmit={handleSubmit}>
-          <label>Full Name *
+          <label>Full Name
             <input
               name="name"
               value={form.name}
@@ -141,7 +141,7 @@ export default function AdminTeachers() {
               required
             />
           </label>
-          <label>Email *
+          <label>Email
             <input
               type="email"
               name="email"
@@ -167,7 +167,7 @@ export default function AdminTeachers() {
               placeholder="0802 000 1111"
             />
           </label>
-          <label>Subjects (comma separated)
+          <label>Subjects
             <input
               name="subjects"
               value={form.subjects}
