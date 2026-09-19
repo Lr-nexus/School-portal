@@ -19,9 +19,6 @@ async function seed() {
     for (const t of tables) await conn.query(`TRUNCATE TABLE \`${t}\``);
     await conn.query('SET FOREIGN_KEY_CHECKS = 1');
 
-    // ---- ONLY the admin account ----
-    // Every other user (teachers, students) is created by the admin
-    // through the enrollment forms.
     const [uResult] = await conn.query(
       `INSERT INTO users (name, email, password, role)
        VALUES ('Grace Ade', 'admin@school.com', 'admin123', 'admin')`
