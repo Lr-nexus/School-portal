@@ -102,7 +102,7 @@ export default function AdminTeachers() {
           <label>Full Name *
             <input name="name" value={form.name} onChange={handleChange} required />
           </label>
-          <label>Email *
+          <label>Email
             <input
               type="email"
               name="email"
@@ -117,13 +117,13 @@ export default function AdminTeachers() {
               name="password"
               value={form.password}
               onChange={handleChange}
-              placeholder="Leave blank → changeme123"
+              placeholder=""
             />
           </label>
           <label>Phone
             <input name="phone" value={form.phone} onChange={handleChange} />
           </label>
-          <label>Subjects (comma separated)
+          <label>Subjects
             <input
               name="subjects"
               value={form.subjects}

@@ -136,11 +136,11 @@ export default function AdminStudents() {
               name="password"
               value={form.password}
               onChange={handleChange}
-              placeholder="Leave blank → changeme123"
+              placeholder=""
             />
           </label>
 
-          <label>Class *
+          <label>Class
             <input
               name="className"
               value={form.className}
