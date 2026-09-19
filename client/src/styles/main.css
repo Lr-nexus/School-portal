@@ -1639,9 +1639,6 @@ textarea { resize: vertical; min-height: 60px; }
   box-shadow: var(--shadow-sm);
 }
 
-/* ==================================================
-   NOTE TYPE CHIPS
-================================================== */
 .chip--pdf {
   background: rgba(220, 38, 38, .12);
   color: #b91c1c;
@@ -1671,9 +1668,6 @@ textarea { resize: vertical; min-height: 60px; }
   color: #bfdbfe;
 }
 
-/* ==================================================
-   CREDENTIALS CARD (shown after enrollment)
-================================================== */
 .credentials-card {
   border-left: 4px solid var(--green);
   background: linear-gradient(90deg, rgba(22, 163, 74, .06), transparent 40%);
@@ -1715,4 +1709,43 @@ textarea { resize: vertical; min-height: 60px; }
 }
 .btn--sm svg {
   flex-shrink: 0;
+}
+/* ==================================================
+   PASSWORD FIELD WITH SHOW/HIDE TOGGLE
+================================================== */
+.password-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-field input {
+  width: 100%;
+  padding-right: 42px;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: background .15s, color .15s;
+}
+
+.password-toggle:hover {
+  background: var(--surface-3);
+  color: var(--text-2);
+}
+
+[data-theme="dark"] .password-toggle:hover {
+  background: var(--surface-2);
 }

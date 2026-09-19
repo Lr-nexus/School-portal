@@ -3,6 +3,7 @@ import { FiEdit2, FiSave, FiX, FiUser } from 'react-icons/fi';
 import { api } from '../../api/api';
 import PageHeader from '../../components/PageHeader';
 import Loader from '../../components/Loader';
+import ChangePasswordCard from '../../components/ChangePasswordCard';
 
 export default function AdminProfile() {
   const [profile, setProfile] = useState(null);
@@ -142,6 +143,8 @@ export default function AdminProfile() {
           </form>
         )}
       </div>
+
+      <ChangePasswordCard />
     </div>
   );
 }
