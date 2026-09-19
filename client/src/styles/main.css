@@ -1670,3 +1670,40 @@ textarea { resize: vertical; min-height: 60px; }
   background: rgba(96, 165, 250, .18);
   color: #bfdbfe;
 }
+
+/* ==================================================
+   CREDENTIALS CARD (shown after enrollment)
+================================================== */
+.credentials-card {
+  border-left: 4px solid var(--green);
+  background: linear-gradient(90deg, rgba(22, 163, 74, .06), transparent 40%);
+}
+.credentials-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.credentials-card__head h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--green);
+  margin: 0;
+}
+.credentials-card__body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+  font-size: 13px;
+}
+.credentials-card__body code {
+  background: var(--surface-3);
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  color: var(--text);
+}
