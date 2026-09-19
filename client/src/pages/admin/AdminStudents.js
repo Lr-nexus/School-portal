@@ -37,6 +37,12 @@ export default function AdminStudents() {
     e.preventDefault();
     setMessage('');
     setCredentials(null);
+
+    if (!form.email.trim()) {
+      setMessage('Email is required');
+      return;
+    }
+
     try {
       const res = await api('/admin/students', {
         method: 'POST',
@@ -58,7 +64,12 @@ export default function AdminStudents() {
 
   const copyCredentials = () => {
     if (!credentials) return;
-    const text = `Login credentials\nEmail: ${credentials.email}\nPassword: ${credentials.password}\nAdmission No: ${credentials.admissionNo}`;
+    const text =
+      `Login credentials\n` +
+      `Name: ${credentials.name}\n` +
+      `Email: ${credentials.email}\n` +
+      `Password: ${credentials.password}\n` +
+      `Admission No: ${credentials.admissionNo}`;
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -79,7 +90,7 @@ export default function AdminStudents() {
       {credentials && (
         <div className="card credentials-card">
           <div className="credentials-card__head">
-            <h3><FiCheck size={16} /> Account Created — Share These With the Student</h3>
+            <h3><FiCheck size={16} /> Account Created — Share With the Student</h3>
             <button className="btn btn--ghost" onClick={copyCredentials}>
               {copied ? <><FiCheck size={14} /> Copied</> : <><FiCopy size={14} /> Copy</>}
             </button>
@@ -100,18 +111,26 @@ export default function AdminStudents() {
         <h3><FiUserPlus size={16} /> Enroll New Student</h3>
         <form className="form-grid" onSubmit={handleSubmit}>
           <label>Full Name *
-            <input name="name" value={form.name} onChange={handleChange} required />
+            <input
+              name="name"
+              value={form.name}
+              onChange={handleChange}
+              placeholder="Ada Obi"
+              required
+            />
           </label>
+
           <label>Email *
             <input
               type="email"
               name="email"
               value={form.email}
               onChange={handleChange}
-              placeholder="student@school.com"
+              placeholder="ada@school.com"
               required
             />
           </label>
+
           <label>Password
             <input
               name="password"
@@ -120,24 +139,51 @@ export default function AdminStudents() {
               placeholder="Leave blank → changeme123"
             />
           </label>
+
           <label>Class *
-            <input name="className" value={form.className} onChange={handleChange} required />
+            <input
+              name="className"
+              value={form.className}
+              onChange={handleChange}
+              placeholder="JSS 2A"
+              required
+            />
           </label>
+
           <label>Gender
             <select name="gender" value={form.gender} onChange={handleChange}>
               <option>Female</option>
               <option>Male</option>
             </select>
           </label>
+
           <label>Guardian Name
-            <input name="guardianName" value={form.guardianName} onChange={handleChange} />
+            <input
+              name="guardianName"
+              value={form.guardianName}
+              onChange={handleChange}
+              placeholder="Mr. Peter Obi"
+            />
           </label>
+
           <label>Guardian Phone
-            <input name="guardianPhone" value={form.guardianPhone} onChange={handleChange} />
+            <input
+              name="guardianPhone"
+              value={form.guardianPhone}
+              onChange={handleChange}
+              placeholder="0803 111 2222"
+            />
           </label>
+
           <label className="form-grid__full">Address
-            <input name="address" value={form.address} onChange={handleChange} />
+            <input
+              name="address"
+              value={form.address}
+              onChange={handleChange}
+              placeholder="12 Allen Avenue, Ikeja, Lagos"
+            />
           </label>
+
           <div className="form-grid__full">
             <button className="btn btn--primary">
               <FiUserPlus size={16} /> Enroll Student
@@ -151,8 +197,13 @@ export default function AdminStudents() {
         <table className="table table--striped">
           <thead>
             <tr>
-              <th>#</th><th>Name</th><th>Admission No</th><th>Class</th>
-              <th>Email</th><th>Gender</th><th>Guardian</th>
+              <th>#</th>
+              <th>Name</th>
+              <th>Admission No</th>
+              <th>Class</th>
+              <th>Email</th>
+              <th>Gender</th>
+              <th>Guardian</th>
             </tr>
           </thead>
           <tbody>
@@ -168,7 +219,11 @@ export default function AdminStudents() {
               </tr>
             ))}
             {!students.length && (
-              <tr><td colSpan="7" className="muted">No students enrolled yet.</td></tr>
+              <tr>
+                <td colSpan="7" className="muted">
+                  No students enrolled yet.
+                </td>
+              </tr>
             )}
           </tbody>
         </table>
