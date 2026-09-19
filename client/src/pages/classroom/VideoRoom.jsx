@@ -3,12 +3,16 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import Peer from 'simple-peer';
 import {
-  FiMic, FiMicOff, FiVideo, FiVideoOff, FiPhoneOff, FiUsers
+  FiMic, FiMicOff, FiVideo, FiVideoOff,
+  FiPhoneOff, FiUsers, FiAlertCircle,
+  FiCheckCircle
 } from 'react-icons/fi';
+import { FaHandPaper } from 'react-icons/fa';
 import { api } from '../../api/api';
 import { useAuth } from '../../context/AuthContext';
 
-const SOCKET_URL = 'https://school-portal-unva.onrender.com';
+// ⚠️ Backend Socket.IO URL
+const SOCKET_URL = 'https://school-portal-1-xaio.onrender.com';
 
 export default function VideoRoom() {
   const { roomId } = useParams();
@@ -17,18 +21,21 @@ export default function VideoRoom() {
 
   const [session, setSession] = useState(null);
   const [myStream, setMyStream] = useState(null);
-  // remotePeers is keyed by userId — stable across reconnects
   const [remotePeers, setRemotePeers] = useState({});
   const [error, setError] = useState('');
   const [permission, setPermission] = useState('pending');
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
 
+  const [myHandRaised, setMyHandRaised] = useState(false);
+  const [raisedHands, setRaisedHands] = useState([]);
+  const [toast, setToast] = useState(null);
+
   const myVideoRef = useRef(null);
   const socketRef = useRef(null);
-  const peersRef = useRef({});      // keyed by socketId (WebRTC)
+  const peersRef = useRef({});
   const myStreamRef = useRef(null);
-  const joinedRef = useRef(false);  // guard against double-join
+  const joinedRef = useRef(false);
 
   /* 1. Verify room */
   useEffect(() => {
@@ -86,7 +93,7 @@ export default function VideoRoom() {
   /* 4. Socket + peers */
   useEffect(() => {
     if (!myStream || !session) return;
-    if (joinedRef.current) return; // prevents double-join if effect re-runs
+    if (joinedRef.current) return;
     joinedRef.current = true;
 
     const socket = io(SOCKET_URL, { transports: ['websocket'] });
@@ -101,32 +108,26 @@ export default function VideoRoom() {
       });
     });
 
-    // People already in the room
     socket.on('existing-users', (users) => {
       users.forEach(({ socketId, userId, name, role }) => {
-        if (userId === user.id) return; // skip self
-
+        if (userId === user.id) return;
         setRemotePeers((prev) => ({
           ...prev,
           [userId]: { name, role, socketId, stream: null }
         }));
-
         const peer = createPeer(socketId, userId, myStream, user.name);
         peersRef.current[socketId] = peer;
       });
     });
 
-    // Someone new joined — just register them, wait for their signal
     socket.on('user-joined', ({ socketId, userId, name, role }) => {
       if (userId === user.id) return;
-
       setRemotePeers((prev) => ({
         ...prev,
         [userId]: { name, role, socketId, stream: null }
       }));
     });
 
-    // Incoming signal
     socket.on('signal', ({ from, fromUserId, signal, name }) => {
       let peer = peersRef.current[from];
       if (!peer) {
@@ -137,7 +138,6 @@ export default function VideoRoom() {
       }
     });
 
-    // Someone left — find their entry by socketId and remove it
     socket.on('user-left', (socketId) => {
       peersRef.current[socketId]?.destroy();
       delete peersRef.current[socketId];
@@ -151,6 +151,37 @@ export default function VideoRoom() {
         }
         return copy;
       });
+      setRaisedHands((prev) => prev.filter((h) => h.socketId !== socketId));
+    });
+
+    /* ---------- RAISE HAND EVENTS ---------- */
+    socket.on('raised-hands-list', (list) => {
+      const enriched = list.map((sid) => ({ socketId: sid }));
+      setRaisedHands(enriched);
+    });
+
+    socket.on('hand-raised', (data) => {
+      setRaisedHands((prev) => {
+        if (prev.some((h) => h.socketId === data.socketId)) return prev;
+        return [...prev, data];
+      });
+      if (user.role === 'teacher' || user.role === 'admin') {
+        setToast({ type: 'hand', text: `${data.name} raised their hand` });
+        setTimeout(() => setToast(null), 3500);
+      }
+    });
+
+    socket.on('hand-lowered', ({ socketId }) => {
+      setRaisedHands((prev) => prev.filter((h) => h.socketId !== socketId));
+      if (socketId === socketRef.current?.id) {
+        setMyHandRaised(false);
+      }
+    });
+
+    socket.on('hand-acknowledged', ({ byName }) => {
+      setMyHandRaised(false);
+      setToast({ type: 'ack', text: `${byName} acknowledged your hand` });
+      setTimeout(() => setToast(null), 3000);
     });
 
     return () => {
@@ -167,11 +198,7 @@ export default function VideoRoom() {
     const peer = new Peer({ initiator: true, trickle: false, stream });
 
     peer.on('signal', (signal) => {
-      socketRef.current.emit('signal', {
-        to: targetSocketId,
-        signal,
-        name: myName
-      });
+      socketRef.current.emit('signal', { to: targetSocketId, signal, name: myName });
     });
 
     peer.on('stream', (remoteStream) => {
@@ -193,11 +220,7 @@ export default function VideoRoom() {
     const peer = new Peer({ initiator: false, trickle: false, stream });
 
     peer.on('signal', (signal) => {
-      socketRef.current.emit('signal', {
-        to: targetSocketId,
-        signal,
-        name: user.name
-      });
+      socketRef.current.emit('signal', { to: targetSocketId, signal, name: user.name });
     });
 
     peer.on('stream', (remoteStream) => {
@@ -243,6 +266,22 @@ export default function VideoRoom() {
     setCamOn((v) => !v);
   };
 
+  const toggleRaiseHand = () => {
+    if (!socketRef.current) return;
+    if (myHandRaised) {
+      socketRef.current.emit('lower-hand');
+      setMyHandRaised(false);
+    } else {
+      socketRef.current.emit('raise-hand');
+      setMyHandRaised(true);
+    }
+  };
+
+  const acknowledgeHand = (socketId) => {
+    if (!socketRef.current) return;
+    socketRef.current.emit('acknowledge-hand', { socketId });
+  };
+
   const leaveRoom = () => {
     myStream?.getTracks().forEach((t) => t.stop());
     socketRef.current?.disconnect();
@@ -254,6 +293,7 @@ export default function VideoRoom() {
 
   const remoteList = Object.entries(remotePeers);
   const totalInRoom = remoteList.length + 1;
+  const isTeacher = user.role === 'teacher' || user.role === 'admin';
 
   /* Error screen */
   if (error) {
@@ -290,14 +330,48 @@ export default function VideoRoom() {
           <h2>{session.title}</h2>
           <p>{session.subject} · {session.className} · Teacher: {session.teacherName}</p>
         </div>
-        <span className="pill pill--live">
-          <FiUsers size={12} /> LIVE · {totalInRoom} in room
-        </span>
+        <div className="video-room__header-right">
+          {raisedHands.length > 0 && (
+            <span className="pill pill--hands">
+              <FaHandPaper size={12} />
+              {raisedHands.length} hand{raisedHands.length > 1 ? 's' : ''} raised
+            </span>
+          )}
+          <span className="pill pill--live">
+            <FiUsers size={12} /> LIVE · {totalInRoom} in room
+          </span>
+        </div>
       </header>
 
+      {toast && (
+        <div className="video-toast">
+          {toast.type === 'ack'
+            ? <FiCheckCircle size={16} />
+            : <FiAlertCircle size={16} />}
+          {toast.text}
+        </div>
+      )}
+
+      {isTeacher && raisedHands.length > 0 && (
+        <div className="raised-hands-bar">
+          <span className="raised-hands-bar__label">
+            <FaHandPaper size={13} /> Raised hands:
+          </span>
+          {raisedHands.map((h) => (
+            <button
+              key={h.socketId}
+              className="raised-hands-bar__chip"
+              onClick={() => acknowledgeHand(h.socketId)}
+              title="Click to acknowledge"
+            >
+              <FaHandPaper size={11} /> {h.name || 'Student'}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="video-grid">
-        {/* Local */}
-        <div className="video-tile video-tile--local">
+        <div className={`video-tile video-tile--local ${myHandRaised ? 'video-tile--hand' : ''}`}>
           <video
             ref={(el) => {
               myVideoRef.current = el;
@@ -312,18 +386,28 @@ export default function VideoRoom() {
           <div className="video-tile__label">
             You ({user.name}) · {user.role}
           </div>
+          {myHandRaised && (
+            <div className="video-tile__hand-badge">
+              <FaHandPaper size={11} /> Hand raised
+            </div>
+          )}
           {!camOn && <div className="video-tile__off">Camera off</div>}
         </div>
 
-        {/* Remote — keyed by userId, so name/role always matches the tile */}
-        {remoteList.map(([userId, peer]) => (
-          <RemoteVideo
-            key={userId}
-            name={peer.name}
-            role={peer.role}
-            stream={peer.stream}
-          />
-        ))}
+        {remoteList.map(([userId, peer]) => {
+          const peerHandRaised = raisedHands.some(
+            (h) => h.name === peer.name && h.role !== 'teacher'
+          );
+          return (
+            <RemoteVideo
+              key={userId}
+              name={peer.name}
+              role={peer.role}
+              stream={peer.stream}
+              handRaised={peerHandRaised}
+            />
+          );
+        })}
 
         {remoteList.length === 0 && (
           <div className="video-tile video-tile--waiting">
@@ -353,6 +437,16 @@ export default function VideoRoom() {
           {camOn ? <FiVideo size={20} /> : <FiVideoOff size={20} />}
         </button>
 
+        {!isTeacher && (
+          <button
+            className={`video-controls__btn ${myHandRaised ? 'video-controls__btn--hand-active' : ''}`}
+            onClick={toggleRaiseHand}
+            title={myHandRaised ? 'Lower your hand' : 'Raise your hand'}
+          >
+            <FaHandPaper size={20} />
+          </button>
+        )}
+
         <button
           className="video-controls__btn video-controls__btn--end"
           onClick={leaveRoom}
@@ -365,8 +459,8 @@ export default function VideoRoom() {
   );
 }
 
-/* Remote tile — attach stream the moment the element exists */
-function RemoteVideo({ name, role, stream }) {
+/* Remote tile */
+function RemoteVideo({ name, role, stream, handRaised }) {
   const ref = useRef(null);
 
   useEffect(() => {
@@ -374,7 +468,7 @@ function RemoteVideo({ name, role, stream }) {
   }, [stream]);
 
   return (
-    <div className="video-tile">
+    <div className={`video-tile ${handRaised ? 'video-tile--hand' : ''}`}>
       <video
         ref={(el) => {
           ref.current = el;
@@ -386,6 +480,11 @@ function RemoteVideo({ name, role, stream }) {
       <div className="video-tile__label">
         {name} · {role}
       </div>
+      {handRaised && (
+        <div className="video-tile__hand-badge">
+          <FaHandPaper size={11} /> Hand raised
+        </div>
+      )}
       {!stream && <div className="video-tile__off">Connecting…</div>}
     </div>
   );

@@ -1920,3 +1920,134 @@ textarea { resize: vertical; min-height: 60px; }
   .report-head { background: #f4f6fb !important; color: #000 !important; }
   .report-head__avatar { background: #e2e8f0; color: #000; }
 }
+
+/* ==========================================================================
+   RAISE HAND
+   ========================================================================== */
+
+.video-room__header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pill--hands {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(251, 191, 36, .2);
+  color: #fcd34d;
+  font-weight: 700;
+  animation: handPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes handPulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.05); }
+}
+
+.video-toast {
+  position: absolute;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, .95);
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 30px;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .4);
+  z-index: 200;
+  animation: toastIn .25s ease-out;
+  border: 1px solid rgba(255, 255, 255, .1);
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translate(-50%, -10px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.raised-hands-bar {
+  background: linear-gradient(90deg, rgba(251, 191, 36, .15), rgba(251, 191, 36, .05));
+  border-bottom: 1px solid rgba(251, 191, 36, .25);
+  padding: 10px 22px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  animation: slideDown .25s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.raised-hands-bar__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #fcd34d;
+  font-weight: 600;
+}
+
+.raised-hands-bar__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(251, 191, 36, .2);
+  color: #fcd34d;
+  border: 1px solid rgba(251, 191, 36, .4);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s, transform .12s;
+  font-family: inherit;
+}
+
+.raised-hands-bar__chip:hover {
+  background: rgba(251, 191, 36, .35);
+  transform: translateY(-1px);
+}
+
+.video-tile__hand-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(251, 191, 36, .95);
+  color: #422006;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 3;
+  animation: handPulse 1.4s ease-in-out infinite;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .35);
+}
+
+.video-tile--hand {
+  outline: 3px solid rgba(251, 191, 36, .7);
+  outline-offset: -3px;
+}
+
+.video-controls__btn--hand-active {
+  background: #fbbf24;
+  color: #422006;
+  animation: handPulse 1.4s ease-in-out infinite;
+  box-shadow: 0 0 0 4px rgba(251, 191, 36, .25);
+}
+
+.video-controls__btn--hand-active:hover {
+  background: #f59e0b;
+}
