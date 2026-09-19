@@ -166,6 +166,51 @@ router.post('/students', async (req, res) => {
 });
 
 /* ==================================================================
+   DELETE STUDENT — removes profile + login account + related data
+================================================================== */
+router.delete('/students/:id', async (req, res) => {
+  const { id } = req.params;
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const [rows] = await conn.execute(
+      'SELECT id, user_id, name, admission_no FROM students WHERE id = ?',
+      [id]
+    );
+    if (!rows.length) {
+      await conn.rollback();
+      return res.status(404).json({ message: 'Student not found' });
+    }
+    const student = rows[0];
+
+    await conn.execute('DELETE FROM students WHERE id = ?', [student.id]);
+
+    if (student.user_id) {
+      await conn.execute('DELETE FROM users WHERE id = ?', [student.user_id]);
+    }
+
+    await conn.commit();
+
+    res.json({
+      message: 'Student removed',
+      removed: {
+        id: student.id,
+        name: student.name,
+        admissionNo: student.admission_no
+      }
+    });
+  } catch (err) {
+    await conn.rollback();
+    console.error('Delete student failed:', err);
+    res.status(500).json({ message: err.message || 'Failed to remove student' });
+  } finally {
+    conn.release();
+  }
+});
+
+/* ==================================================================
    SINGLE STUDENT'S RESULTS
 ================================================================== */
 router.get('/students/:id/results', async (req, res) => {
@@ -304,6 +349,57 @@ router.post('/teachers', async (req, res) => {
     await conn.rollback();
     console.error('Enroll teacher failed:', err);
     res.status(500).json({ message: err.message || 'Enrollment failed' });
+  } finally {
+    conn.release();
+  }
+});
+
+/* ==================================================================
+   DELETE TEACHER — removes profile + login account + related data
+================================================================== */
+router.delete('/teachers/:id', async (req, res) => {
+  const { id } = req.params;
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const [rows] = await conn.execute(
+      'SELECT id, user_id, name, staff_no FROM teachers WHERE id = ?',
+      [id]
+    );
+    if (!rows.length) {
+      await conn.rollback();
+      return res.status(404).json({ message: 'Teacher not found' });
+    }
+    const teacher = rows[0];
+
+    // Unlink any classes where they were the form teacher
+    await conn.execute(
+      'UPDATE classes SET teacher_id = NULL WHERE teacher_id = ?',
+      [teacher.id]
+    );
+
+    await conn.execute('DELETE FROM teachers WHERE id = ?', [teacher.id]);
+
+    if (teacher.user_id) {
+      await conn.execute('DELETE FROM users WHERE id = ?', [teacher.user_id]);
+    }
+
+    await conn.commit();
+
+    res.json({
+      message: 'Teacher removed',
+      removed: {
+        id: teacher.id,
+        name: teacher.name,
+        staffNo: teacher.staff_no
+      }
+    });
+  } catch (err) {
+    await conn.rollback();
+    console.error('Delete teacher failed:', err);
+    res.status(500).json({ message: err.message || 'Failed to remove teacher' });
   } finally {
     conn.release();
   }
