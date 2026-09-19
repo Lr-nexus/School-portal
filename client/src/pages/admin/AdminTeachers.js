@@ -99,7 +99,7 @@ export default function AdminTeachers() {
       <div className="card">
         <h3><FiUserPlus size={16} /> Enroll New Teacher</h3>
         <form className="form-grid" onSubmit={handleSubmit}>
-          <label>Full Name *
+          <label>Full Name
             <input name="name" value={form.name} onChange={handleChange} required />
           </label>
           <label>Email
