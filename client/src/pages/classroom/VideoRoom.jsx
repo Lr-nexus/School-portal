@@ -12,7 +12,7 @@ import { api } from '../../api/api';
 import { useAuth } from '../../context/AuthContext';
 
 // ⚠️ Backend Socket.IO URL
-const SOCKET_URL = 'https://school-portal-1-xaio.onrender.com';
+const SOCKET_URL = 'https://school-portal-unva.onrender.com';
 
 export default function VideoRoom() {
   const { roomId } = useParams();

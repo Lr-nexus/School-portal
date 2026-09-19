@@ -5,7 +5,6 @@ const AuthContext = createContext(null);
 
 const STORAGE_KEY = 'user';
 
-// sessionStorage is per-tab, so different tabs keep different logins
 function readUser() {
   try {
     const raw = sessionStorage.getItem(STORAGE_KEY);

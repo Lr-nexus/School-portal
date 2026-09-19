@@ -8,8 +8,6 @@ export default function Layout() {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
 
-  // Tag the document with the current user's role so CSS can
-  // apply role-based accent colors.
   useEffect(() => {
     document.documentElement.setAttribute('data-role', user?.role || 'guest');
   }, [user?.role]);

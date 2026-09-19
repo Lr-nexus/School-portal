@@ -3,8 +3,6 @@ import { createContext, useContext, useEffect, useState } from 'react';
 const ThemeContext = createContext(null);
 const STORAGE_KEY = 'theme';
 
-// Always default to light mode on first visit.
-// If the user has toggled before, their choice is remembered.
 function readTheme() {
   const saved = localStorage.getItem(STORAGE_KEY);
   if (saved === 'light' || saved === 'dark') return saved;
