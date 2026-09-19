@@ -7,8 +7,8 @@ const emptyForm = {
   name: '',
   email: '',
   password: '',
-  className: 'JSS 2A',
-  gender: 'Female',
+  className: '',
+  gender: '',
   guardianName: '',
   guardianPhone: '',
   address: ''
