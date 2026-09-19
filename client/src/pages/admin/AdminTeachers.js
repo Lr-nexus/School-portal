@@ -156,7 +156,7 @@ export default function AdminTeachers() {
               name="password"
               value={form.password}
               onChange={handleChange}
-              placeholder="Leave blank → changeme123"
+              placeholder="Password"
             />
           </label>
           <label>Phone
