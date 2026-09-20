@@ -11,7 +11,6 @@ import { FaHandPaper } from 'react-icons/fa';
 import { api } from '../../api/api';
 import { useAuth } from '../../context/AuthContext';
 
-// ⚠️ Backend Socket.IO URL
 const SOCKET_URL = 'https://school-portal-unva.onrender.com';
 
 export default function VideoRoom() {
@@ -90,7 +89,6 @@ export default function VideoRoom() {
     }
   }, [myStream, permission, session]);
 
-  /* 4. Socket + peers */
   useEffect(() => {
     if (!myStream || !session) return;
     if (joinedRef.current) return;
