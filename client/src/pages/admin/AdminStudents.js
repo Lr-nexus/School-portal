@@ -265,7 +265,7 @@ export default function AdminStudents() {
             </label>
             <label>Password
               <input name="password" value={form.password} onChange={handleChange}
-                     placeholder="Leave blank → changeme123" />
+                     placeholder="Password" />
             </label>
             <label>Class *
               <input name="className" value={form.className} onChange={handleChange}
@@ -344,7 +344,7 @@ export default function AdminStudents() {
                   type="text"
                   value={bulkPassword}
                   onChange={(e) => setBulkPassword(e.target.value)}
-                  placeholder="Leave blank → changeme123"
+                  placeholder="Password"
                 />
               </label>
 
