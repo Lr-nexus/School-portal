@@ -18,53 +18,35 @@ const { setupSocket } = require('./socket');
 const app = express();
 const server = http.createServer(app);
 
-
 // ============================================================
 // CORS CONFIGURATION
 // ============================================================
 
 const allowedOrigins = [
-  'https://nexus-nexus-1876.vercel.app'
+  'https://nexus-nexus-1876.vercel.app',
+  'http://localhost:3000',
+  'http://localhost:3001'
 ];
 
-// Check CORS origin
 function corsOriginCheck(origin, callback) {
   // Allow requests without an Origin header
-  // e.g. Postman, curl, server-to-server requests
-  if (!origin) {
-    return callback(null, true);
-  }
+  // (Postman, curl, server-to-server, mobile apps)
+  if (!origin) return callback(null, true);
 
   if (allowedOrigins.includes(origin)) {
     return callback(null, true);
   }
 
   console.log(`❌ CORS blocked: ${origin}`);
-
   return callback(new Error('Not allowed by CORS'));
 }
 
 const corsOptions = {
   origin: corsOriginCheck,
-
   credentials: true,
-
-  methods: [
-    'GET',
-    'POST',
-    'PUT',
-    'PATCH',
-    'DELETE',
-    'OPTIONS'
-  ],
-
-  allowedHeaders: [
-    'Content-Type',
-    'Authorization',
-    'X-User-Id'
-  ]
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-User-Id']
 };
-
 
 // ============================================================
 // SOCKET.IO
@@ -74,30 +56,21 @@ const io = new Server(server, {
   cors: {
     origin: corsOriginCheck,
     credentials: true,
-    methods: [
-      'GET',
-      'POST',
-      'PUT',
-      'PATCH',
-      'DELETE',
-      'OPTIONS'
-    ]
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
   }
 });
 
 setupSocket(io);
 
-
 // ============================================================
 // MIDDLEWARE
 // ============================================================
 
-// CORS must come BEFORE your API routes
+// CORS must come BEFORE routes
 app.use(cors(corsOptions));
 
-// Parse JSON request bodies
+// Parse JSON bodies (skips multipart automatically)
 app.use(express.json());
-
 
 // ============================================================
 // REQUEST LOGGER
@@ -108,9 +81,8 @@ app.use((req, res, next) => {
   next();
 });
 
-
 // ============================================================
-// UPLOADS
+// STATIC UPLOADS
 // ============================================================
 
 app.use(
@@ -118,51 +90,35 @@ app.use(
   express.static(path.join(__dirname, 'uploads'))
 );
 
-
 // ============================================================
 // HOME ROUTE
 // ============================================================
 
 app.get('/', (req, res) => {
-  res.json({
-    message: 'School Portal API is running'
-  });
+  res.json({ message: 'School Portal API is running' });
 });
-
 
 // ============================================================
 // API ROUTES
 // ============================================================
 
 app.use('/api/auth', authRoutes);
-
 app.use('/api/students', studentRoutes);
-
 app.use('/api/teachers', teacherRoutes);
-
 app.use('/api/admin', adminRoutes);
-
 app.use('/api/lms', lmsRoutes);
-
 app.use('/api/classroom', classroomRoutes);
-
 app.use('/api/notes', notesRoutes);
-
 app.use('/api/assignments', assignmentsRoutes);
-
 app.use('/api/notifications', notificationsRoutes);
-
 
 // ============================================================
 // 404 HANDLER
 // ============================================================
 
 app.use((req, res) => {
-  res.status(404).json({
-    message: 'Route not found'
-  });
+  res.status(404).json({ message: 'Route not found' });
 });
-
 
 // ============================================================
 // START SERVER
