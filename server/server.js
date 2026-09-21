@@ -18,14 +18,8 @@ const { setupSocket } = require('./socket');
 const app = express();
 const server = http.createServer(app);
 
-// ============================================================
-// CORS CONFIGURATION
-// ============================================================
-
 const allowedOrigins = [
   'https://nexus-nexus-1876.vercel.app',
-  'http://localhost:3000',
-  'http://localhost:3001'
 ];
 
 function corsOriginCheck(origin, callback) {
