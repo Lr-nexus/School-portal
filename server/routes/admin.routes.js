@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const multer = require('multer');
-const XLSX = require('xlsx');
+const xlsx = require('xlsx');
 const pool = require('../db');
 const { protect, allow } = require('../middleware/auth');
 const { gradeFor, totalOf } = require('../utils/grades');
@@ -8,45 +8,34 @@ const { notifyAllUsers } = require('../utils/notify');
 
 router.use(protect, allow('admin'));
 
-/* In-memory upload for the bulk enrollment file */
-const uploadMemory = multer({
+/* ==================================================================
+   BULK IMPORT — multer setup
+================================================================== */
+const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 } // 5 MB
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowed = [
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-excel',
+      'text/csv',
+      'application/csv'
+    ];
+    if (allowed.includes(file.mimetype) || file.originalname.match(/\.(xlsx|xls|csv)$/i)) {
+      return cb(null, true);
+    }
+    cb(new Error('Only .xlsx, .xls or .csv files are allowed'));
+  }
 });
 
-/* ==================================================================
-   COLUMN NORMALIZER — accepts many header spellings
-================================================================== */
-function normalizeHeader(h) {
-  return String(h || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-}
-
-const COLUMN_MAP = {
-  name: 'name',
-  fullname: 'name',
-  studentname: 'name',
-  email: 'email',
-  emailaddress: 'email',
-  password: 'password',
-  class: 'className',
-  classname: 'className',
-  grade: 'className',
-  gender: 'gender',
-  sex: 'gender',
-  guardianname: 'guardianName',
-  parentname: 'guardianName',
-  guardianphone: 'guardianPhone',
-  parentphone: 'guardianPhone',
-  phone: 'guardianPhone',
-  address: 'address'
-};
-
+// Normalize Excel/CSV headers → lowercase, no spaces
+// "Class Name" → "classname", "Guardian Phone" → "guardianphone"
 function normalizeRow(raw) {
   const out = {};
-  for (const [k, v] of Object.entries(raw)) {
-    const key = COLUMN_MAP[normalizeHeader(k)];
-    if (key) out[key] = String(v ?? '').trim();
-  }
+  Object.keys(raw).forEach((key) => {
+    const normalized = String(key).toLowerCase().replace(/[\s_-]/g, '');
+    out[normalized] = String(raw[key] ?? '').trim();
+  });
   return out;
 }
 
@@ -107,7 +96,7 @@ router.get('/stats', async (req, res) => {
 });
 
 /* ==================================================================
-   STUDENTS
+   STUDENTS — LIST
 ================================================================== */
 router.get('/students', async (req, res) => {
   const [rows] = await pool.execute('SELECT * FROM students ORDER BY id');
@@ -119,7 +108,9 @@ router.get('/students', async (req, res) => {
   })));
 });
 
-/* ---------- ENROLL ONE ---------- */
+/* ==================================================================
+   STUDENTS — CREATE (single)
+================================================================== */
 router.post('/students', async (req, res) => {
   const {
     name, email, password, className, gender,
@@ -161,8 +152,8 @@ router.post('/students', async (req, res) => {
       );
     }
 
-    const [[{ maxId }]] = await conn.execute('SELECT COALESCE(MAX(id), 0) AS maxId FROM students');
-    const newId = maxId + 1;
+    const [[{ maxId }]] = await conn.execute('SELECT MAX(id) AS maxId FROM students');
+    const newId = (maxId || 0) + 1;
     const admissionNo = `STD/${new Date().getFullYear()}/${String(newId).padStart(3, '0')}`;
 
     const [sResult] = await conn.execute(
@@ -183,10 +174,17 @@ router.post('/students', async (req, res) => {
 
     res.status(201).json({
       message: 'Student enrolled successfully',
-      credentials: { email: email.toLowerCase(), password: loginPassword },
+      credentials: {
+        email: email.toLowerCase(),
+        password: loginPassword
+      },
       student: {
-        id: sResult.insertId, userId, name,
-        email: email.toLowerCase(), admissionNo, className,
+        id: sResult.insertId,
+        userId,
+        name,
+        email: email.toLowerCase(),
+        admissionNo,
+        className,
         gender: gender || 'Not specified'
       }
     });
@@ -199,169 +197,12 @@ router.post('/students', async (req, res) => {
   }
 });
 
-/* ---------- BULK ENROLL (CSV / XLSX) ---------- */
-router.post('/students/bulk', uploadMemory.single('file'), async (req, res) => {
-  if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
-
-  let rawRows;
-  try {
-    const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    rawRows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
-  } catch (err) {
-    return res.status(400).json({
-      message: 'Could not read the file. Make sure it is a valid CSV or XLSX.'
-    });
-  }
-
-  if (!rawRows.length) {
-    return res.status(400).json({ message: 'The file has no data rows' });
-  }
-
-  const defaultPassword =
-    String(req.body.defaultPassword || '').trim() || 'changeme123';
-
-  /* Preload existing emails once so we don't query per row */
-  const [existing] = await pool.execute(
-    'SELECT LOWER(email) AS email FROM users'
-  );
-  const emailSet = new Set(existing.map((r) => r.email));
-
-  const seenInFile = new Set();
-  const results = []; // { row, name, email, status, message, admissionNo? }
-  let successCount = 0;
-
-  const conn = await pool.getConnection();
-  try {
-    for (let i = 0; i < rawRows.length; i++) {
-      const rowNumber = i + 2; // +2 because header is row 1
-      const data = normalizeRow(rawRows[i]);
-
-      /* Skip fully blank rows silently */
-      const isEmpty = Object.values(data).every((v) => !v);
-      if (isEmpty) continue;
-
-      const push = (status, message, extra = {}) =>
-        results.push({
-          row: rowNumber,
-          name: data.name || '(no name)',
-          email: data.email || '(no email)',
-          status,
-          message,
-          ...extra
-        });
-
-      /* Validate */
-      if (!data.name) {
-        push('failed', 'Missing name');
-        continue;
-      }
-      if (!data.email) {
-        push('failed', 'Missing email');
-        continue;
-      }
-      if (!/^\S+@\S+\.\S+$/.test(data.email)) {
-        push('failed', 'Invalid email format');
-        continue;
-      }
-      if (!data.className) {
-        push('failed', 'Missing class');
-        continue;
-      }
-
-      const email = data.email.toLowerCase();
-
-      if (emailSet.has(email)) {
-        push('failed', 'Email already exists');
-        continue;
-      }
-      if (seenInFile.has(email)) {
-        push('failed', 'Duplicate email in file');
-        continue;
-      }
-
-      /* Try to insert — SAVEPOINT so a single failure doesn't kill the batch */
-      await conn.execute('SAVEPOINT sp_row');
-      try {
-        const loginPassword = data.password || defaultPassword;
-
-        /* 1. user */
-        const [uResult] = await conn.execute(
-          'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
-          [data.name, email, loginPassword, 'student']
-        );
-        const userId = uResult.insertId;
-
-        /* 2. class (find-or-create) */
-        const [classRows] = await conn.execute(
-          'SELECT id FROM classes WHERE name = ?',
-          [data.className]
-        );
-        if (!classRows.length) {
-          await conn.execute(
-            `INSERT INTO classes (name, subjects, schedule) VALUES (?, ?, ?)`,
-            [data.className, JSON.stringify([]), JSON.stringify([])]
-          );
-        }
-
-        /* 3. admission number */
-        const [[{ maxId }]] = await conn.execute(
-          'SELECT COALESCE(MAX(id), 0) AS maxId FROM students'
-        );
-        const admissionNo =
-          `STD/${new Date().getFullYear()}/${String(maxId + 1).padStart(3, '0')}`;
-
-        /* 4. student */
-        await conn.execute(
-          `INSERT INTO students
-            (user_id, name, admission_no, class_name, gender,
-             guardian_name, guardian_phone, address, email, house)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [
-            userId, data.name, admissionNo, data.className,
-            data.gender || 'Not specified',
-            data.guardianName || '', data.guardianPhone || '',
-            data.address || '', email, 'Unassigned'
-          ]
-        );
-
-        await conn.execute('RELEASE SAVEPOINT sp_row');
-
-        seenInFile.add(email);
-        emailSet.add(email);
-        successCount++;
-        push('success', 'Enrolled', {
-          admissionNo,
-          generatedPassword: loginPassword
-        });
-      } catch (rowErr) {
-        await conn.execute('ROLLBACK TO SAVEPOINT sp_row');
-        console.error(`Bulk row ${rowNumber} failed:`, rowErr.message);
-        push('failed', rowErr.message || 'Insert failed');
-      }
-    }
-
-    await conn.commit();
-
-    res.json({
-      message: `Processed ${results.length} row(s) — ${successCount} enrolled`,
-      total: results.length,
-      succeeded: successCount,
-      failed: results.length - successCount,
-      results
-    });
-  } catch (err) {
-    await conn.rollback();
-    console.error('Bulk enrollment failed:', err);
-    res.status(500).json({ message: err.message || 'Bulk enrollment failed' });
-  } finally {
-    conn.release();
-  }
-});
-
-/* ---------- DELETE STUDENT ---------- */
+/* ==================================================================
+   STUDENTS — DELETE (single)
+================================================================== */
 router.delete('/students/:id', async (req, res) => {
   const { id } = req.params;
+
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
@@ -377,15 +218,19 @@ router.delete('/students/:id', async (req, res) => {
     const student = rows[0];
 
     await conn.execute('DELETE FROM students WHERE id = ?', [student.id]);
+
     if (student.user_id) {
       await conn.execute('DELETE FROM users WHERE id = ?', [student.user_id]);
     }
 
     await conn.commit();
+
     res.json({
       message: 'Student removed',
       removed: {
-        id: student.id, name: student.name, admissionNo: student.admission_no
+        id: student.id,
+        name: student.name,
+        admissionNo: student.admission_no
       }
     });
   } catch (err) {
@@ -397,16 +242,174 @@ router.delete('/students/:id', async (req, res) => {
   }
 });
 
-/* ---------- SINGLE STUDENT'S RESULTS ---------- */
+/* ==================================================================
+   STUDENTS — BULK DELETE
+   Body: { ids: [1, 2, 3] }
+================================================================== */
+router.post('/students/bulk-delete', async (req, res) => {
+  const { ids } = req.body;
+  if (!Array.isArray(ids) || !ids.length) {
+    return res.status(400).json({ message: 'No student IDs provided' });
+  }
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const placeholders = ids.map(() => '?').join(',');
+
+    const [rows] = await conn.execute(
+      `SELECT id, user_id, name FROM students WHERE id IN (${placeholders})`,
+      ids
+    );
+    if (!rows.length) {
+      await conn.rollback();
+      return res.status(404).json({ message: 'No matching students found' });
+    }
+
+    await conn.execute(
+      `DELETE FROM students WHERE id IN (${placeholders})`,
+      ids
+    );
+
+    const userIds = rows.map((r) => r.user_id).filter(Boolean);
+    if (userIds.length) {
+      const uPlaceholders = userIds.map(() => '?').join(',');
+      await conn.execute(
+        `DELETE FROM users WHERE id IN (${uPlaceholders})`,
+        userIds
+      );
+    }
+
+    await conn.commit();
+    res.json({
+      message: `${rows.length} student(s) removed`,
+      removed: rows.map((r) => r.name)
+    });
+  } catch (err) {
+    await conn.rollback();
+    console.error('Bulk delete students failed:', err);
+    res.status(500).json({ message: err.message || 'Bulk delete failed' });
+  } finally {
+    conn.release();
+  }
+});
+
+/* ==================================================================
+   STUDENTS — BULK IMPORT from Excel/CSV
+   Required columns: name, email, classname
+   Optional: password, gender, guardianname, guardianphone, address
+================================================================== */
+router.post('/students/bulk-import', upload.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+
+  let rows;
+  try {
+    const wb = xlsx.read(req.file.buffer, { type: 'buffer' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    rows = xlsx.utils.sheet_to_json(ws, { defval: '' });
+  } catch (err) {
+    return res.status(400).json({ message: 'Could not read file: ' + err.message });
+  }
+
+  if (!rows.length) {
+    return res.status(400).json({ message: 'Spreadsheet is empty' });
+  }
+
+  const created = [];
+  const failed = [];
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = normalizeRow(rows[i]);
+    const line = i + 2;
+
+    const name = row.name;
+    const email = (row.email || '').toLowerCase();
+    const className = row.classname || row.class;
+    const password = row.password || 'changeme123';
+
+    if (!name || !email || !className) {
+      failed.push({ line, name, email, reason: 'name, email and classname are required' });
+      continue;
+    }
+
+    try {
+      const [taken] = await pool.execute(
+        'SELECT id FROM users WHERE email = ?',
+        [email]
+      );
+      if (taken.length) {
+        failed.push({ line, name, email, reason: 'Email already exists' });
+        continue;
+      }
+
+      const conn = await pool.getConnection();
+      try {
+        await conn.beginTransaction();
+
+        const [uResult] = await conn.execute(
+          'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
+          [name, email, password, 'student']
+        );
+        const userId = uResult.insertId;
+
+        const [cls] = await conn.execute(
+          'SELECT id FROM classes WHERE name = ?',
+          [className]
+        );
+        if (!cls.length) {
+          await conn.execute(
+            'INSERT INTO classes (name, subjects, schedule) VALUES (?, ?, ?)',
+            [className, JSON.stringify([]), JSON.stringify([])]
+          );
+        }
+
+        const [[{ maxId }]] = await conn.execute('SELECT MAX(id) AS maxId FROM students');
+        const newId = (maxId || 0) + 1;
+        const admissionNo = `STD/${new Date().getFullYear()}/${String(newId).padStart(3, '0')}`;
+
+        await conn.execute(
+          `INSERT INTO students
+            (user_id, name, admission_no, class_name, gender,
+             guardian_name, guardian_phone, address, email, house)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            userId, name, admissionNo, className,
+            row.gender || 'Not specified',
+            row.guardianname || '', row.guardianphone || '',
+            row.address || '', email, 'Unassigned'
+          ]
+        );
+
+        await conn.commit();
+        created.push({ name, email, className, admissionNo });
+      } catch (innerErr) {
+        await conn.rollback();
+        throw innerErr;
+      } finally {
+        conn.release();
+      }
+    } catch (err) {
+      failed.push({ line, name, email, reason: err.message });
+    }
+  }
+
+  res.json({
+    message: `${created.length} student(s) imported, ${failed.length} failed`,
+    totalRows: rows.length,
+    created,
+    failed
+  });
+});
+
+/* ==================================================================
+   STUDENTS — SINGLE STUDENT'S RESULTS
+================================================================== */
 router.get('/students/:id/results', async (req, res) => {
   const [sRows] = await pool.execute('SELECT * FROM students WHERE id = ?', [req.params.id]);
   if (!sRows.length) return res.status(404).json({ message: 'Student not found' });
   const student = sRows[0];
 
-  const [results] = await pool.execute(
-    'SELECT * FROM results WHERE student_id = ?',
-    [student.id]
-  );
+  const [results] = await pool.execute('SELECT * FROM results WHERE student_id = ?', [student.id]);
   const formatted = results.map((r) => {
     const total = totalOf(r);
     const { grade, remark } = gradeFor(total);
@@ -429,7 +432,7 @@ router.get('/students/:id/results', async (req, res) => {
 });
 
 /* ==================================================================
-   TEACHERS
+   TEACHERS — LIST
 ================================================================== */
 router.get('/teachers', async (req, res) => {
   const [rows] = await pool.execute('SELECT * FROM teachers ORDER BY id');
@@ -442,6 +445,9 @@ router.get('/teachers', async (req, res) => {
   })));
 });
 
+/* ==================================================================
+   TEACHERS — CREATE (single)
+================================================================== */
 router.post('/teachers', async (req, res) => {
   const {
     name, email, password, phone, subjects,
@@ -476,8 +482,8 @@ router.post('/teachers', async (req, res) => {
     );
     const userId = uResult.insertId;
 
-    const [[{ maxId }]] = await conn.execute('SELECT COALESCE(MAX(id), 0) AS maxId FROM teachers');
-    const newId = maxId + 1;
+    const [[{ maxId }]] = await conn.execute('SELECT MAX(id) AS maxId FROM teachers');
+    const newId = (maxId || 0) + 1;
     const staffNo = `TCH/${String(newId).padStart(3, '0')}`;
 
     const [tResult] = await conn.execute(
@@ -512,13 +518,21 @@ router.post('/teachers', async (req, res) => {
     }
 
     await conn.commit();
+
     res.status(201).json({
       message: 'Teacher enrolled successfully',
-      credentials: { email: email.toLowerCase(), password: loginPassword },
+      credentials: {
+        email: email.toLowerCase(),
+        password: loginPassword
+      },
       teacher: {
-        id: tResult.insertId, userId, name,
-        email: email.toLowerCase(), staffNo,
-        subjects: subjectList, formClass: formClass || 'Unassigned'
+        id: tResult.insertId,
+        userId,
+        name,
+        email: email.toLowerCase(),
+        staffNo,
+        subjects: subjectList,
+        formClass: formClass || 'Unassigned'
       }
     });
   } catch (err) {
@@ -530,8 +544,12 @@ router.post('/teachers', async (req, res) => {
   }
 });
 
+/* ==================================================================
+   TEACHERS — DELETE (single)
+================================================================== */
 router.delete('/teachers/:id', async (req, res) => {
   const { id } = req.params;
+
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
@@ -550,16 +568,21 @@ router.delete('/teachers/:id', async (req, res) => {
       'UPDATE classes SET teacher_id = NULL WHERE teacher_id = ?',
       [teacher.id]
     );
+
     await conn.execute('DELETE FROM teachers WHERE id = ?', [teacher.id]);
+
     if (teacher.user_id) {
       await conn.execute('DELETE FROM users WHERE id = ?', [teacher.user_id]);
     }
 
     await conn.commit();
+
     res.json({
       message: 'Teacher removed',
       removed: {
-        id: teacher.id, name: teacher.name, staffNo: teacher.staff_no
+        id: teacher.id,
+        name: teacher.name,
+        staffNo: teacher.staff_no
       }
     });
   } catch (err) {
@@ -569,6 +592,184 @@ router.delete('/teachers/:id', async (req, res) => {
   } finally {
     conn.release();
   }
+});
+
+/* ==================================================================
+   TEACHERS — BULK DELETE
+================================================================== */
+router.post('/teachers/bulk-delete', async (req, res) => {
+  const { ids } = req.body;
+  if (!Array.isArray(ids) || !ids.length) {
+    return res.status(400).json({ message: 'No teacher IDs provided' });
+  }
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const placeholders = ids.map(() => '?').join(',');
+
+    const [rows] = await conn.execute(
+      `SELECT id, user_id, name FROM teachers WHERE id IN (${placeholders})`,
+      ids
+    );
+    if (!rows.length) {
+      await conn.rollback();
+      return res.status(404).json({ message: 'No matching teachers found' });
+    }
+
+    await conn.execute(
+      `UPDATE classes SET teacher_id = NULL WHERE teacher_id IN (${placeholders})`,
+      ids
+    );
+
+    await conn.execute(
+      `DELETE FROM teachers WHERE id IN (${placeholders})`,
+      ids
+    );
+
+    const userIds = rows.map((r) => r.user_id).filter(Boolean);
+    if (userIds.length) {
+      const uPlaceholders = userIds.map(() => '?').join(',');
+      await conn.execute(
+        `DELETE FROM users WHERE id IN (${uPlaceholders})`,
+        userIds
+      );
+    }
+
+    await conn.commit();
+    res.json({
+      message: `${rows.length} teacher(s) removed`,
+      removed: rows.map((r) => r.name)
+    });
+  } catch (err) {
+    await conn.rollback();
+    console.error('Bulk delete teachers failed:', err);
+    res.status(500).json({ message: err.message || 'Bulk delete failed' });
+  } finally {
+    conn.release();
+  }
+});
+
+/* ==================================================================
+   TEACHERS — BULK IMPORT from Excel/CSV
+   Required: name, email
+   Optional: password, phone, subjects, formclass, qualification, address
+================================================================== */
+router.post('/teachers/bulk-import', upload.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+
+  let rows;
+  try {
+    const wb = xlsx.read(req.file.buffer, { type: 'buffer' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    rows = xlsx.utils.sheet_to_json(ws, { defval: '' });
+  } catch (err) {
+    return res.status(400).json({ message: 'Could not read file: ' + err.message });
+  }
+
+  if (!rows.length) {
+    return res.status(400).json({ message: 'Spreadsheet is empty' });
+  }
+
+  const created = [];
+  const failed = [];
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = normalizeRow(rows[i]);
+    const line = i + 2;
+
+    const name = row.name;
+    const email = (row.email || '').toLowerCase();
+    const password = row.password || 'changeme123';
+    const formClass = row.formclass || '';
+    const subjectsRaw = row.subjects || '';
+
+    if (!name || !email) {
+      failed.push({ line, name, email, reason: 'name and email are required' });
+      continue;
+    }
+
+    const subjectList = Array.isArray(subjectsRaw)
+      ? subjectsRaw
+      : String(subjectsRaw).split(',').map((s) => s.trim()).filter(Boolean);
+
+    try {
+      const [taken] = await pool.execute(
+        'SELECT id FROM users WHERE email = ?',
+        [email]
+      );
+      if (taken.length) {
+        failed.push({ line, name, email, reason: 'Email already exists' });
+        continue;
+      }
+
+      const conn = await pool.getConnection();
+      try {
+        await conn.beginTransaction();
+
+        const [uResult] = await conn.execute(
+          'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
+          [name, email, password, 'teacher']
+        );
+        const userId = uResult.insertId;
+
+        const [[{ maxId }]] = await conn.execute('SELECT MAX(id) AS maxId FROM teachers');
+        const newId = (maxId || 0) + 1;
+        const staffNo = `TCH/${String(newId).padStart(3, '0')}`;
+
+        const [tResult] = await conn.execute(
+          `INSERT INTO teachers
+            (user_id, name, staff_no, email, phone, subjects,
+             form_class, qualification, address, joined)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURDATE())`,
+          [
+            userId, name, staffNo, email,
+            row.phone || '',
+            JSON.stringify(subjectList),
+            formClass || 'Unassigned',
+            row.qualification || '',
+            row.address || ''
+          ]
+        );
+
+        if (formClass.trim()) {
+          const [cls] = await conn.execute(
+            'SELECT id FROM classes WHERE name = ?',
+            [formClass.trim()]
+          );
+          if (cls.length) {
+            await conn.execute(
+              'UPDATE classes SET teacher_id = ? WHERE id = ?',
+              [tResult.insertId, cls[0].id]
+            );
+          } else {
+            await conn.execute(
+              `INSERT INTO classes (name, teacher_id, subjects, schedule)
+               VALUES (?, ?, ?, ?)`,
+              [formClass.trim(), tResult.insertId, JSON.stringify([]), JSON.stringify([])]
+            );
+          }
+        }
+
+        await conn.commit();
+        created.push({ name, email, formClass, staffNo });
+      } catch (innerErr) {
+        await conn.rollback();
+        throw innerErr;
+      } finally {
+        conn.release();
+      }
+    } catch (err) {
+      failed.push({ line, name, email, reason: err.message });
+    }
+  }
+
+  res.json({
+    message: `${created.length} teacher(s) imported, ${failed.length} failed`,
+    totalRows: rows.length,
+    created,
+    failed
+  });
 });
 
 /* ==================================================================
@@ -592,9 +793,7 @@ router.get('/results', async (req, res) => {
 ================================================================== */
 router.get('/lms/performance', async (req, res) => {
   const [students] = await pool.execute('SELECT id, name, class_name FROM students');
-  const [quizzes] = await pool.execute(
-    'SELECT id, title, subject, class_name, questions, due_date FROM quizzes'
-  );
+  const [quizzes] = await pool.execute('SELECT id, title, subject, class_name, questions, due_date FROM quizzes');
   const [submissions] = await pool.execute('SELECT * FROM quiz_submissions');
 
   const studentRows = students.map((s) => {
@@ -641,7 +840,7 @@ router.post('/announcements', async (req, res) => {
     type: 'announcement',
     title: 'New announcement',
     body: `${title} — ${body.slice(0, 60)}${body.length > 60 ? '…' : ''}`,
-    link: '/home'
+    link: '/home',
   });
 
   const [rows] = await pool.execute('SELECT * FROM announcements WHERE id = ?', [result.insertId]);

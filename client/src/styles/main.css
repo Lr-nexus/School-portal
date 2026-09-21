@@ -2170,3 +2170,130 @@ textarea { resize: vertical; min-height: 60px; }
 [data-theme="dark"] .bulk-stat--failed {
   background: rgba(239, 68, 68, .1);
 }
+
+/* ==========================================================================
+   BULK ACTIONS — checkboxes, bulk import, sticky action bar
+   ========================================================================== */
+
+.table-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.table-head h3 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.table-head__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.checkbox-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color .15s;
+}
+.checkbox-btn:hover { color: var(--accent); }
+
+.row--selected {
+  background: var(--accent-soft) !important;
+}
+.row--selected:hover {
+  background: var(--accent-soft) !important;
+  filter: brightness(.98);
+}
+
+/* Bulk import UI */
+.bulk-import-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.bulk-import-row input[type="file"] {
+  flex: 1;
+  min-width: 240px;
+  margin-top: 0;
+  padding: 8px 12px;
+  background: var(--surface-2);
+  border: 1px dashed var(--border-strong);
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.bulk-import-row input[type="file"]::file-selector-button {
+  margin-right: 12px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-2);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+}
+.bulk-import-row input[type="file"]::file-selector-button:hover {
+  background: var(--surface-3);
+  border-color: var(--border-strong);
+}
+
+.import-result {
+  margin-top: 14px;
+  padding: 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-size: 13px;
+}
+.import-result details {
+  margin-top: 10px;
+}
+.import-result summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 4px 0;
+}
+.import-result ul {
+  margin: 8px 0 0 20px;
+  font-size: 12px;
+  color: var(--text-2);
+  max-height: 220px;
+  overflow-y: auto;
+}
+.import-result li {
+  padding: 2px 0;
+  font-family: 'Courier New', monospace;
+}
+
+/* Confirm modal item list */
+.confirm-list {
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-top: 8px;
+}
+.confirm-list__row {
+  font-size: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-2);
+}
+.confirm-list__row:last-child { border-bottom: none; }
