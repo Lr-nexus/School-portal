@@ -195,7 +195,7 @@ router.post('/students', async (req, res) => {
     return res.status(400).json({ message: 'A user with that email already exists' });
   }
 
-  const loginPassword = (password && password.trim()) || 'changeme123';
+  const loginPassword = (password && password.trim()) || 'Password';
 
   const conn = await pool.getConnection();
   try {
@@ -388,7 +388,7 @@ router.post('/students/bulk-import', upload.single('file'), async (req, res) => 
     const name = row.name;
     const email = (row.email || '').toLowerCase();
     const className = row.classname || row.class;
-    const password = row.password || 'changeme123';
+    const password = row.password || 'Password';
 
     if (!name || !email || !className) {
       failed.push({ line, name, email, reason: 'name, email and classname are required' });
@@ -533,7 +533,7 @@ router.post('/teachers', async (req, res) => {
     ? subjects
     : String(subjects || '').split(',').map(s => s.trim()).filter(Boolean);
 
-  const loginPassword = (password && password.trim()) || 'changeme123';
+  const loginPassword = (password && password.trim()) || 'Password';
 
   const conn = await pool.getConnection();
   try {
@@ -741,7 +741,7 @@ router.post('/teachers/bulk-import', upload.single('file'), async (req, res) => 
 
     const name = row.name;
     const email = (row.email || '').toLowerCase();
-    const password = row.password || 'changeme123';
+    const password = row.password || 'Password';
     const formClass = row.formclass || '';
     const subjectsRaw = row.subjects || '';
 

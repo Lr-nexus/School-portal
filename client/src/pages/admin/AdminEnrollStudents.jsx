@@ -92,7 +92,7 @@ export default function AdminEnrollStudents() {
 
   const downloadTemplate = () => {
     const headers = 'name,email,password,classname,gender,guardianname,guardianphone,address';
-    const sample = 'Ada Obi,ada@school.com,changeme123,JSS 2A,Female,Mr. Peter Obi,0803 111 2222,12 Allen Avenue';
+    const sample = 'Ada Obi,ada@school.com,Password,JSS 2A,Female,Mr. Peter Obi,0803 111 2222,12 Allen Avenue';
     const blob = new Blob([headers + '\n' + sample + '\n'], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -225,7 +225,7 @@ export default function AdminEnrollStudents() {
               <label>Password
                 <input name="password" value={form.password}
                        onChange={handleChange}
-                       placeholder="Leave blank → changeme123" />
+                       placeholder="Password" />
               </label>
               <label>Class *
                 <input name="className" value={form.className}
