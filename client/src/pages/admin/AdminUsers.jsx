@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   FiUsers, FiUserCheck, FiTrash2, FiX, FiAlertTriangle,
   FiSearch, FiCheckSquare, FiSquare, FiMinusSquare,
-  FiChevronDown, FiChevronUp, FiMail
+  FiChevronDown, FiChevronUp, FiMail, FiLayers
 } from 'react-icons/fi';
 import { api } from '../../api/api';
 import PageHeader from '../../components/PageHeader';
@@ -12,30 +12,31 @@ import Loader from '../../components/Loader';
 export default function AdminUsers() {
   const [teachers, setTeachers] = useState([]);
   const [students, setStudents] = useState([]);
+  const [classes, setClasses] = useState([]);      // ← NEW: source of truth for classes
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [tab, setTab] = useState('teachers'); // 'teachers' | 'students'
 
-  // Filtering
   const [teacherSearch, setTeacherSearch] = useState('');
   const [studentSearch, setStudentSearch] = useState('');
 
-  // Selection + delete
   const [selected, setSelected] = useState([]);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
-  // Expanded class sections (students tab)
   const [expanded, setExpanded] = useState({});
 
+  /* ---------- fetch all three datasets ---------- */
   const load = async () => {
     try {
-      const [t, s] = await Promise.all([
+      const [t, s, c] = await Promise.all([
         api('/admin/teachers'),
-        api('/admin/students')
+        api('/admin/students'),
+        api('/admin/classes')                      // ← pulls classes with teacher info
       ]);
       setTeachers(t);
       setStudents(s);
+      setClasses(c);
     } catch (e) {
       setMessage(e.message);
     } finally {
@@ -45,7 +46,7 @@ export default function AdminUsers() {
 
   useEffect(() => { load(); }, []);
 
-  /* ---------- teacher filtering ---------- */
+  /* ---------- teachers filtering ---------- */
   const filteredTeachers = useMemo(() => {
     const q = teacherSearch.trim().toLowerCase();
     if (!q) return teachers;
@@ -59,7 +60,7 @@ export default function AdminUsers() {
     );
   }, [teachers, teacherSearch]);
 
-  /* ---------- student filtering + grouping ---------- */
+  /* ---------- students filtering ---------- */
   const filteredStudents = useMemo(() => {
     const q = studentSearch.trim().toLowerCase();
     if (!q) return students;
@@ -72,26 +73,45 @@ export default function AdminUsers() {
     );
   }, [students, studentSearch]);
 
+  /* ---------- group students by class (using classes as source) ---------- */
   const studentsByClass = useMemo(() => {
+    const hasSearch = studentSearch.trim().length > 0;
     const map = {};
+
+    // Seed with every known class so empty classes still appear
+    if (!hasSearch) {
+      classes.forEach((c) => {
+        map[c.name] = [];
+      });
+    }
+
+    // Fill in students
     filteredStudents.forEach((s) => {
       const cls = s.className || 'Unassigned';
       if (!map[cls]) map[cls] = [];
       map[cls].push(s);
     });
+
     return Object.entries(map)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([className, list]) => {
-        const teacher = teachers.find((t) => t.formClass === className);
+        // Prefer teacher from the classes endpoint, fall back to teacher.formClass
+        const classRow = classes.find((c) => c.name === className);
+        const teacher =
+          classRow?.teacher ||
+          teachers.find((t) => t.formClass === className) ||
+          null;
         return { className, students: list, teacher };
       });
-  }, [filteredStudents, teachers]);
+  }, [filteredStudents, teachers, classes, studentSearch]);
 
   const toggleExpanded = (cls) =>
     setExpanded((prev) => ({ ...prev, [cls]: !prev[cls] }));
 
   const expandAllClasses = () =>
-    setExpanded(studentsByClass.reduce((acc, c) => ({ ...acc, [c.className]: true }), {}));
+    setExpanded(
+      studentsByClass.reduce((acc, c) => ({ ...acc, [c.className]: true }), {})
+    );
 
   const collapseAllClasses = () => setExpanded({});
 
@@ -165,11 +185,7 @@ export default function AdminUsers() {
       <div className="stats-grid">
         <StatCard label="Teachers" value={teachers.length} color="#7c3aed" />
         <StatCard label="Students" value={students.length} color="#2563eb" />
-        <StatCard
-          label="Classes"
-          value={studentsByClass.length}
-          color="#0d9488"
-        />
+        <StatCard label="Classes"  value={classes.length}  color="#0d9488" />
       </div>
 
       <div className="tabs">
@@ -313,11 +329,11 @@ export default function AdminUsers() {
 
           {studentsByClass.length === 0 && (
             <div className="card empty-state">
-              <FiUsers size={32} />
+              <FiLayers size={32} />
               <p>
-                {students.length === 0
-                  ? 'No students enrolled yet.'
-                  : 'No students match your search.'}
+                {classes.length === 0
+                  ? 'No classes created yet.'
+                  : 'No classes match your search.'}
               </p>
             </div>
           )}
@@ -374,80 +390,86 @@ export default function AdminUsers() {
                       </div>
                     )}
 
-                    <table className="table table--striped">
-                      <thead>
-                        <tr>
-                          <th style={{ width: 40 }}>
-                            <button
-                              className="checkbox-btn"
-                              onClick={() =>
-                                setSelected((prev) => {
-                                  const classIds = cls.students.map((s) => s.id);
-                                  const allInClassSelected = classIds.every((id) =>
-                                    prev.includes(id)
-                                  );
-                                  if (allInClassSelected) {
-                                    return prev.filter((id) => !classIds.includes(id));
-                                  }
-                                  const merged = new Set([...prev, ...classIds]);
-                                  return Array.from(merged);
-                                })
-                              }
-                            >
-                              {cls.students.every((s) => selected.includes(s.id)) ? (
-                                <FiCheckSquare size={18} />
-                              ) : cls.students.some((s) => selected.includes(s.id)) ? (
-                                <FiMinusSquare size={18} />
-                              ) : (
-                                <FiSquare size={18} />
-                              )}
-                            </button>
-                          </th>
-                          <th>#</th>
-                          <th>Name</th>
-                          <th>Admission No</th>
-                          <th>Email</th>
-                          <th>Gender</th>
-                          <th style={{ textAlign: 'right' }}>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {cls.students.map((s, i) => {
-                          const isChecked = selected.includes(s.id);
-                          return (
-                            <tr key={s.id} className={isChecked ? 'row--selected' : ''}>
-                              <td>
-                                <button
-                                  className="checkbox-btn"
-                                  onClick={() => toggle(s.id)}
-                                >
-                                  {isChecked ? (
-                                    <FiCheckSquare size={18} />
-                                  ) : (
-                                    <FiSquare size={18} />
-                                  )}
-                                </button>
-                              </td>
-                              <td>{i + 1}</td>
-                              <td>{s.name}</td>
-                              <td>{s.admissionNo}</td>
-                              <td>{s.email || '—'}</td>
-                              <td>{s.gender}</td>
-                              <td style={{ textAlign: 'right' }}>
-                                <button
-                                  className="btn btn--danger btn--sm"
-                                  onClick={() =>
-                                    setConfirmDelete({ mode: 'single', items: [s] })
-                                  }
-                                >
-                                  <FiTrash2 size={14} /> Remove
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                    {totalInClass === 0 ? (
+                      <p className="muted" style={{ fontSize: 13, padding: '10px 4px' }}>
+                        No students in this class yet.
+                      </p>
+                    ) : (
+                      <table className="table table--striped">
+                        <thead>
+                          <tr>
+                            <th style={{ width: 40 }}>
+                              <button
+                                className="checkbox-btn"
+                                onClick={() =>
+                                  setSelected((prev) => {
+                                    const classIds = cls.students.map((s) => s.id);
+                                    const allInClassSelected = classIds.every((id) =>
+                                      prev.includes(id)
+                                    );
+                                    if (allInClassSelected) {
+                                      return prev.filter((id) => !classIds.includes(id));
+                                    }
+                                    const merged = new Set([...prev, ...classIds]);
+                                    return Array.from(merged);
+                                  })
+                                }
+                              >
+                                {cls.students.every((s) => selected.includes(s.id)) ? (
+                                  <FiCheckSquare size={18} />
+                                ) : cls.students.some((s) => selected.includes(s.id)) ? (
+                                  <FiMinusSquare size={18} />
+                                ) : (
+                                  <FiSquare size={18} />
+                                )}
+                              </button>
+                            </th>
+                            <th>#</th>
+                            <th>Name</th>
+                            <th>Admission No</th>
+                            <th>Email</th>
+                            <th>Gender</th>
+                            <th style={{ textAlign: 'right' }}>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {cls.students.map((s, i) => {
+                            const isChecked = selected.includes(s.id);
+                            return (
+                              <tr key={s.id} className={isChecked ? 'row--selected' : ''}>
+                                <td>
+                                  <button
+                                    className="checkbox-btn"
+                                    onClick={() => toggle(s.id)}
+                                  >
+                                    {isChecked ? (
+                                      <FiCheckSquare size={18} />
+                                    ) : (
+                                      <FiSquare size={18} />
+                                    )}
+                                  </button>
+                                </td>
+                                <td>{i + 1}</td>
+                                <td>{s.name}</td>
+                                <td>{s.admissionNo}</td>
+                                <td>{s.email || '—'}</td>
+                                <td>{s.gender}</td>
+                                <td style={{ textAlign: 'right' }}>
+                                  <button
+                                    className="btn btn--danger btn--sm"
+                                    onClick={() =>
+                                      setConfirmDelete({ mode: 'single', items: [s] })
+                                    }
+                                  >
+                                    <FiTrash2 size={14} /> Remove
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    )}
                   </div>
                 )}
               </div>
