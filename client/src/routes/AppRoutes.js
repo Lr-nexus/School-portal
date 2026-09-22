@@ -28,10 +28,10 @@ import AdminHome from '../pages/admin/AdminHome';
 import AdminProfile from '../pages/admin/AdminProfile';
 import AdminResults from '../pages/admin/AdminResults';
 import AdminLMS from '../pages/admin/AdminLMS';
-import AdminStudents from '../pages/admin/AdminStudents';
-import AdminTeachers from '../pages/admin/AdminTeachers';
 import AdminClassroom from '../pages/admin/AdminClassroom';
 import AdminClasses from '../pages/admin/AdminClasses';
+import AdminEnrollment from '../pages/admin/AdminEnrollment';
+import AdminUsers from '../pages/admin/AdminUsers';
 
 /* SHARED */
 import VideoRoom from '../pages/classroom/VideoRoom';
@@ -59,7 +59,7 @@ export default function AppRoutes() {
         </Route>
       </Route>
 
-      {/* VIDEO ROOM — full screen, no layout */}
+      {/* VIDEO ROOM */}
       <Route element={<ProtectedRoute roles={['student', 'teacher', 'admin']} />}>
         <Route path="/classroom/room/:roomId" element={<VideoRoom />} />
       </Route>
@@ -83,15 +83,15 @@ export default function AppRoutes() {
       <Route element={<ProtectedRoute roles={['admin']} />}>
         <Route path="/admin" element={<Layout />}>
           <Route index element={<Navigate to="home" replace />} />
-          <Route path="home"      element={<AdminHome />} />
-          <Route path="students"  element={<AdminStudents />} />
-          <Route path="teachers"  element={<AdminTeachers />} />
-          <Route path="classes"   element={<AdminClasses />} />
-          <Route path="results"   element={<AdminResults />} />
-          <Route path="lms"       element={<AdminLMS />} />
-          <Route path="classroom" element={<AdminClassroom />} />
-          <Route path="profile"   element={<AdminProfile />} />
-          <Route path="*"         element={<Navigate to="home" replace />} />
+          <Route path="home"        element={<AdminHome />} />
+          <Route path="enrollment"  element={<AdminEnrollment />} />
+          <Route path="users"       element={<AdminUsers />} />
+          <Route path="classes"     element={<AdminClasses />} />
+          <Route path="results"     element={<AdminResults />} />
+          <Route path="lms"         element={<AdminLMS />} />
+          <Route path="classroom"   element={<AdminClassroom />} />
+          <Route path="profile"     element={<AdminProfile />} />
+          <Route path="*"           element={<Navigate to="home" replace />} />
         </Route>
       </Route>
 

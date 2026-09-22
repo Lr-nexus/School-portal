@@ -1,7 +1,7 @@
 import {
   FiHome, FiCreditCard, FiBook, FiBarChart2,
   FiEdit3, FiUsers, FiUserCheck, FiTrendingUp,
-  FiVideo, FiFileText, FiClipboard, FiLayers
+  FiVideo, FiFileText, FiClipboard, FiLayers, FiUserPlus
 } from 'react-icons/fi';
 
 export const navConfig = {
@@ -24,12 +24,12 @@ export const navConfig = {
     { to: '/teacher/lms',         label: 'Tests & Quizzes', icon: FiEdit3 }
   ],
   admin: [
-    { to: '/admin/home',      label: 'Dashboard',       icon: FiHome },
-    { to: '/admin/students',  label: 'Students',        icon: FiUsers },
-    { to: '/admin/teachers',  label: 'Teachers',        icon: FiUserCheck },
-    { to: '/admin/classes',   label: 'Classes',         icon: FiLayers },
-    { to: '/admin/results',   label: 'Student Results', icon: FiBarChart2 },
-    { to: '/admin/lms',       label: 'Performance',     icon: FiTrendingUp },
-    { to: '/admin/classroom', label: 'Live Classes',    icon: FiVideo }
+    { to: '/admin/home',        label: 'Dashboard',       icon: FiHome },
+    { to: '/admin/enrollment',  label: 'Enrollment',      icon: FiUserPlus },
+    { to: '/admin/users',       label: 'Users',           icon: FiUsers },
+    { to: '/admin/classes',     label: 'Classes',         icon: FiLayers },
+    { to: '/admin/results',     label: 'Student Results', icon: FiBarChart2 },
+    { to: '/admin/lms',         label: 'Performance',     icon: FiTrendingUp },
+    { to: '/admin/classroom',   label: 'Live Classes',    icon: FiVideo }
   ]
 };
