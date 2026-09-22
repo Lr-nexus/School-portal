@@ -47,7 +47,6 @@ export default function StudentNotes() {
       return;
     }
 
-    // Rich text — download as HTML
     const html = `
 <!doctype html>
 <html><head><meta charset="utf-8"><title>${note.title}</title>

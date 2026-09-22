@@ -2297,3 +2297,296 @@ textarea { resize: vertical; min-height: 60px; }
   color: var(--text-2);
 }
 .confirm-list__row:last-child { border-bottom: none; }
+
+/* ==========================================================================
+   ENROLLMENT — clean two-column layout with grouped sections
+   ========================================================================== */
+
+.enroll-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 1000px) {
+  .enroll-grid { grid-template-columns: 1fr; }
+}
+
+.enroll-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.enroll-card__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding-bottom: 4px;
+}
+.enroll-card__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.enroll-card__head h3 {
+  font-size: 15px;
+  margin: 0 0 2px;
+}
+.enroll-card__head p {
+  font-size: 12px;
+  margin: 0;
+}
+
+.enroll-card__hint {
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 0;
+}
+.enroll-card__hint code {
+  background: var(--surface-3);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: 'Courier New', monospace;
+}
+
+.enroll-card__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.enroll-card__actions--end {
+  justify-content: flex-end;
+  margin-top: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.enroll-section-title {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--muted);
+  font-weight: 600;
+  margin: 12px 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed var(--border);
+}
+.enroll-section-title:first-of-type {
+  margin-top: 0;
+}
+
+.file-drop {
+  margin-top: 0;
+  padding: 20px 18px;
+  background: var(--surface-2);
+  border: 2px dashed var(--border-strong);
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 13px;
+  width: 100%;
+  transition: border-color .15s, background .15s;
+}
+.file-drop:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.file-drop::file-selector-button {
+  margin-right: 14px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-2);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+}
+.file-drop::file-selector-button:hover {
+  background: var(--surface-3);
+  border-color: var(--border-strong);
+}
+
+/* ==========================================================================
+   ADMIN CLASSES PAGE
+   ========================================================================== */
+
+.class-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.class-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: border-color .15s, box-shadow .15s;
+}
+.class-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm);
+}
+.class-card--open {
+  border-color: var(--accent);
+  box-shadow: 0 4px 16px var(--accent-ring);
+}
+
+.class-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  width: 100%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  transition: background .15s;
+}
+.class-card__head:hover {
+  background: var(--surface-2);
+}
+
+.class-card__title {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+  flex: 1;
+}
+
+.class-card__badge {
+  padding: 6px 14px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: .3px;
+  flex-shrink: 0;
+}
+
+.class-card__meta {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--text-2);
+}
+.class-card__meta > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.class-card__meta svg { color: var(--muted); }
+
+.class-card__chevron {
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.class-card__body {
+  padding: 20px;
+  border-top: 1px solid var(--border);
+  background: var(--surface-2);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.class-teacher {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+}
+.class-teacher h4 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+.class-teacher__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.class-teacher__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.class-teacher__info strong { font-size: 14px; }
+.class-teacher__contacts {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-left: auto;
+}
+.class-teacher__contact {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-2);
+  text-decoration: none;
+}
+.class-teacher__contact:hover { color: var(--accent); }
+.class-teacher__contact svg { color: var(--muted); flex-shrink: 0; }
+
+.class-teacher__subjects {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--border);
+}
+.class-teacher__subjects svg { color: var(--muted); flex-shrink: 0; }
+
+.class-roster {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+}
+.class-roster h4 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+.class-roster .table th,
+.class-roster .table td {
+  padding: 9px 10px;
+  font-size: 13px;
+}
+
+@media (max-width: 640px) {
+  .class-card__meta {
+    flex-direction: column;
+    gap: 4px;
+  }
+  .class-teacher__contacts {
+    margin-left: 0;
+    width: 100%;
+  }
+}

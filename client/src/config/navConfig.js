@@ -1,7 +1,7 @@
 import {
   FiHome, FiCreditCard, FiBook, FiBarChart2,
   FiEdit3, FiUsers, FiUserCheck, FiTrendingUp,
-  FiVideo, FiFileText, FiClipboard
+  FiVideo, FiFileText, FiClipboard, FiLayers
 } from 'react-icons/fi';
 
 export const navConfig = {
@@ -25,10 +25,11 @@ export const navConfig = {
   ],
   admin: [
     { to: '/admin/home',      label: 'Dashboard',       icon: FiHome },
-    { to: '/admin/classroom', label: 'Live Classes',    icon: FiVideo },
     { to: '/admin/students',  label: 'Students',        icon: FiUsers },
     { to: '/admin/teachers',  label: 'Teachers',        icon: FiUserCheck },
+    { to: '/admin/classes',   label: 'Classes',         icon: FiLayers },
     { to: '/admin/results',   label: 'Student Results', icon: FiBarChart2 },
-    { to: '/admin/lms',       label: 'Performance',     icon: FiTrendingUp }
+    { to: '/admin/lms',       label: 'Performance',     icon: FiTrendingUp },
+    { to: '/admin/classroom', label: 'Live Classes',    icon: FiVideo }
   ]
 };

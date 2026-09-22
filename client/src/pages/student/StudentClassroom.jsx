@@ -39,7 +39,7 @@ export default function StudentClassroom() {
   const join = async (session) => {
     setJoiningId(session.id);
     try {
-      await api(`/classroom/rooms/${session.roomId}`); // verify still live
+      await api(`/classroom/rooms/${session.roomId}`);
       navigate(`/classroom/room/${session.roomId}`);
     } catch (err) {
       setMessage(err.message);

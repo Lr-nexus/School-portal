@@ -86,8 +86,6 @@ export default function TeacherAssignments() {
       method: 'POST',
       body: JSON.stringify({ score, feedback })
     });
-    // Refresh the modal data + the list, but keep the modal open
-    // so the teacher can grade the next student.
     await openAssignment(active.id);
     await load();
   };

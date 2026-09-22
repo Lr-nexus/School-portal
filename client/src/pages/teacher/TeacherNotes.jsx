@@ -46,7 +46,7 @@ export default function TeacherNotes() {
   const [commentText, setCommentText] = useState('');
   const fileInputRef = useRef(null);
 
-  const [mode, setMode] = useState('richtext'); // 'richtext' | 'pdf'
+  const [mode, setMode] = useState('richtext');
 
   const [form, setForm] = useState({
     title: '',

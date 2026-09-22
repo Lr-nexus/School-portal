@@ -1,7 +1,5 @@
 const pool = require('../db');
 
-// Reads the X-User-Id header, looks the user up in MySQL, and attaches
-// them to req.user. Works the same as the old in-memory version.
 async function protect(req, res, next) {
   const id = Number(req.headers['x-user-id']);
 
@@ -32,7 +30,6 @@ async function protect(req, res, next) {
   }
 }
 
-// Only lets certain roles through
 function allow(...roles) {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {

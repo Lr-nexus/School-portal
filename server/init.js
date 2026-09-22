@@ -23,14 +23,12 @@ async function init() {
     conn = await mysql.createConnection(ROOT);
     console.log('   ✓ Connected to MySQL as root');
 
-    // 1. Database
     await conn.query(
       `CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\`
        CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`
     );
     console.log(`   ✓ Database '${DB_NAME}' ready`);
 
-    // 2. App user
     await conn.query(
       `CREATE USER IF NOT EXISTS ?@'localhost' IDENTIFIED BY ?`,
       [APP_USER, APP_PASS]
@@ -41,7 +39,6 @@ async function init() {
     );
     console.log(`   ✓ User '${APP_USER}' ready`);
 
-    // 3. Grants
     await conn.query(
       `GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO ?@'localhost'`,
       [APP_USER]
@@ -49,10 +46,8 @@ async function init() {
     await conn.query('FLUSH PRIVILEGES');
     console.log('   ✓ Privileges granted');
 
-    // 4. Switch into the DB
     await conn.query(`USE \`${DB_NAME}\``);
 
-    // 5. ⭐ Drop all existing tables so the schema can run cleanly
     const [existing] = await conn.query(
       `SELECT table_name FROM information_schema.tables
        WHERE table_schema = ?`,
@@ -68,7 +63,6 @@ async function init() {
       console.log(`   ✓ Dropped ${existing.length} old tables`);
     }
 
-    // 6. Run the whole schema at once
     const schemaPath = path.join(__dirname, 'schema.sql');
     if (!fs.existsSync(schemaPath)) {
       throw new Error('schema.sql not found in ' + __dirname);
@@ -77,7 +71,6 @@ async function init() {
     await conn.query(schema);
     console.log('   ✓ Schema executed');
 
-    // 7. Verify
     const [rows] = await conn.query(
       `SELECT COUNT(*) AS c FROM information_schema.tables
        WHERE table_schema = ?`,

@@ -186,7 +186,6 @@ export default function AdminTeachers() {
         </div>
       )}
 
-      {/* ============ BULK IMPORT SECTION ============ */}
       <div className="card">
         <h3><FiUpload size={16} /> Bulk Import Teachers</h3>
         <p className="muted" style={{ fontSize: 13, marginBottom: 12 }}>
@@ -243,7 +242,6 @@ export default function AdminTeachers() {
         )}
       </div>
 
-      {/* ============ SINGLE ENROLLMENT ============ */}
       <div className="card">
         <h3><FiUserPlus size={16} /> Enroll New Teacher</h3>
         <form className="form-grid" onSubmit={handleSubmit}>
@@ -282,7 +280,6 @@ export default function AdminTeachers() {
         </form>
       </div>
 
-      {/* ============ TABLE ============ */}
       <div className="card">
         <div className="table-head">
           <h3><FiUsers size={16} /> All Teachers ({teachers.length})</h3>
@@ -357,7 +354,6 @@ export default function AdminTeachers() {
         </table>
       </div>
 
-      {/* ============ DELETE MODAL ============ */}
       {confirmDelete && (
         <div className="modal-backdrop" onClick={() => !deleting && setConfirmDelete(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>

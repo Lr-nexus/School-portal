@@ -4,7 +4,6 @@ const { protect, allow } = require('../middleware/auth');
 
 router.use(protect, allow('teacher'));
 
-// ---------- PROFILE ----------
 router.get('/me', async (req, res) => {
   const [rows] = await pool.execute('SELECT * FROM teachers WHERE user_id = ?', [req.user.id]);
   if (!rows.length) return res.status(404).json({ message: 'Teacher not found' });
@@ -16,7 +15,6 @@ router.get('/me', async (req, res) => {
   });
 });
 
-// ---------- UPDATE OWN PROFILE ----------
 router.patch('/me', async (req, res) => {
   const [existing] = await pool.execute('SELECT id FROM teachers WHERE user_id = ?', [req.user.id]);
   if (!existing.length) return res.status(404).json({ message: 'Teacher not found' });
@@ -50,7 +48,6 @@ router.patch('/me', async (req, res) => {
   });
 });
 
-// ---------- CLASSES ----------
 router.get('/me/classes', async (req, res) => {
   const [teacherRows] = await pool.execute('SELECT id FROM teachers WHERE user_id = ?', [req.user.id]);
   if (!teacherRows.length) return res.json([]);
@@ -73,7 +70,6 @@ router.get('/me/classes', async (req, res) => {
   res.json(result);
 });
 
-// ---------- ANNOUNCEMENTS ----------
 router.get('/me/announcements', async (req, res) => {
   const [rows] = await pool.execute('SELECT * FROM announcements ORDER BY date DESC');
   res.json(rows);

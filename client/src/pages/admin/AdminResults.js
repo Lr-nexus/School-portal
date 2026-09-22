@@ -38,13 +38,11 @@ export default function AdminResults() {
     setData(null);
   };
 
-  /* ---------- unique class names ---------- */
   const classes = useMemo(
     () => Array.from(new Set(students.map((s) => s.className).filter(Boolean))).sort(),
     [students]
   );
 
-  /* ---------- filter students ---------- */
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return students.filter((s) => {
@@ -59,9 +57,6 @@ export default function AdminResults() {
 
   if (loading) return <Loader />;
 
-  /* ==================================================================
-     STEP 2 — single student's result sheet
-  ================================================================== */
   if (selected) {
     if (!data) return <Loader text="Loading results..." />;
 
@@ -87,7 +82,6 @@ export default function AdminResults() {
           </div>
         </PageHeader>
 
-        {/* Student banner */}
         <div className="report-head">
           <div className="report-head__student">
             <div className="report-head__avatar">
@@ -107,7 +101,6 @@ export default function AdminResults() {
           </div>
         </div>
 
-        {/* Stats */}
         <div className="stats-grid">
           <StatCard
             label="Average Score"
@@ -135,7 +128,6 @@ export default function AdminResults() {
           />
         </div>
 
-        {/* Breakdown table */}
         <div className="card">
           <h3><FiBookOpen size={16} /> Subject Breakdown</h3>
           <table className="table table--striped">
@@ -176,9 +168,6 @@ export default function AdminResults() {
     );
   }
 
-  /* ==================================================================
-     STEP 1 — pick a student
-  ================================================================== */
   return (
     <div>
       <PageHeader
@@ -186,7 +175,6 @@ export default function AdminResults() {
         subtitle={`${students.length} student${students.length === 1 ? '' : 's'} — click to view their result sheet`}
       />
 
-      {/* Search + class filter */}
       <div className="filters-bar">
         <div className="filters-bar__search">
           <FiSearch size={16} />
@@ -207,7 +195,6 @@ export default function AdminResults() {
         </div>
       </div>
 
-      {/* Student cards */}
       <div className="grid-3">
         {filtered.map((s) => (
           <button

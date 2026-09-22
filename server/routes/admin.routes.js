@@ -28,8 +28,6 @@ const upload = multer({
   }
 });
 
-// Normalize Excel/CSV headers → lowercase, no spaces
-// "Class Name" → "classname", "Guardian Phone" → "guardianphone"
 function normalizeRow(raw) {
   const out = {};
   Object.keys(raw).forEach((key) => {
@@ -93,6 +91,74 @@ router.get('/stats', async (req, res) => {
   const [[{ totalSubmissions }]] = await pool.execute('SELECT COUNT(*) as totalSubmissions FROM quiz_submissions');
   const [announcements] = await pool.execute('SELECT * FROM announcements ORDER BY date DESC LIMIT 5');
   res.json({ totalStudents, totalTeachers, totalQuizzes, totalSubmissions, announcements });
+});
+
+/* ==================================================================
+   CLASSES — list every class with teacher + student roster
+================================================================== */
+router.get('/classes', async (req, res) => {
+  try {
+    const [classes] = await pool.execute(`
+      SELECT
+        c.id,
+        c.name,
+        c.teacher_id,
+        t.name  AS teacher_name,
+        t.email AS teacher_email,
+        t.phone AS teacher_phone,
+        t.subjects AS teacher_subjects,
+        t.staff_no AS teacher_staff_no
+      FROM classes c
+      LEFT JOIN teachers t ON t.id = c.teacher_id
+      ORDER BY c.name
+    `);
+
+    const result = await Promise.all(
+      classes.map(async (c) => {
+        const [students] = await pool.execute(
+          `SELECT id, name, admission_no, gender, email
+           FROM students
+           WHERE class_name = ?
+           ORDER BY name`,
+          [c.name]
+        );
+
+        let teacherSubjects = [];
+        try {
+          teacherSubjects = JSON.parse(c.teacher_subjects || '[]');
+        } catch {
+          teacherSubjects = [];
+        }
+
+        return {
+          id: c.id,
+          name: c.name,
+          teacher: c.teacher_name
+            ? {
+                id: c.teacher_id,
+                name: c.teacher_name,
+                email: c.teacher_email,
+                phone: c.teacher_phone,
+                staffNo: c.teacher_staff_no,
+                subjects: teacherSubjects,
+              }
+            : null,
+          students: students.map((s) => ({
+            id: s.id,
+            name: s.name,
+            admissionNo: s.admission_no,
+            gender: s.gender,
+            email: s.email,
+          })),
+        };
+      })
+    );
+
+    res.json(result);
+  } catch (err) {
+    console.error('List classes failed:', err);
+    res.status(500).json({ message: err.message || 'Failed to load classes' });
+  }
 });
 
 /* ==================================================================
@@ -244,7 +310,6 @@ router.delete('/students/:id', async (req, res) => {
 
 /* ==================================================================
    STUDENTS — BULK DELETE
-   Body: { ids: [1, 2, 3] }
 ================================================================== */
 router.post('/students/bulk-delete', async (req, res) => {
   const { ids } = req.body;
@@ -295,9 +360,7 @@ router.post('/students/bulk-delete', async (req, res) => {
 });
 
 /* ==================================================================
-   STUDENTS — BULK IMPORT from Excel/CSV
-   Required columns: name, email, classname
-   Optional: password, gender, guardianname, guardianphone, address
+   STUDENTS — BULK IMPORT
 ================================================================== */
 router.post('/students/bulk-import', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
@@ -651,9 +714,7 @@ router.post('/teachers/bulk-delete', async (req, res) => {
 });
 
 /* ==================================================================
-   TEACHERS — BULK IMPORT from Excel/CSV
-   Required: name, email
-   Optional: password, phone, subjects, formclass, qualification, address
+   TEACHERS — BULK IMPORT
 ================================================================== */
 router.post('/teachers/bulk-import', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ message: 'No file uploaded' });

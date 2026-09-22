@@ -36,14 +36,12 @@ export default function VideoRoom() {
   const myStreamRef = useRef(null);
   const joinedRef = useRef(false);
 
-  /* 1. Verify room */
   useEffect(() => {
     api(`/classroom/rooms/${roomId}`)
       .then(setSession)
       .catch((e) => setError(e.message));
   }, [roomId]);
 
-  /* 2. Get media */
   useEffect(() => {
     let cancelled = false;
 
@@ -82,7 +80,6 @@ export default function VideoRoom() {
     return () => { cancelled = true; };
   }, []);
 
-  /* 3. Local video attach */
   useEffect(() => {
     if (myVideoRef.current && myStream) {
       myVideoRef.current.srcObject = myStream;
@@ -152,7 +149,6 @@ export default function VideoRoom() {
       setRaisedHands((prev) => prev.filter((h) => h.socketId !== socketId));
     });
 
-    /* ---------- RAISE HAND EVENTS ---------- */
     socket.on('raised-hands-list', (list) => {
       const enriched = list.map((sid) => ({ socketId: sid }));
       setRaisedHands(enriched);
@@ -188,10 +184,8 @@ export default function VideoRoom() {
       Object.values(peersRef.current).forEach((p) => p.destroy());
       peersRef.current = {};
     };
-    // eslint-disable-next-line
   }, [myStream, session]);
 
-  /* Peer factories */
   const createPeer = (targetSocketId, targetUserId, stream, myName) => {
     const peer = new Peer({ initiator: true, trickle: false, stream });
 
@@ -251,7 +245,6 @@ export default function VideoRoom() {
     });
   };
 
-  /* Controls */
   const toggleMic = () => {
     if (!myStream) return;
     myStream.getAudioTracks().forEach((t) => (t.enabled = !micOn));
@@ -293,7 +286,6 @@ export default function VideoRoom() {
   const totalInRoom = remoteList.length + 1;
   const isTeacher = user.role === 'teacher' || user.role === 'admin';
 
-  /* Error screen */
   if (error) {
     return (
       <div className="video-room video-room--error">
@@ -308,7 +300,6 @@ export default function VideoRoom() {
     );
   }
 
-  /* Loading */
   if (permission === 'pending' || !session) {
     return (
       <div className="video-room video-room--loading">
@@ -457,7 +448,6 @@ export default function VideoRoom() {
   );
 }
 
-/* Remote tile */
 function RemoteVideo({ name, role, stream, handRaised }) {
   const ref = useRef(null);
 

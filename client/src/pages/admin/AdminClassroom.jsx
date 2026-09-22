@@ -85,7 +85,6 @@ export default function AdminClassroom() {
         Last updated: {lastUpdate.toLocaleTimeString()} — auto-refreshes every 5s
       </p>
 
-      {/* --------- LIVE NOW --------- */}
       <h3 className="section-title">
         <span className="dot dot--live" /> Live Now
       </h3>
@@ -144,7 +143,6 @@ export default function AdminClassroom() {
         })}
       </div>
 
-      {/* --------- SCHEDULED --------- */}
       {scheduledSessions.length > 0 && (
         <>
           <h3 className="section-title" style={{ marginTop: 28 }}>
@@ -179,7 +177,6 @@ export default function AdminClassroom() {
         </>
       )}
 
-      {/* --------- ENDED --------- */}
       {endedSessions.length > 0 && (
         <>
           <h3 className="section-title" style={{ marginTop: 28 }}>Recently Ended</h3>

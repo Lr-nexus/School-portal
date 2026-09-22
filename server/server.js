@@ -23,9 +23,7 @@ const allowedOrigins = [
 ];
 
 function corsOriginCheck(origin, callback) {
-  // Allow requests without an Origin header
-  // (Postman, curl, server-to-server, mobile apps)
-  if (!origin) return callback(null, true);
+    if (!origin) return callback(null, true);
 
   if (allowedOrigins.includes(origin)) {
     return callback(null, true);
@@ -42,10 +40,6 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization', 'X-User-Id']
 };
 
-// ============================================================
-// SOCKET.IO
-// ============================================================
-
 const io = new Server(server, {
   cors: {
     origin: corsOriginCheck,
@@ -56,45 +50,23 @@ const io = new Server(server, {
 
 setupSocket(io);
 
-// ============================================================
-// MIDDLEWARE
-// ============================================================
-
-// CORS must come BEFORE routes
 app.use(cors(corsOptions));
 
-// Parse JSON bodies (skips multipart automatically)
 app.use(express.json());
-
-// ============================================================
-// REQUEST LOGGER
-// ============================================================
 
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.url}`);
   next();
 });
 
-// ============================================================
-// STATIC UPLOADS
-// ============================================================
-
 app.use(
   '/uploads',
   express.static(path.join(__dirname, 'uploads'))
 );
 
-// ============================================================
-// HOME ROUTE
-// ============================================================
-
 app.get('/', (req, res) => {
   res.json({ message: 'School Portal API is running' });
 });
-
-// ============================================================
-// API ROUTES
-// ============================================================
 
 app.use('/api/auth', authRoutes);
 app.use('/api/students', studentRoutes);
@@ -106,17 +78,9 @@ app.use('/api/notes', notesRoutes);
 app.use('/api/assignments', assignmentsRoutes);
 app.use('/api/notifications', notificationsRoutes);
 
-// ============================================================
-// 404 HANDLER
-// ============================================================
-
 app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });
 });
-
-// ============================================================
-// START SERVER
-// ============================================================
 
 const PORT = process.env.PORT || 5000;
 

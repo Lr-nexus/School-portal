@@ -2,7 +2,6 @@ const router = require('express').Router();
 const pool = require('../db');
 const { protect, allow } = require('../middleware/auth');
 
-// ---------- STUDENT: list quizzes ----------
 router.get('/quizzes', protect, allow('student'), async (req, res) => {
   const [studentRows] = await pool.execute('SELECT id, class_name FROM students WHERE user_id = ?', [req.user.id]);
   if (!studentRows.length) return res.json([]);
@@ -22,7 +21,6 @@ router.get('/quizzes', protect, allow('student'), async (req, res) => {
   }));
 });
 
-// ---------- STUDENT: get one quiz ----------
 router.get('/quizzes/:id', protect, allow('student'), async (req, res) => {
   const [rows] = await pool.execute('SELECT * FROM quizzes WHERE id = ?', [req.params.id]);
   if (!rows.length) return res.status(404).json({ message: 'Quiz not found' });
@@ -34,7 +32,6 @@ router.get('/quizzes/:id', protect, allow('student'), async (req, res) => {
   });
 });
 
-// ---------- STUDENT: submit ----------
 router.post('/quizzes/:id/submit', protect, allow('student'), async (req, res) => {
   const [quizRows] = await pool.execute('SELECT * FROM quizzes WHERE id = ?', [req.params.id]);
   if (!quizRows.length) return res.status(404).json({ message: 'Quiz not found' });
@@ -67,7 +64,6 @@ router.post('/quizzes/:id/submit', protect, allow('student'), async (req, res) =
   res.json({ message: 'Quiz submitted', score, total: questions.length });
 });
 
-// ---------- TEACHER: create quiz ----------
 router.post('/quizzes', protect, allow('teacher'), async (req, res) => {
   const { title, subject, className, duration, dueDate, questions } = req.body;
   if (!title || !subject || !questions || !questions.length) {
@@ -92,7 +88,6 @@ router.post('/quizzes', protect, allow('teacher'), async (req, res) => {
   res.status(201).json({ message: 'Quiz created', quiz: rows[0] });
 });
 
-// ---------- TEACHER: my quizzes ----------
 router.get('/my-quizzes', protect, allow('teacher'), async (req, res) => {
   const [teacherRows] = await pool.execute('SELECT id FROM teachers WHERE user_id = ?', [req.user.id]);
   if (!teacherRows.length) return res.json([]);

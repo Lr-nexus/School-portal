@@ -5,7 +5,6 @@ const { gradeFor, totalOf } = require('../utils/grades');
 
 router.use(protect, allow('student'));
 
-// ---------- PROFILE ----------
 router.get('/me', async (req, res) => {
   const [rows] = await pool.execute('SELECT * FROM students WHERE user_id = ?', [req.user.id]);
   if (!rows.length) return res.status(404).json({ message: 'Student not found' });
@@ -25,7 +24,6 @@ router.get('/me', async (req, res) => {
   });
 });
 
-// ---------- UPDATE OWN PROFILE ----------
 router.patch('/me', async (req, res) => {
   const [existing] = await pool.execute('SELECT id FROM students WHERE user_id = ?', [req.user.id]);
   if (!existing.length) return res.status(404).json({ message: 'Student not found' });
@@ -55,7 +53,6 @@ router.patch('/me', async (req, res) => {
   });
 });
 
-// ---------- CLASSES ----------
 router.get('/me/classes', async (req, res) => {
   const [studentRows] = await pool.execute('SELECT class_name FROM students WHERE user_id = ?', [req.user.id]);
   if (!studentRows.length) return res.json({ className: null, subjects: [], schedule: [], classmates: [] });
@@ -79,7 +76,6 @@ router.get('/me/classes', async (req, res) => {
   });
 });
 
-// ---------- RESULTS ----------
 router.get('/me/results', async (req, res) => {
   const [studentRows] = await pool.execute('SELECT id FROM students WHERE user_id = ?', [req.user.id]);
   if (!studentRows.length) return res.json({ session: '', term: '', subjects: [], average: 0, overallGrade: 'F' });
@@ -104,7 +100,6 @@ router.get('/me/results', async (req, res) => {
   });
 });
 
-// ---------- FEES ----------
 router.get('/me/fees', async (req, res) => {
   const [studentRows] = await pool.execute('SELECT id FROM students WHERE user_id = ?', [req.user.id]);
   if (!studentRows.length) return res.json([]);
@@ -124,7 +119,6 @@ router.get('/me/fees', async (req, res) => {
   }));
 });
 
-// ---------- RECEIPT ----------
 router.get('/me/fees/:id/receipt', async (req, res) => {
   const [studentRows] = await pool.execute('SELECT * FROM students WHERE user_id = ?', [req.user.id]);
   if (!studentRows.length) return res.status(404).json({ message: 'Student not found' });
@@ -154,7 +148,6 @@ router.get('/me/fees/:id/receipt', async (req, res) => {
   });
 });
 
-// ---------- ANNOUNCEMENTS ----------
 router.get('/me/announcements', async (req, res) => {
   const [rows] = await pool.execute('SELECT * FROM announcements ORDER BY date DESC');
   res.json(rows);

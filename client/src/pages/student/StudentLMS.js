@@ -33,7 +33,6 @@ export default function StudentLMS() {
 
   if (loading) return <Loader />;
 
-  // ---- taking a quiz ----
   if (active && !result) {
     return (
       <div>
@@ -64,7 +63,6 @@ export default function StudentLMS() {
     );
   }
 
-  // ---- quiz result ----
   if (result) {
     const percent = Math.round((result.score / result.total) * 100);
     return (
@@ -81,7 +79,6 @@ export default function StudentLMS() {
     );
   }
 
-  // ---- quiz list ----
   return (
     <div>
       <PageHeader title="Tests & Quizzes" subtitle="Take your class quizzes and see your scores" />

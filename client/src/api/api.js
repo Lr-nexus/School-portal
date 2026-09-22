@@ -13,8 +13,6 @@ function currentUser() {
 export async function api(path, options = {}) {
   const user = currentUser();
 
-  // If the body is FormData (file upload), don't force Content-Type.
-  // The browser must set it itself with the multipart boundary.
   const isFormData =
     typeof FormData !== 'undefined' && options.body instanceof FormData;
 
