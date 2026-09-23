@@ -22,6 +22,7 @@ import TeacherLMS from '../pages/teacher/TeacherLMS';
 import TeacherClassroom from '../pages/teacher/TeacherClassroom';
 import TeacherNotes from '../pages/teacher/TeacherNotes';
 import TeacherAssignments from '../pages/teacher/TeacherAssignments';
+import TeacherStudents from '../pages/teacher/TeacherStudents';
 
 /* ADMIN */
 import AdminHome from '../pages/admin/AdminHome';
@@ -39,7 +40,7 @@ import VideoRoom from '../pages/classroom/VideoRoom';
 export default function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path="/" element={<Login />} />
       <Route path="/login" element={<Login />} />
 
       {/* STUDENT */}
@@ -74,6 +75,7 @@ export default function AppRoutes() {
           <Route path="assignments" element={<TeacherAssignments />} />
           <Route path="profile"     element={<TeacherProfile />} />
           <Route path="classes"     element={<TeacherClasses />} />
+          <Route path="students"    element={<TeacherStudents />} />
           <Route path="lms"         element={<TeacherLMS />} />
           <Route path="*"           element={<Navigate to="home" replace />} />
         </Route>
@@ -95,7 +97,7 @@ export default function AppRoutes() {
         </Route>
       </Route>
 
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

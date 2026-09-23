@@ -21,6 +21,7 @@ export const navConfig = {
     { to: '/teacher/notes',       label: 'Notes',           icon: FiFileText },
     { to: '/teacher/assignments', label: 'Assignments',     icon: FiClipboard },
     { to: '/teacher/classes',     label: 'My Classes',      icon: FiBook },
+    { to: '/teacher/students',    label: 'My Students',     icon: FiUsers },
     { to: '/teacher/lms',         label: 'Tests & Quizzes', icon: FiEdit3 }
   ],
   admin: [

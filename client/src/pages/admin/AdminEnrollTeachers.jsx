@@ -128,7 +128,6 @@ export default function AdminEnrollTeachers() {
       )}
 
       <div className="enroll-grid">
-        {/* BULK IMPORT */}
         <div className="card enroll-card">
           <div className="enroll-card__head">
             <div className="enroll-card__icon">
@@ -199,7 +198,6 @@ export default function AdminEnrollTeachers() {
           )}
         </div>
 
-        {/* SINGLE ENROLL */}
         <div className="card enroll-card">
           <div className="enroll-card__head">
             <div className="enroll-card__icon">

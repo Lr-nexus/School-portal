@@ -92,7 +92,7 @@ export default function AdminEnrollStudents() {
 
   const downloadTemplate = () => {
     const headers = 'name,email,password,classname,gender,guardianname,guardianphone,address';
-    const sample = 'Ada Obi,ada@school.com,Password,JSS 2A,Female,Mr. Peter Obi,0803 111 2222,12 Allen Avenue';
+    const sample = 'Ada Obi,ada@school.com,changeme123,JSS 2A,Female,Mr. Peter Obi,0803 111 2222,12 Allen Avenue';
     const blob = new Blob([headers + '\n' + sample + '\n'], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -128,7 +128,6 @@ export default function AdminEnrollStudents() {
       )}
 
       <div className="enroll-grid">
-        {/* BULK IMPORT */}
         <div className="card enroll-card">
           <div className="enroll-card__head">
             <div className="enroll-card__icon">
@@ -199,7 +198,6 @@ export default function AdminEnrollStudents() {
           )}
         </div>
 
-        {/* SINGLE ENROLL */}
         <div className="card enroll-card">
           <div className="enroll-card__head">
             <div className="enroll-card__icon">

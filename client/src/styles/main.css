@@ -2995,3 +2995,64 @@ textarea { resize: vertical; min-height: 60px; }
   padding: 16px;
   gap: 12px;
 }
+
+/* ==========================================================================
+   TEACHER DASHBOARD — subjects chips in the welcome banner
+   ========================================================================== */
+
+.welcome-banner__left {
+  min-width: 0;
+  flex: 1;
+}
+
+.welcome-banner__subjects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.welcome-banner__chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, .18);
+  border: 1px solid rgba(255, 255, 255, .25);
+  backdrop-filter: blur(4px);
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.welcome-banner__empty {
+  font-size: 13px;
+  opacity: .75;
+  margin-top: 8px;
+  font-style: italic;
+}
+
+/* Teacher contact info block */
+.teacher-contact {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--border);
+}
+.teacher-contact h4 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.teacher-contact__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  font-size: 13px;
+  color: var(--text-2);
+}
+.teacher-contact__row svg {
+  color: var(--muted);
+  flex-shrink: 0;
+}
