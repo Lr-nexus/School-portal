@@ -18,17 +18,20 @@ const { setupSocket } = require('./socket');
 const app = express();
 const server = http.createServer(app);
 
+/* ============================================================
+   CORS — allow the deployed frontend
+   ============================================================ */
+
 const allowedOrigins = [
   'https://nexus-nexus-1876.vercel.app',
+  'https://school-portal-unva.onrender.com',
+  'http://localhost:3000',
+  'http://localhost:3001'
 ];
 
 function corsOriginCheck(origin, callback) {
-    if (!origin) return callback(null, true);
-
-  if (allowedOrigins.includes(origin)) {
-    return callback(null, true);
-  }
-
+  if (!origin) return callback(null, true);
+  if (allowedOrigins.includes(origin)) return callback(null, true);
   console.log(`❌ CORS blocked: ${origin}`);
   return callback(new Error('Not allowed by CORS'));
 }
@@ -40,18 +43,28 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization', 'X-User-Id']
 };
 
+/* ============================================================
+   SOCKET.IO — permissive CORS so WebSockets connect
+   ============================================================ */
+
 const io = new Server(server, {
   cors: {
-    origin: corsOriginCheck,
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
-  }
+    origin: '*',           // ⭐ Socket.IO needs to accept any origin for WS
+    credentials: false,
+    methods: ['GET', 'POST']
+  },
+  transports: ['websocket', 'polling'],
+  pingTimeout: 60000,
+  pingInterval: 25000
 });
 
 setupSocket(io);
 
-app.use(cors(corsOptions));
+/* ============================================================
+   MIDDLEWARE
+   ============================================================ */
 
+app.use(cors(corsOptions));
 app.use(express.json());
 
 app.use((req, res, next) => {
@@ -59,14 +72,9 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(
-  '/uploads',
-  express.static(path.join(__dirname, 'uploads'))
-);
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-app.get('/', (req, res) => {
-  res.json({ message: 'School Portal API is running' });
-});
+app.get('/', (req, res) => res.json({ message: 'School Portal API is running' }));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/students', studentRoutes);
@@ -78,12 +86,7 @@ app.use('/api/notes', notesRoutes);
 app.use('/api/assignments', assignmentsRoutes);
 app.use('/api/notifications', notificationsRoutes);
 
-app.use((req, res) => {
-  res.status(404).json({ message: 'Route not found' });
-});
+app.use((req, res) => res.status(404).json({ message: 'Route not found' }));
 
 const PORT = process.env.PORT || 5000;
-
-server.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
+server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
