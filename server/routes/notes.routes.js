@@ -29,6 +29,16 @@ const upload = multer({
   }
 });
 
+/* Helper — get the teacher's assigned class from the DB */
+async function getTeacher(userId) {
+  const [rows] = await pool.execute(
+    'SELECT id, name, form_class FROM teachers WHERE user_id = ?',
+    [userId]
+  );
+  if (!rows.length) return null;
+  return rows[0];
+}
+
 /* GET /api/notes */
 router.get('/', async (req, res) => {
   let query = `
@@ -40,25 +50,29 @@ router.get('/', async (req, res) => {
   const params = [];
 
   if (req.user.role === 'student') {
-    const [rows] = await pool.execute('SELECT class_name FROM students WHERE user_id = ?', [req.user.id]);
+    const [rows] = await pool.execute(
+      'SELECT class_name FROM students WHERE user_id = ?',
+      [req.user.id]
+    );
     if (!rows.length) return res.json([]);
     query += ' WHERE n.class_name = ?';
     params.push(rows[0].class_name);
   } else if (req.user.role === 'teacher') {
-    const [rows] = await pool.execute('SELECT id FROM teachers WHERE user_id = ?', [req.user.id]);
-    if (!rows.length) return res.json([]);
+    const teacher = await getTeacher(req.user.id);
+    if (!teacher) return res.json([]);
     query += ' WHERE n.teacher_id = ?';
-    params.push(rows[0].id);
+    params.push(teacher.id);
   }
 
   query += ' ORDER BY n.uploaded_at DESC';
 
   const [notes] = await pool.execute(query, params);
 
-  res.json(notes.map(n => ({
+  res.json(notes.map((n) => ({
     id: n.id, teacherId: n.teacher_id, teacherName: n.teacher_name || 'Teacher',
-    title: n.title, subject: n.subject, className: n.class_name, description: n.description,
-    type: n.type, fileName: n.file_name, originalName: n.original_name,
+    title: n.title, subject: n.subject, className: n.class_name,
+    description: n.description, type: n.type,
+    fileName: n.file_name, originalName: n.original_name,
     fileSize: n.file_size, fileUrl: n.file_url, uploadedAt: n.uploaded_at,
     commentCount: n.comment_count,
   })));
@@ -76,13 +90,16 @@ router.get('/:id', async (req, res) => {
   const note = rows[0];
 
   if (req.user.role === 'student') {
-    const [sRows] = await pool.execute('SELECT class_name FROM students WHERE user_id = ?', [req.user.id]);
+    const [sRows] = await pool.execute(
+      'SELECT class_name FROM students WHERE user_id = ?',
+      [req.user.id]
+    );
     if (!sRows.length || sRows[0].class_name !== note.class_name) {
       return res.status(403).json({ message: 'You do not have access to this note' });
     }
   } else if (req.user.role === 'teacher') {
-    const [tRows] = await pool.execute('SELECT id FROM teachers WHERE user_id = ?', [req.user.id]);
-    if (!tRows.length || tRows[0].id !== note.teacher_id) {
+    const teacher = await getTeacher(req.user.id);
+    if (!teacher || teacher.id !== note.teacher_id) {
       return res.status(403).json({ message: 'You do not have access to this note' });
     }
   }
@@ -99,38 +116,57 @@ router.get('/:id', async (req, res) => {
     fileName: note.file_name, originalName: note.original_name,
     fileSize: note.file_size, fileUrl: note.file_url, content: note.content,
     uploadedAt: note.uploaded_at,
-    comments: comments.map(c => ({
+    comments: comments.map((c) => ({
       id: c.id, userId: c.user_id, userName: c.user_name,
       role: c.role, text: c.text, date: c.date,
     })),
   });
 });
 
-/* POST /api/notes — PDF */
+/* ============================================================
+   POST /api/notes — PDF upload
+   ⭐ class_name is FORCED from the teacher's profile.
+   ============================================================ */
 router.post('/', allow('teacher'), upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
-  const { title, subject, className, description } = req.body;
-  if (!title || !className) {
+
+  const { title, subject, description } = req.body;
+
+  if (!title) {
     fs.unlinkSync(req.file.path);
-    return res.status(400).json({ message: 'Title and class are required' });
+    return res.status(400).json({ message: 'Title is required' });
   }
 
-  const [teacherRows] = await pool.execute('SELECT id, name FROM teachers WHERE user_id = ?', [req.user.id]);
-  if (!teacherRows.length) {
+  const teacher = await getTeacher(req.user.id);
+  if (!teacher) {
     fs.unlinkSync(req.file.path);
     return res.status(404).json({ message: 'Teacher not found' });
+  }
+  if (!teacher.form_class) {
+    fs.unlinkSync(req.file.path);
+    return res.status(400).json({ message: 'You have no class assigned. Contact the admin.' });
   }
 
   const [result] = await pool.execute(
     `INSERT INTO notes (teacher_id, title, subject, class_name, description, type, file_name, original_name, file_size, file_url, uploaded_at)
      VALUES (?, ?, ?, ?, ?, 'pdf', ?, ?, ?, ?, NOW())`,
-    [teacherRows[0].id, title, subject || 'General', className, description || '',
-     req.file.filename, req.file.originalname, req.file.size, `/uploads/${req.file.filename}`]
+    [
+      teacher.id,
+      title,
+      subject || 'General',
+      teacher.form_class, // ⭐ forced
+      description || '',
+      req.file.filename,
+      req.file.originalname,
+      req.file.size,
+      `/uploads/${req.file.filename}`,
+    ]
   );
 
-  await notifyClassStudents(className, {
-    type: 'note', title: 'New note uploaded',
-    body: `${teacherRows[0].name} uploaded "${title}"`,
+  await notifyClassStudents(teacher.form_class, {
+    type: 'note',
+    title: 'New note uploaded',
+    body: `${teacher.name} uploaded "${title}"`,
     link: '/student/notes',
   });
 
@@ -138,26 +174,42 @@ router.post('/', allow('teacher'), upload.single('file'), async (req, res) => {
   res.status(201).json({ message: 'Note uploaded', note: rows[0] });
 });
 
-/* POST /api/notes/rich */
+/* ============================================================
+   POST /api/notes/rich — rich text note
+   ⭐ class_name is FORCED from the teacher's profile.
+   ============================================================ */
 router.post('/rich', allow('teacher'), async (req, res) => {
-  const { title, subject, className, description, content } = req.body;
-  if (!title || !className) return res.status(400).json({ message: 'Title and class are required' });
+  const { title, subject, description, content } = req.body;
+
+  if (!title) return res.status(400).json({ message: 'Title is required' });
   if (!content) return res.status(400).json({ message: 'Note content cannot be empty' });
+
   const plain = String(content).replace(/<[^>]*>/g, '').trim();
   if (!plain) return res.status(400).json({ message: 'Note content cannot be empty' });
 
-  const [teacherRows] = await pool.execute('SELECT id, name FROM teachers WHERE user_id = ?', [req.user.id]);
-  if (!teacherRows.length) return res.status(404).json({ message: 'Teacher not found' });
+  const teacher = await getTeacher(req.user.id);
+  if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
+  if (!teacher.form_class) {
+    return res.status(400).json({ message: 'You have no class assigned. Contact the admin.' });
+  }
 
   const [result] = await pool.execute(
     `INSERT INTO notes (teacher_id, title, subject, class_name, description, type, content, uploaded_at)
      VALUES (?, ?, ?, ?, ?, 'richtext', ?, NOW())`,
-    [teacherRows[0].id, title, subject || 'General', className, description || '', content]
+    [
+      teacher.id,
+      title,
+      subject || 'General',
+      teacher.form_class, // ⭐ forced
+      description || '',
+      content,
+    ]
   );
 
-  await notifyClassStudents(className, {
-    type: 'note', title: 'New note posted',
-    body: `${teacherRows[0].name} posted "${title}"`,
+  await notifyClassStudents(teacher.form_class, {
+    type: 'note',
+    title: 'New note posted',
+    body: `${teacher.name} posted "${title}"`,
     link: '/student/notes',
   });
 
@@ -167,10 +219,13 @@ router.post('/rich', allow('teacher'), async (req, res) => {
 
 /* DELETE /api/notes/:id */
 router.delete('/:id', allow('teacher'), async (req, res) => {
-  const [tRows] = await pool.execute('SELECT id FROM teachers WHERE user_id = ?', [req.user.id]);
-  if (!tRows.length) return res.status(404).json({ message: 'Teacher not found' });
+  const teacher = await getTeacher(req.user.id);
+  if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
 
-  const [rows] = await pool.execute('SELECT * FROM notes WHERE id = ? AND teacher_id = ?', [req.params.id, tRows[0].id]);
+  const [rows] = await pool.execute(
+    'SELECT * FROM notes WHERE id = ? AND teacher_id = ?',
+    [req.params.id, teacher.id]
+  );
   if (!rows.length) return res.status(404).json({ message: 'Note not found' });
   const note = rows[0];
 
@@ -198,10 +253,14 @@ router.post('/:id/comments', async (req, res) => {
   );
 
   if (note.teacher_id) {
-    const [tRows] = await pool.execute('SELECT user_id FROM teachers WHERE id = ?', [note.teacher_id]);
+    const [tRows] = await pool.execute(
+      'SELECT user_id FROM teachers WHERE id = ?',
+      [note.teacher_id]
+    );
     if (tRows.length && tRows[0].user_id && tRows[0].user_id !== req.user.id) {
       await notify({
-        userId: tRows[0].user_id, type: 'comment',
+        userId: tRows[0].user_id,
+        type: 'comment',
         title: 'New comment on your note',
         body: `${req.user.name}: "${text.slice(0, 60)}${text.length > 60 ? '…' : ''}"`,
         link: '/teacher/notes',
