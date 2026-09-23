@@ -56,7 +56,7 @@ router.patch('/me', async (req, res) => {
 
   const map = {
     name: 'name', email: 'email', phone: 'phone',
-    formClass: 'form_class', qualification: 'qualification', address: 'address'
+    formClass: 'form_class', qualification: 'qualification', address: 'address',
   };
   const updates = [], values = [];
   for (const [k, f] of Object.entries(map)) {
@@ -74,6 +74,15 @@ router.patch('/me', async (req, res) => {
     await pool.execute(`UPDATE teachers SET ${updates.join(', ')} WHERE user_id = ?`, values);
   }
 
+  // ⭐ Sync the shared users table
+  const userUpdates = [], userValues = [];
+  if (req.body.name !== undefined)  { userUpdates.push('name = ?');  userValues.push(req.body.name); }
+  if (req.body.email !== undefined) { userUpdates.push('email = ?'); userValues.push(String(req.body.email).toLowerCase()); }
+  if (userUpdates.length) {
+    userValues.push(req.user.id);
+    await pool.execute(`UPDATE users SET ${userUpdates.join(', ')} WHERE id = ?`, userValues);
+  }
+
   const [rows] = await pool.execute('SELECT * FROM teachers WHERE user_id = ?', [req.user.id]);
   const t = rows[0];
   res.json({
@@ -89,12 +98,12 @@ router.patch('/me', async (req, res) => {
       qualification: t.qualification || '',
       address: t.address || '',
       joined: t.joined,
-    }
+    },
   });
 });
 
 /* ==================================================================
-   MY CLASSES — with subject fallback
+   MY CLASSES
 ================================================================== */
 router.get('/me/classes', async (req, res) => {
   const [teacherRows] = await pool.execute(
@@ -110,33 +119,33 @@ router.get('/me/classes', async (req, res) => {
     [teacherId]
   );
 
-  const result = await Promise.all(classes.map(async (c) => {
-    const [students] = await pool.execute(
-      'SELECT id, name, admission_no, class_name FROM students WHERE class_name = ? ORDER BY name',
-      [c.name]
-    );
-
-    const classSubjects = parseSubjects(c.subjects);
-    const subjects = classSubjects.length > 0 ? classSubjects : teacherSubjects;
-
-    return {
-      id: c.id,
-      name: c.name,
-      subjects,
-      students: students.map((s) => ({
-        id: s.id,
-        name: s.name,
-        admissionNo: s.admission_no,
-        className: s.class_name,
-      })),
-    };
-  }));
+  const result = await Promise.all(
+    classes.map(async (c) => {
+      const [students] = await pool.execute(
+        'SELECT id, name, admission_no, class_name FROM students WHERE class_name = ? ORDER BY name',
+        [c.name]
+      );
+      const classSubjects = parseSubjects(c.subjects);
+      const subjects = classSubjects.length > 0 ? classSubjects : teacherSubjects;
+      return {
+        id: c.id,
+        name: c.name,
+        subjects,
+        students: students.map((s) => ({
+          id: s.id,
+          name: s.name,
+          admissionNo: s.admission_no,
+          className: s.class_name,
+        })),
+      };
+    })
+  );
 
   res.json(result);
 });
 
 /* ==================================================================
-   MY STUDENTS — flat list of every student in the teacher's form classes
+   MY STUDENTS
 ================================================================== */
 router.get('/me/students', async (req, res) => {
   const [teacherRows] = await pool.execute(

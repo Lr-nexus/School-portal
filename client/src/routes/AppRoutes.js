@@ -32,6 +32,7 @@ import AdminClassroom from '../pages/admin/AdminClassroom';
 import AdminClasses from '../pages/admin/AdminClasses';
 import AdminEnrollment from '../pages/admin/AdminEnrollment';
 import AdminUsers from '../pages/admin/AdminUsers';
+import AdminFees from '../pages/admin/AdminFees';
 
 /* SHARED */
 import VideoRoom from '../pages/classroom/VideoRoom';
@@ -87,6 +88,7 @@ export default function AppRoutes() {
           <Route path="enrollment"  element={<AdminEnrollment />} />
           <Route path="users"       element={<AdminUsers />} />
           <Route path="classes"     element={<AdminClasses />} />
+          <Route path="fees"        element={<AdminFees />} />
           <Route path="results"     element={<AdminResults />} />
           <Route path="lms"         element={<AdminLMS />} />
           <Route path="classroom"   element={<AdminClassroom />} />

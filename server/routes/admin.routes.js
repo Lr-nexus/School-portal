@@ -70,6 +70,15 @@ router.patch('/me', async (req, res) => {
     await pool.execute(`UPDATE admins SET ${updates.join(', ')} WHERE user_id = ?`, values);
   }
 
+  // ⭐ Sync the shared users table
+  const userUpdates = [], userValues = [];
+  if (req.body.name !== undefined)  { userUpdates.push('name = ?');  userValues.push(req.body.name); }
+  if (req.body.email !== undefined) { userUpdates.push('email = ?'); userValues.push(String(req.body.email).toLowerCase()); }
+  if (userUpdates.length) {
+    userValues.push(req.user.id);
+    await pool.execute(`UPDATE users SET ${userUpdates.join(', ')} WHERE id = ?`, userValues);
+  }
+
   const [rows] = await pool.execute('SELECT * FROM admins WHERE user_id = ?', [req.user.id]);
   const a = rows[0];
   res.json({
@@ -117,18 +126,13 @@ router.get('/classes', async (req, res) => {
       classes.map(async (c) => {
         const [students] = await pool.execute(
           `SELECT id, name, admission_no, gender, email
-           FROM students
-           WHERE class_name = ?
-           ORDER BY name`,
+           FROM students WHERE class_name = ? ORDER BY name`,
           [c.name]
         );
 
         let teacherSubjects = [];
-        try {
-          teacherSubjects = JSON.parse(c.teacher_subjects || '[]');
-        } catch {
-          teacherSubjects = [];
-        }
+        try { teacherSubjects = JSON.parse(c.teacher_subjects || '[]'); }
+        catch { teacherSubjects = []; }
 
         return {
           id: c.id,
@@ -162,11 +166,239 @@ router.get('/classes', async (req, res) => {
 });
 
 /* ==================================================================
+   FEES — ADMIN MANAGEMENT
+================================================================== */
+
+/* ---------- LIST all published fee batches ---------- */
+router.get('/fees', async (req, res) => {
+  try {
+    const [rows] = await pool.execute(`
+      SELECT
+        f.reference,
+        MIN(f.id)              AS id,
+        MIN(f.session)         AS session,
+        MIN(f.term)            AS term,
+        MIN(f.items)           AS items,
+        MIN(f.date)            AS date,
+        COUNT(*)               AS student_count,
+        SUM(f.amount_paid)     AS total_collected
+      FROM fees f
+      WHERE f.reference IS NOT NULL
+      GROUP BY f.reference
+      ORDER BY MIN(f.id) DESC
+    `);
+
+    res.json(rows.map((r) => {
+      const items = JSON.parse(r.items || '[]');
+      const totalPerStudent = items.reduce((sum, i) => sum + Number(i.amount), 0);
+      return {
+        id: r.id,
+        reference: r.reference,
+        session: r.session,
+        term: r.term,
+        items,
+        date: r.date,
+        studentCount: r.student_count,
+        totalPerStudent,
+        totalBilled: totalPerStudent * r.student_count,
+        totalCollected: Number(r.total_collected || 0),
+      };
+    }));
+  } catch (err) {
+    console.error('List fees failed:', err);
+    res.status(500).json({ message: err.message || 'Failed to load fees' });
+  }
+});
+
+/* ---------- PREVIEW students who will receive the fee ---------- */
+router.get('/fees/preview/:className', async (req, res) => {
+  const className = decodeURIComponent(req.params.className);
+
+  let students;
+  if (className === 'ALL') {
+    [students] = await pool.execute(
+      'SELECT id, name, admission_no, class_name FROM students ORDER BY class_name, name'
+    );
+  } else {
+    [students] = await pool.execute(
+      'SELECT id, name, admission_no, class_name FROM students WHERE class_name = ? ORDER BY name',
+      [className]
+    );
+  }
+
+  res.json(students.map((s) => ({
+    id: s.id,
+    name: s.name,
+    admissionNo: s.admission_no,
+    className: s.class_name,
+  })));
+});
+
+/* ---------- ONE batch with per-student breakdown ---------- */
+router.get('/fees/:reference', async (req, res) => {
+  const [rows] = await pool.execute(
+    `SELECT f.*, s.name AS student_name, s.admission_no, s.class_name
+     FROM fees f
+     JOIN students s ON s.id = f.student_id
+     WHERE f.reference = ?
+     ORDER BY s.class_name, s.name`,
+    [req.params.reference]
+  );
+  if (!rows.length) return res.status(404).json({ message: 'Fee batch not found' });
+
+  const items = JSON.parse(rows[0].items || '[]');
+  const totalPerStudent = items.reduce((sum, i) => sum + Number(i.amount), 0);
+
+  res.json({
+    reference: req.params.reference,
+    session: rows[0].session,
+    term: rows[0].term,
+    items,
+    date: rows[0].date,
+    totalPerStudent,
+    students: rows.map((r) => {
+      const paid = parseFloat(r.amount_paid);
+      const balance = Math.max(totalPerStudent - paid, 0);
+      return {
+        feeId: r.id,
+        studentId: r.student_id,
+        name: r.student_name,
+        admissionNo: r.admission_no,
+        className: r.class_name,
+        amountPaid: paid,
+        balance,
+        status: balance <= 0 ? 'Paid' : paid > 0 ? 'Partial' : 'Unpaid',
+        method: r.method,
+      };
+    }),
+  });
+});
+
+/* ---------- PUBLISH a fee to a class (or all students) ---------- */
+router.post('/fees', async (req, res) => {
+  const { session, term, className, dueDate, items } = req.body;
+
+  if (!session || !term || !className || !Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({
+      message: 'session, term, className and at least one item are required',
+    });
+  }
+
+  for (const item of items) {
+    if (!item.name || !item.amount || Number(item.amount) <= 0) {
+      return res.status(400).json({
+        message: 'Each fee item needs a name and a positive amount',
+      });
+    }
+  }
+
+  let students;
+  if (className === 'ALL') {
+    [students] = await pool.execute('SELECT id, name FROM students');
+  } else {
+    [students] = await pool.execute(
+      'SELECT id, name FROM students WHERE class_name = ?',
+      [className]
+    );
+  }
+
+  if (!students.length) {
+    return res.status(400).json({
+      message: className === 'ALL'
+        ? 'No students enrolled yet'
+        : `No students in ${className}`,
+    });
+  }
+
+  const [[{ count }]] = await pool.execute(
+    "SELECT COUNT(DISTINCT reference) AS count FROM fees WHERE reference LIKE 'PUB-%'"
+  );
+  const seq = String(Number(count) + 1).padStart(4, '0');
+  const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  const reference = `PUB-${datePart}-${seq}`;
+
+  const itemsJson = JSON.stringify(
+    items.map((i) => ({ name: String(i.name).trim(), amount: Number(i.amount) }))
+  );
+  const feeDate = dueDate || new Date().toISOString().split('T')[0];
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    for (const student of students) {
+      await conn.execute(
+        `INSERT INTO fees
+          (student_id, session, term, items, amount_paid, date, reference, method)
+         VALUES (?, ?, ?, ?, 0, ?, ?, '-')`,
+        [student.id, session, term, itemsJson, feeDate, reference]
+      );
+    }
+
+    await conn.commit();
+
+    const totalPerStudent = items.reduce((sum, i) => sum + Number(i.amount), 0);
+
+    res.status(201).json({
+      message: `Fee published to ${students.length} student${students.length === 1 ? '' : 's'}`,
+      reference,
+      studentCount: students.length,
+      totalPerStudent,
+      totalBilled: totalPerStudent * students.length,
+    });
+  } catch (err) {
+    await conn.rollback();
+    console.error('Publish fee failed:', err);
+    res.status(500).json({ message: err.message || 'Failed to publish fee' });
+  } finally {
+    conn.release();
+  }
+});
+
+/* ---------- DELETE a published fee batch ---------- */
+router.delete('/fees/:reference', async (req, res) => {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const [[{ paidCount }]] = await conn.execute(
+      'SELECT COUNT(*) AS paidCount FROM fees WHERE reference = ? AND amount_paid > 0',
+      [req.params.reference]
+    );
+
+    if (Number(paidCount) > 0) {
+      await conn.rollback();
+      return res.status(400).json({
+        message: `Cannot delete — ${paidCount} student(s) have already made payments on this fee.`,
+      });
+    }
+
+    const [result] = await conn.execute(
+      'DELETE FROM fees WHERE reference = ?',
+      [req.params.reference]
+    );
+
+    await conn.commit();
+
+    res.json({
+      message: `Deleted ${result.affectedRows} fee record(s)`,
+      affectedRows: result.affectedRows,
+    });
+  } catch (err) {
+    await conn.rollback();
+    console.error('Delete fee failed:', err);
+    res.status(500).json({ message: err.message || 'Failed to delete fee' });
+  } finally {
+    conn.release();
+  }
+});
+
+/* ==================================================================
    STUDENTS — LIST
 ================================================================== */
 router.get('/students', async (req, res) => {
   const [rows] = await pool.execute('SELECT * FROM students ORDER BY id');
-  res.json(rows.map(s => ({
+  res.json(rows.map((s) => ({
     id: s.id, userId: s.user_id, name: s.name, admissionNo: s.admission_no,
     className: s.class_name, gender: s.gender, dob: s.dob,
     guardianName: s.guardian_name, guardianPhone: s.guardian_phone,
@@ -499,7 +731,7 @@ router.get('/students/:id/results', async (req, res) => {
 ================================================================== */
 router.get('/teachers', async (req, res) => {
   const [rows] = await pool.execute('SELECT * FROM teachers ORDER BY id');
-  res.json(rows.map(t => ({
+  res.json(rows.map((t) => ({
     id: t.id, userId: t.user_id, name: t.name, staffNo: t.staff_no,
     email: t.email, phone: t.phone,
     subjects: JSON.parse(t.subjects || '[]'),
@@ -509,7 +741,7 @@ router.get('/teachers', async (req, res) => {
 });
 
 /* ==================================================================
-   TEACHERS — CREATE (single) — writes subjects into the class row
+   TEACHERS — CREATE (single)
 ================================================================== */
 router.post('/teachers', async (req, res) => {
   const {
@@ -531,7 +763,7 @@ router.post('/teachers', async (req, res) => {
 
   const subjectList = Array.isArray(subjects)
     ? subjects
-    : String(subjects || '').split(',').map(s => s.trim()).filter(Boolean);
+    : String(subjects || '').split(',').map((s) => s.trim()).filter(Boolean);
 
   const loginPassword = (password && password.trim()) || 'changeme123';
 
@@ -567,7 +799,6 @@ router.post('/teachers', async (req, res) => {
         [formClass.trim()]
       );
       if (classRows.length) {
-        // Fill in subjects only if the class has none yet
         await conn.execute(
           `UPDATE classes
            SET teacher_id = ?,
@@ -580,7 +811,6 @@ router.post('/teachers', async (req, res) => {
           [tResult.insertId, JSON.stringify(subjectList), classRows[0].id]
         );
       } else {
-        // New class — include the teacher's subjects
         await conn.execute(
           `INSERT INTO classes (name, teacher_id, subjects, schedule)
            VALUES (?, ?, ?, ?)`,
@@ -723,7 +953,7 @@ router.post('/teachers/bulk-delete', async (req, res) => {
 });
 
 /* ==================================================================
-   TEACHERS — BULK IMPORT — writes subjects into class row
+   TEACHERS — BULK IMPORT
 ================================================================== */
 router.post('/teachers/bulk-import', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
@@ -858,7 +1088,7 @@ router.get('/results', async (req, res) => {
      FROM results r JOIN students s ON s.id = r.student_id
      ORDER BY r.id DESC`
   );
-  res.json(rows.map(r => {
+  res.json(rows.map((r) => {
     const total = totalOf(r);
     const { grade, remark } = gradeFor(total);
     return { ...r, total, grade, remark };
@@ -874,23 +1104,23 @@ router.get('/lms/performance', async (req, res) => {
   const [submissions] = await pool.execute('SELECT * FROM quiz_submissions');
 
   const studentRows = students.map((s) => {
-    const mySubs = submissions.filter(sub => sub.student_id === s.id);
+    const mySubs = submissions.filter((sub) => sub.student_id === s.id);
     const totalScore = mySubs.reduce((sum, sub) => sum + sub.score, 0);
     const totalQuestions = mySubs.reduce((sum, sub) => sum + sub.total, 0);
     const average = totalQuestions ? Math.round((totalScore / totalQuestions) * 100) : 0;
     return {
       id: s.id, name: s.name, className: s.class_name,
       quizzesTaken: mySubs.length,
-      totalQuizzes: quizzes.filter(q => q.class_name === s.class_name).length,
+      totalQuizzes: quizzes.filter((q) => q.class_name === s.class_name).length,
       score: totalScore, totalQuestions, average,
     };
   });
 
-  const quizRows = quizzes.map(q => ({
+  const quizRows = quizzes.map((q) => ({
     id: q.id, title: q.title, subject: q.subject, className: q.class_name,
     questionCount: JSON.parse(q.questions || '[]').length,
     dueDate: q.due_date,
-    submissionCount: submissions.filter(s => s.quiz_id === q.id).length,
+    submissionCount: submissions.filter((s) => s.quiz_id === q.id).length,
   }));
 
   res.json({ students: studentRows, quizzes: quizRows });

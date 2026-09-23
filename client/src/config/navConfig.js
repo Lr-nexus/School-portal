@@ -28,6 +28,7 @@ export const navConfig = {
     { to: '/admin/enrollment',  label: 'Enrollment',      icon: FiUserPlus },
     { to: '/admin/users',       label: 'Users',           icon: FiUsers },
     { to: '/admin/classes',     label: 'Classes',         icon: FiLayers },
+    { to: '/admin/fees',        label: 'Fees & Finance',  icon: FiCreditCard },
     { to: '/admin/results',     label: 'Student Results', icon: FiBarChart2 },
     { to: '/admin/lms',         label: 'Performance',     icon: FiTrendingUp },
     { to: '/admin/classroom',   label: 'Live Classes',    icon: FiVideo }

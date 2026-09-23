@@ -41,6 +41,16 @@ router.patch('/me', async (req, res) => {
     values.push(req.user.id);
     await pool.execute(`UPDATE students SET ${updates.join(', ')} WHERE user_id = ?`, values);
   }
+
+  // ⭐ Sync the shared users table so the sidebar / topbar reflect the change
+  const userUpdates = [], userValues = [];
+  if (req.body.name !== undefined)  { userUpdates.push('name = ?');  userValues.push(req.body.name); }
+  if (req.body.email !== undefined) { userUpdates.push('email = ?'); userValues.push(String(req.body.email).toLowerCase()); }
+  if (userUpdates.length) {
+    userValues.push(req.user.id);
+    await pool.execute(`UPDATE users SET ${userUpdates.join(', ')} WHERE id = ?`, userValues);
+  }
+
   const [rows] = await pool.execute('SELECT * FROM students WHERE user_id = ?', [req.user.id]);
   const s = rows[0];
   res.json({
@@ -195,7 +205,6 @@ router.post('/me/fees/:id/pay', async (req, res) => {
     [newPaid, method, fee.id]
   );
 
-  // Notify via the payment gateway simulation
   const [updated] = await pool.execute('SELECT * FROM fees WHERE id = ?', [fee.id]);
   const u = updated[0];
   const newItems = JSON.parse(u.items || '[]');

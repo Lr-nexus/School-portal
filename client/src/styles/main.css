@@ -3155,3 +3155,175 @@ textarea { resize: vertical; min-height: 60px; }
   .report-head { background: #f4f6fb !important; color: #000 !important; }
   .report-head__avatar { background: #e2e8f0; color: #000; }
 }
+
+/* ==========================================================================
+   ADMIN FEES — batch cards
+   ========================================================================== */
+
+.fee-batch {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.fee-batch__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.fee-batch__title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+.fee-batch__title h3 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--text);
+}
+
+.fee-batch__ref {
+  font-size: 12px;
+}
+.fee-batch__ref code {
+  background: var(--surface-3);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: 'Courier New', monospace;
+}
+
+.fee-batch__amounts {
+  display: flex;
+  gap: 20px;
+  flex-shrink: 0;
+}
+.fee-batch__amounts > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: right;
+}
+.fee-batch__amounts span {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+}
+.fee-batch__amounts strong {
+  font-size: 16px;
+  color: var(--text);
+}
+
+.fee-batch__items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.fee-batch__actions {
+  display: flex;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+/* ==========================================================================
+   FEE PUBLISH MODAL — items editor + preview
+   ========================================================================== */
+
+.fee-items-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.fee-item-row {
+  display: grid;
+  grid-template-columns: 1fr 180px auto;
+  gap: 10px;
+  align-items: center;
+}
+.fee-item-row input {
+  margin-top: 0;
+}
+.fee-item-row .btn {
+  padding: 8px 10px;
+}
+
+.fee-preview-panel {
+  padding: 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.fee-preview-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.fee-preview-stats > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.fee-preview-stats span {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+}
+.fee-preview-stats strong {
+  font-size: 18px;
+  color: var(--text);
+}
+
+.fee-preview-list {
+  margin-top: 12px;
+}
+.fee-preview-list summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--accent);
+  padding: 6px 0;
+}
+.fee-preview-list summary svg {
+  color: var(--accent);
+}
+.fee-preview-list ul {
+  margin: 10px 0 0 20px;
+  font-size: 12px;
+  color: var(--text-2);
+  max-height: 200px;
+  overflow-y: auto;
+}
+.fee-preview-list li {
+  padding: 2px 0;
+  font-family: 'Courier New', monospace;
+}
+
+@media (max-width: 640px) {
+  .fee-item-row {
+    grid-template-columns: 1fr;
+  }
+  .fee-batch__amounts {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .fee-batch__amounts > div {
+    text-align: left;
+  }
+}

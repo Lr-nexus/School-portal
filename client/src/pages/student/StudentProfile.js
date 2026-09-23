@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { FiEdit2, FiSave, FiX, FiUser } from 'react-icons/fi';
 import { api } from '../../api/api';
+import { useAuth } from '../../context/AuthContext';
 import PageHeader from '../../components/PageHeader';
 import Loader from '../../components/Loader';
 import ChangePasswordCard from '../../components/ChangePasswordCard';
 
 export default function StudentProfile() {
+  const { updateUser } = useAuth();
   const [profile, setProfile] = useState(null);
   const [form, setForm] = useState(null);
   const [editing, setEditing] = useState(false);
@@ -48,16 +50,22 @@ export default function StudentProfile() {
         email: form.email,
         guardianName: form.guardianName,
         guardianPhone: form.guardianPhone,
-        address: form.address
+        address: form.address,
       };
       const res = await api('/students/me', {
         method: 'PATCH',
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
       setProfile(res.student);
       setForm(res.student);
       setEditing(false);
       setMessage('Profile updated');
+
+      // ⭐ Sync the AuthContext so sidebar / topbar update instantly
+      updateUser({
+        name: res.student.name,
+        email: res.student.email,
+      });
     } catch (err) {
       setMessage(err.message);
     } finally {
@@ -75,7 +83,7 @@ export default function StudentProfile() {
     ['Email', profile.email || '—'],
     ['Guardian', profile.guardianName || '—'],
     ['Guardian Phone', profile.guardianPhone || '—'],
-    ['Address', profile.address || '—']
+    ['Address', profile.address || '—'],
   ];
 
   return (

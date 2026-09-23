@@ -2,7 +2,6 @@ import { createContext, useContext, useState } from 'react';
 import { api } from '../api/api';
 
 const AuthContext = createContext(null);
-
 const STORAGE_KEY = 'user';
 
 function readUser() {
@@ -33,8 +32,19 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  /* ⭐ NEW — merge a partial update into the current user,
+     persist it, and let every consumer re-render. */
+  const updateUser = (patch) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, ...patch };
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { FiEdit2, FiSave, FiX, FiUser } from 'react-icons/fi';
 import { api } from '../../api/api';
+import { useAuth } from '../../context/AuthContext';
 import PageHeader from '../../components/PageHeader';
 import Loader from '../../components/Loader';
 import ChangePasswordCard from '../../components/ChangePasswordCard';
 
 export default function TeacherProfile() {
+  const { updateUser } = useAuth();
   const [profile, setProfile] = useState(null);
   const [form, setForm] = useState(null);
   const [editing, setEditing] = useState(false);
@@ -50,13 +52,19 @@ export default function TeacherProfile() {
           subjects: form.subjects,
           formClass: form.formClass,
           qualification: form.qualification,
-          address: form.address
-        })
+          address: form.address,
+        }),
       });
       setProfile(res.teacher);
       setForm({ ...res.teacher, subjects: (res.teacher.subjects || []).join(', ') });
       setEditing(false);
       setMessage('Profile updated');
+
+      // ⭐ Sync the AuthContext
+      updateUser({
+        name: res.teacher.name,
+        email: res.teacher.email,
+      });
     } catch (err) {
       setMessage(err.message);
     } finally {
@@ -73,7 +81,7 @@ export default function TeacherProfile() {
     ['Form Class', profile.formClass || '—'],
     ['Qualification', profile.qualification || '—'],
     ['Address', profile.address || '—'],
-    ['Date Joined', profile.joined]
+    ['Date Joined', profile.joined],
   ];
 
   return (
