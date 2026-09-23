@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  FiEdit3, FiBook, FiUsers, FiClipboard,
-  FiMail, FiPhone
+  FiEdit3, FiUsers, FiClipboard, FiMail, FiPhone, FiVideo
 } from 'react-icons/fi';
 import { api } from '../../api/api';
 import StatCard from '../../components/StatCard';
@@ -37,7 +36,7 @@ export default function TeacherHome() {
 
   return (
     <div>
-      {/* ---------------- WELCOME BANNER ---------------- */}
+      {/* WELCOME BANNER */}
       <div className="welcome-banner">
         <div className="welcome-banner__left">
           <h2>Good day, {profile.name}</h2>
@@ -58,16 +57,16 @@ export default function TeacherHome() {
         <div className="welcome-banner__term">2024/2025 · First Term</div>
       </div>
 
-      {/* ---------------- STAT CARDS ---------------- */}
+      {/* STAT CARDS */}
       <div className="stats-grid">
-        <StatCard label="My Classes"      value={classes.length}  color="#7c3aed" />
-        <StatCard label="My Students"     value={totalStudents}   color="#2563eb" />
-        <StatCard label="Quizzes Created" value={quizzes.length}  color="#0891b2" />
-        <StatCard label="Form Class"      value={profile.formClass || '—'} color="#16a34a" />
+        <StatCard label="My Class"         value={profile.formClass || '—'} color="#7c3aed" />
+        <StatCard label="My Students"      value={totalStudents}             color="#2563eb" />
+        <StatCard label="Quizzes Created"  value={quizzes.length}            color="#0891b2" />
+        <StatCard label="Subjects"         value={teacherSubjects.length}    color="#16a34a" />
       </div>
 
       <div className="grid-2">
-        {/* ---------------- QUICK ACTIONS ---------------- */}
+        {/* QUICK ACTIONS */}
         <div className="card">
           <h3>Quick Actions</h3>
           <div className="quick-actions">
@@ -80,8 +79,8 @@ export default function TeacherHome() {
             <Link to="/teacher/assignments" className="quick-action">
               <FiClipboard /> Post an Assignment
             </Link>
-            <Link to="/teacher/classes"     className="quick-action">
-              <FiBook /> View My Classes
+            <Link to="/teacher/classroom"   className="quick-action">
+              <FiVideo /> Plan a Live Class
             </Link>
           </div>
 
@@ -98,7 +97,7 @@ export default function TeacherHome() {
           </div>
         </div>
 
-        {/* ---------------- CLASS OVERVIEW ---------------- */}
+        {/* CLASS OVERVIEW */}
         <div className="card">
           <h3>Class Overview</h3>
           {classes.length === 0 ? (
