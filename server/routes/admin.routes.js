@@ -94,7 +94,7 @@ router.get('/stats', async (req, res) => {
 });
 
 /* ==================================================================
-   CLASSES — list every class with teacher + student roster
+   CLASSES
 ================================================================== */
 router.get('/classes', async (req, res) => {
   try {
@@ -195,7 +195,7 @@ router.post('/students', async (req, res) => {
     return res.status(400).json({ message: 'A user with that email already exists' });
   }
 
-  const loginPassword = (password && password.trim()) || 'Password';
+  const loginPassword = (password && password.trim()) || 'changeme123';
 
   const conn = await pool.getConnection();
   try {
@@ -388,7 +388,7 @@ router.post('/students/bulk-import', upload.single('file'), async (req, res) => 
     const name = row.name;
     const email = (row.email || '').toLowerCase();
     const className = row.classname || row.class;
-    const password = row.password || 'Password';
+    const password = row.password || 'changeme123';
 
     if (!name || !email || !className) {
       failed.push({ line, name, email, reason: 'name, email and classname are required' });
@@ -509,7 +509,7 @@ router.get('/teachers', async (req, res) => {
 });
 
 /* ==================================================================
-   TEACHERS — CREATE (single)
+   TEACHERS — CREATE (single) — writes subjects into the class row
 ================================================================== */
 router.post('/teachers', async (req, res) => {
   const {
@@ -533,7 +533,7 @@ router.post('/teachers', async (req, res) => {
     ? subjects
     : String(subjects || '').split(',').map(s => s.trim()).filter(Boolean);
 
-  const loginPassword = (password && password.trim()) || 'Password';
+  const loginPassword = (password && password.trim()) || 'changeme123';
 
   const conn = await pool.getConnection();
   try {
@@ -563,19 +563,28 @@ router.post('/teachers', async (req, res) => {
 
     if (formClass && formClass.trim()) {
       const [classRows] = await conn.execute(
-        'SELECT id FROM classes WHERE name = ?',
+        'SELECT id, subjects FROM classes WHERE name = ?',
         [formClass.trim()]
       );
       if (classRows.length) {
+        // Fill in subjects only if the class has none yet
         await conn.execute(
-          'UPDATE classes SET teacher_id = ? WHERE id = ?',
-          [tResult.insertId, classRows[0].id]
+          `UPDATE classes
+           SET teacher_id = ?,
+               subjects = CASE
+                 WHEN subjects IS NULL OR subjects = '' OR subjects = '[]'
+                 THEN ?
+                 ELSE subjects
+               END
+           WHERE id = ?`,
+          [tResult.insertId, JSON.stringify(subjectList), classRows[0].id]
         );
       } else {
+        // New class — include the teacher's subjects
         await conn.execute(
           `INSERT INTO classes (name, teacher_id, subjects, schedule)
            VALUES (?, ?, ?, ?)`,
-          [formClass.trim(), tResult.insertId, JSON.stringify([]), JSON.stringify([])]
+          [formClass.trim(), tResult.insertId, JSON.stringify(subjectList), JSON.stringify([])]
         );
       }
     }
@@ -714,7 +723,7 @@ router.post('/teachers/bulk-delete', async (req, res) => {
 });
 
 /* ==================================================================
-   TEACHERS — BULK IMPORT
+   TEACHERS — BULK IMPORT — writes subjects into class row
 ================================================================== */
 router.post('/teachers/bulk-import', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
@@ -741,7 +750,7 @@ router.post('/teachers/bulk-import', upload.single('file'), async (req, res) => 
 
     const name = row.name;
     const email = (row.email || '').toLowerCase();
-    const password = row.password || 'Password';
+    const password = row.password || 'changeme123';
     const formClass = row.formclass || '';
     const subjectsRaw = row.subjects || '';
 
@@ -795,19 +804,26 @@ router.post('/teachers/bulk-import', upload.single('file'), async (req, res) => 
 
         if (formClass.trim()) {
           const [cls] = await conn.execute(
-            'SELECT id FROM classes WHERE name = ?',
+            'SELECT id, subjects FROM classes WHERE name = ?',
             [formClass.trim()]
           );
           if (cls.length) {
             await conn.execute(
-              'UPDATE classes SET teacher_id = ? WHERE id = ?',
-              [tResult.insertId, cls[0].id]
+              `UPDATE classes
+               SET teacher_id = ?,
+                   subjects = CASE
+                     WHEN subjects IS NULL OR subjects = '' OR subjects = '[]'
+                     THEN ?
+                     ELSE subjects
+                   END
+               WHERE id = ?`,
+              [tResult.insertId, JSON.stringify(subjectList), cls[0].id]
             );
           } else {
             await conn.execute(
               `INSERT INTO classes (name, teacher_id, subjects, schedule)
                VALUES (?, ?, ?, ?)`,
-              [formClass.trim(), tResult.insertId, JSON.stringify([]), JSON.stringify([])]
+              [formClass.trim(), tResult.insertId, JSON.stringify(subjectList), JSON.stringify([])]
             );
           }
         }

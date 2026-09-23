@@ -1,9 +1,8 @@
 /* ==========================================================================
-   DESIGN TOKENS — everything themeable is here
+   DESIGN TOKENS
    ========================================================================== */
 
 :root {
-  /* Base surfaces (light) */
   --bg:            #f4f6fb;
   --bg-2:          #eef2f9;
   --surface:       #ffffff;
@@ -11,46 +10,38 @@
   --surface-3:     #f1f5f9;
   --surface-hover: #f8fafc;
 
-  /* Text */
   --text:          #0b1220;
   --text-2:        #334155;
   --muted:         #64748b;
   --muted-2:       #94a3b8;
 
-  /* Borders */
   --border:        #e5e9f2;
   --border-strong: #cbd5e1;
 
-  /* Status */
   --green:  #16a34a;
   --red:    #dc2626;
   --amber:  #f59e0b;
 
-  /* Shadows */
   --shadow-sm: 0 1px 2px rgba(15, 23, 42, .06);
   --shadow-md: 0 4px 12px rgba(15, 23, 42, .08);
   --shadow-lg: 0 12px 32px rgba(15, 23, 42, .14);
 
-  /* Default accent (overridden per role below) */
   --accent:       #2563eb;
   --accent-2:     #1d4ed8;
   --accent-soft:  #eff6ff;
   --accent-text:  #1e40af;
   --accent-ring:  rgba(37, 99, 235, .2);
 
-  /* Sidebar (dark in both themes) */
   --sidebar-bg-1:  #0f172a;
   --sidebar-bg-2:  #1e293b;
   --sidebar-text:  #cbd5e1;
   --sidebar-muted: #94a3b8;
 
-  /* Radii */
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
 }
 
-/* ---------- Dark theme overrides ---------- */
 [data-theme="dark"] {
   --bg:            #0a0f1c;
   --bg-2:          #0f172a;
@@ -83,7 +74,7 @@
   color-scheme: dark;
 }
 
-/* ---------- Role-based accent colors ---------- */
+/* Role-based accent colors */
 [data-role="student"] {
   --accent:      #2563eb;
   --accent-2:    #1d4ed8;
@@ -433,6 +424,35 @@ a:hover { color: var(--accent-2); }
   backdrop-filter: blur(4px);
 }
 
+.welcome-banner__left {
+  min-width: 0;
+  flex: 1;
+}
+.welcome-banner__subjects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.welcome-banner__chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, .18);
+  border: 1px solid rgba(255, 255, 255, .25);
+  backdrop-filter: blur(4px);
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+}
+.welcome-banner__empty {
+  font-size: 13px;
+  opacity: .75;
+  margin-top: 8px;
+  font-style: italic;
+}
+
 /* ==========================================================================
    TABLES
    ========================================================================== */
@@ -458,6 +478,12 @@ a:hover { color: var(--accent-2); }
   color: var(--accent-text);
 }
 .right { text-align: right; }
+
+.table-wrap {
+  overflow-x: auto;
+  border-radius: var(--radius-md);
+}
+.table-wrap .table { min-width: 640px; }
 
 /* ==========================================================================
    BUTTONS
@@ -494,6 +520,12 @@ a:hover { color: var(--accent-2); }
 }
 .btn--danger:hover:not(:disabled) { background: #b91c1c; }
 .btn--full { width: 100%; }
+.btn--sm {
+  padding: 6px 12px;
+  font-size: 12px;
+  gap: 6px;
+}
+.btn--sm svg { flex-shrink: 0; }
 
 /* ==========================================================================
    FORMS
@@ -539,6 +571,104 @@ textarea { resize: vertical; min-height: 60px; }
   margin-top: 4px;
 }
 
+/* Password field with toggle */
+.password-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.password-field input {
+  width: 100%;
+  padding-right: 42px;
+}
+.password-toggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: background .15s, color .15s;
+}
+.password-toggle:hover {
+  background: var(--surface-3);
+  color: var(--text-2);
+}
+[data-theme="dark"] .password-toggle:hover {
+  background: var(--surface-2);
+}
+
+/* File drop */
+.file-drop {
+  margin-top: 0;
+  padding: 20px 18px;
+  background: var(--surface-2);
+  border: 2px dashed var(--border-strong);
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 13px;
+  width: 100%;
+  transition: border-color .15s, background .15s;
+}
+.file-drop:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.file-drop::file-selector-button {
+  margin-right: 14px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-2);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+}
+.file-drop::file-selector-button:hover {
+  background: var(--surface-3);
+  border-color: var(--border-strong);
+}
+
+/* Filters bar */
+.filters-bar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+.filters-bar__search {
+  flex: 1;
+  min-width: 220px;
+  position: relative;
+}
+.filters-bar__search input {
+  margin-top: 0;
+  padding-left: 38px;
+}
+.filters-bar__search svg {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+}
+.filters-bar__select {
+  min-width: 160px;
+}
+.filters-bar__select select {
+  margin-top: 0;
+}
+
 /* ==========================================================================
    ALERTS
    ========================================================================== */
@@ -564,7 +694,7 @@ textarea { resize: vertical; min-height: 60px; }
 }
 
 /* ==========================================================================
-   PILLS / BADGES
+   PILLS / BADGES / CHIPS
    ========================================================================== */
 
 .pill {
@@ -631,6 +761,35 @@ textarea { resize: vertical; min-height: 60px; }
   font-weight: 500;
 }
 
+.chip--pdf {
+  background: rgba(220, 38, 38, .12);
+  color: #b91c1c;
+  font-weight: 600;
+  font-size: 10px;
+  letter-spacing: .4px;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  align-self: flex-start;
+}
+.chip--rich {
+  background: rgba(37, 99, 235, .12);
+  color: #1d4ed8;
+  font-weight: 600;
+  font-size: 10px;
+  letter-spacing: .4px;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  align-self: flex-start;
+}
+[data-theme="dark"] .chip--pdf {
+  background: rgba(239, 68, 68, .18);
+  color: #fca5a5;
+}
+[data-theme="dark"] .chip--rich {
+  background: rgba(96, 165, 250, .18);
+  color: #bfdbfe;
+}
+
 /* ==========================================================================
    QUICK ACTIONS
    ========================================================================== */
@@ -656,6 +815,32 @@ textarea { resize: vertical; min-height: 60px; }
   transform: translateY(-1px);
 }
 .quick-action svg { flex-shrink: 0; color: var(--accent); }
+
+/* Teacher contact block */
+.teacher-contact {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--border);
+}
+.teacher-contact h4 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.teacher-contact__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  font-size: 13px;
+  color: var(--text-2);
+}
+.teacher-contact__row svg {
+  color: var(--muted);
+  flex-shrink: 0;
+}
 
 /* ==========================================================================
    ANNOUNCEMENTS
@@ -723,6 +908,24 @@ textarea { resize: vertical; min-height: 60px; }
   border-top: 1px solid var(--border);
   flex-wrap: wrap;
 }
+
+/* Confirm modal item list */
+.confirm-list {
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-top: 8px;
+}
+.confirm-list__row {
+  font-size: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-2);
+}
+.confirm-list__row:last-child { border-bottom: none; }
 
 /* ==========================================================================
    USER DROPDOWN
@@ -922,7 +1125,7 @@ textarea { resize: vertical; min-height: 60px; }
 .notif__item-del:hover { color: var(--red); }
 
 /* ==========================================================================
-   LOGIN — Split-screen redesign
+   LOGIN — Split-screen
    ========================================================================== */
 
 .login-split {
@@ -931,10 +1134,6 @@ textarea { resize: vertical; min-height: 60px; }
   min-height: 100vh;
   background: var(--bg);
 }
-
-/* ==========================================================================
-   HERO PANEL (left)
-   ========================================================================== */
 
 .login-hero {
   position: relative;
@@ -946,7 +1145,6 @@ textarea { resize: vertical; min-height: 60px; }
   color: #fff;
   isolation: isolate;
 }
-
 .login-hero__bg {
   position: absolute;
   inset: 0;
@@ -955,7 +1153,6 @@ textarea { resize: vertical; min-height: 60px; }
   transform: scale(1.05);
   z-index: -2;
 }
-
 .login-hero__overlay {
   position: absolute;
   inset: 0;
@@ -967,7 +1164,6 @@ textarea { resize: vertical; min-height: 60px; }
   );
   z-index: -1;
 }
-
 .login-hero__content {
   position: relative;
   z-index: 1;
@@ -977,13 +1173,7 @@ textarea { resize: vertical; min-height: 60px; }
   flex-direction: column;
   gap: 28px;
 }
-
-/* Brand */
-.login-hero__brand {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
+.login-hero__brand { display: flex; align-items: center; gap: 14px; }
 .login-hero__logo {
   width: 52px;
   height: 52px;
@@ -998,12 +1188,7 @@ textarea { resize: vertical; min-height: 60px; }
   letter-spacing: .5px;
   color: #fff;
 }
-.login-hero__brand h1 {
-  font-size: 20px;
-  font-weight: 700;
-  margin: 0;
-  line-height: 1.1;
-}
+.login-hero__brand h1 { font-size: 20px; font-weight: 700; margin: 0; line-height: 1.1; }
 .login-hero__brand p {
   font-size: 12px;
   opacity: .8;
@@ -1011,8 +1196,6 @@ textarea { resize: vertical; min-height: 60px; }
   text-transform: uppercase;
   letter-spacing: 1.2px;
 }
-
-/* Tagline */
 .login-hero__tagline h2 {
   font-size: 34px;
   line-height: 1.15;
@@ -1026,8 +1209,6 @@ textarea { resize: vertical; min-height: 60px; }
   opacity: .88;
   max-width: 460px;
 }
-
-/* Features */
 .login-hero__features {
   list-style: none;
   display: grid;
@@ -1052,8 +1233,6 @@ textarea { resize: vertical; min-height: 60px; }
   place-items: center;
   flex-shrink: 0;
 }
-
-/* Stats */
 .login-hero__stats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -1062,11 +1241,7 @@ textarea { resize: vertical; min-height: 60px; }
   border-top: 1px solid rgba(255, 255, 255, .15);
   border-bottom: 1px solid rgba(255, 255, 255, .15);
 }
-.login-hero__stat {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
+.login-hero__stat { display: flex; flex-direction: column; gap: 2px; }
 .login-hero__stat strong {
   font-size: 22px;
   font-weight: 700;
@@ -1078,8 +1253,6 @@ textarea { resize: vertical; min-height: 60px; }
   text-transform: uppercase;
   letter-spacing: 1px;
 }
-
-/* Footer badge */
 .login-hero__footer {
   display: inline-flex;
   align-items: center;
@@ -1088,10 +1261,6 @@ textarea { resize: vertical; min-height: 60px; }
   opacity: .8;
 }
 
-/* ==========================================================================
-   FORM PANEL (right)
-   ========================================================================== */
-
 .login-form-panel {
   display: flex;
   align-items: center;
@@ -1099,15 +1268,8 @@ textarea { resize: vertical; min-height: 60px; }
   padding: 48px 40px;
   background: var(--surface);
 }
-
-.login-form-panel__inner {
-  width: 100%;
-  max-width: 400px;
-}
-
-.login-form-panel__head {
-  margin-bottom: 28px;
-}
+.login-form-panel__inner { width: 100%; max-width: 400px; }
+.login-form-panel__head { margin-bottom: 28px; }
 .login-form-panel__logo-mobile {
   display: none;
   width: 48px;
@@ -1126,21 +1288,10 @@ textarea { resize: vertical; min-height: 60px; }
   margin-bottom: 6px;
   letter-spacing: -0.3px;
 }
-.login-form-panel__head p {
-  font-size: 14px;
-  color: var(--muted);
-}
+.login-form-panel__head p { font-size: 14px; color: var(--muted); }
 
-/* Form */
-.login-form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-.login-form label {
-  display: block;
-  margin: 0;
-}
+.login-form { display: flex; flex-direction: column; gap: 16px; }
+.login-form label { display: block; margin: 0; }
 .login-form__label {
   display: block;
   font-size: 12px;
@@ -1162,7 +1313,6 @@ textarea { resize: vertical; min-height: 60px; }
   font-weight: 600;
 }
 
-/* Demo accounts */
 .login-demo {
   margin-top: 32px;
   padding-top: 24px;
@@ -1185,7 +1335,6 @@ textarea { resize: vertical; min-height: 60px; }
   height: 1px;
   background: var(--border);
 }
-
 .login-demo__btns {
   display: flex;
   flex-direction: column;
@@ -1232,7 +1381,6 @@ textarea { resize: vertical; min-height: 60px; }
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
 .login-demo__hint {
   margin-top: 10px;
   font-size: 11px;
@@ -1240,7 +1388,6 @@ textarea { resize: vertical; min-height: 60px; }
   text-align: center;
 }
 
-/* Trust badges */
 .login-trust {
   display: flex;
   justify-content: center;
@@ -1261,81 +1408,12 @@ textarea { resize: vertical; min-height: 60px; }
   color: var(--accent);
   flex-shrink: 0;
 }
-
-/* Footer */
 .login-form-panel__footer {
   margin-top: 24px;
   text-align: center;
   font-size: 11px;
   color: var(--muted-2);
   line-height: 1.6;
-}
-
-/* ==========================================================================
-   LOGIN — Responsive
-   ========================================================================== */
-
-@media (max-width: 1024px) {
-  .login-split {
-    grid-template-columns: 1fr;
-  }
-  .login-hero {
-    padding: 40px 24px;
-    min-height: 380px;
-    align-items: flex-start;
-  }
-  .login-hero__content {
-    max-width: 100%;
-  }
-  .login-hero__tagline h2 {
-    font-size: 26px;
-  }
-  .login-hero__features {
-    display: none;
-  }
-  .login-hero__stats {
-    grid-template-columns: repeat(4, 1fr);
-    padding: 14px 0;
-  }
-  .login-hero__stat strong {
-    font-size: 18px;
-  }
-  .login-form-panel {
-    padding: 32px 20px 40px;
-  }
-  .login-form-panel__logo-mobile {
-    display: grid;
-  }
-}
-
-@media (max-width: 640px) {
-  .login-hero {
-    min-height: 280px;
-    padding: 28px 20px;
-  }
-  .login-hero__tagline h2 {
-    font-size: 22px;
-  }
-  .login-hero__tagline p {
-    font-size: 13px;
-  }
-  .login-hero__stats {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-    padding: 12px 0;
-  }
-  .login-hero__footer {
-    display: none;
-  }
-  .login-form-panel {
-    padding: 28px 20px 36px;
-  }
-  .login-form-panel__head h2 {
-    font-size: 22px;
-  }
-  .login-trust {
-    gap: 12px;
-  }
 }
 
 /* ==========================================================================
@@ -1452,6 +1530,59 @@ textarea { resize: vertical; min-height: 60px; }
 }
 .comment-form input { flex: 1; margin-bottom: 0; }
 .comment-form .btn { padding: 10px 14px; }
+
+/* Rich content viewer */
+.rich-content {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text);
+  padding: 22px 24px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  max-height: 55vh;
+  overflow-y: auto;
+}
+.rich-content h1 { font-size: 24px; margin: 8px 0 12px; color: var(--text); }
+.rich-content h2 { font-size: 20px; margin: 16px 0 10px; color: var(--text); }
+.rich-content h3 { font-size: 16px; margin: 14px 0 8px; color: var(--text); }
+.rich-content p  { margin-bottom: 10px; }
+.rich-content ul,
+.rich-content ol { margin: 8px 0 12px 24px; }
+.rich-content li { margin-bottom: 4px; }
+.rich-content blockquote {
+  border-left: 4px solid var(--accent);
+  padding: 4px 14px;
+  margin: 12px 0;
+  color: var(--muted);
+  font-style: italic;
+  background: var(--accent-soft);
+  border-radius: 0 8px 8px 0;
+}
+.rich-content pre {
+  background: var(--surface-3);
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  overflow-x: auto;
+  margin: 10px 0;
+}
+.rich-content code {
+  background: var(--surface-3);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+.rich-content a {
+  color: var(--accent);
+  text-decoration: underline;
+}
+.rich-content img {
+  max-width: 100%;
+  border-radius: 10px;
+  margin: 10px 0;
+  box-shadow: var(--shadow-sm);
+}
 
 /* ==========================================================================
    ASSIGNMENTS
@@ -1583,7 +1714,7 @@ textarea { resize: vertical; min-height: 60px; }
 .participant__info .badge { align-self: flex-start; font-size: 10px; }
 
 /* ==========================================================================
-   VIDEO ROOM (always dark, like Zoom)
+   VIDEO ROOM
    ========================================================================== */
 
 .video-room {
@@ -1629,6 +1760,94 @@ textarea { resize: vertical; min-height: 60px; }
 }
 .video-room__header h2 { font-size: 17px; }
 .video-room__header p  { font-size: 13px; color: #94a3b8; margin-top: 2px; }
+
+.video-room__header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pill--hands {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(251, 191, 36, .2);
+  color: #fcd34d;
+  font-weight: 700;
+  animation: handPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes handPulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.05); }
+}
+
+.video-toast {
+  position: absolute;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, .95);
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 30px;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .4);
+  z-index: 200;
+  animation: toastIn .25s ease-out;
+  border: 1px solid rgba(255, 255, 255, .1);
+}
+@keyframes toastIn {
+  from { opacity: 0; transform: translate(-50%, -10px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.raised-hands-bar {
+  background: linear-gradient(90deg, rgba(251, 191, 36, .15), rgba(251, 191, 36, .05));
+  border-bottom: 1px solid rgba(251, 191, 36, .25);
+  padding: 10px 22px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  animation: slideDown .25s ease-out;
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.raised-hands-bar__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #fcd34d;
+  font-weight: 600;
+}
+.raised-hands-bar__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(251, 191, 36, .2);
+  color: #fcd34d;
+  border: 1px solid rgba(251, 191, 36, .4);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s, transform .12s;
+  font-family: inherit;
+}
+.raised-hands-bar__chip:hover {
+  background: rgba(251, 191, 36, .35);
+  transform: translateY(-1px);
+}
 
 .video-grid {
   flex: 1;
@@ -1687,6 +1906,28 @@ textarea { resize: vertical; min-height: 60px; }
 .video-tile__waiting-text p { margin-top: 8px; color: #e2e8f0; font-size: 14px; }
 .video-tile__waiting-text small { display: block; margin-top: 6px; font-size: 12px; opacity: .75; }
 
+.video-tile__hand-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(251, 191, 36, .95);
+  color: #422006;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 3;
+  animation: handPulse 1.4s ease-in-out infinite;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .35);
+}
+.video-tile--hand {
+  outline: 3px solid rgba(251, 191, 36, .7);
+  outline-offset: -3px;
+}
+
 .video-controls {
   padding: 14px;
   background: #0f172a;
@@ -1711,9 +1952,16 @@ textarea { resize: vertical; min-height: 60px; }
 .video-controls__btn--off { background: #7f1d1d; color: #fecaca; }
 .video-controls__btn--end { background: #dc2626; color: #fff; }
 .video-controls__btn--end:hover { background: #b91c1c; }
+.video-controls__btn--hand-active {
+  background: #fbbf24;
+  color: #422006;
+  animation: handPulse 1.4s ease-in-out infinite;
+  box-shadow: 0 0 0 4px rgba(251, 191, 36, .25);
+}
+.video-controls__btn--hand-active:hover { background: #f59e0b; }
 
 /* ==========================================================================
-   MISC
+   QUIZZES
    ========================================================================== */
 
 .quiz-card { display: flex; flex-direction: column; gap: 8px; }
@@ -1744,6 +1992,10 @@ textarea { resize: vertical; min-height: 60px; }
 .result-card { text-align: center; padding: 40px 20px; }
 .result-card h2 { font-size: 42px; color: var(--accent); margin-bottom: 8px; }
 .result-card p { color: var(--muted); margin-bottom: 20px; }
+
+/* ==========================================================================
+   MISC
+   ========================================================================== */
 
 .loader {
   display: grid;
@@ -1780,47 +2032,20 @@ textarea { resize: vertical; min-height: 60px; }
   flex-wrap: wrap;
 }
 
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--muted);
+}
+.empty-state svg {
+  margin-bottom: 12px;
+  opacity: .5;
+}
+
 /* ==========================================================================
-   RESPONSIVE
+   TABS
    ========================================================================== */
 
-@media (max-width: 900px) {
-  .grid-2 { grid-template-columns: 1fr; }
-}
-
-@media (max-width: 768px) {
-  .sidebar {
-    position: fixed;
-    left: 0;
-    top: 0;
-    transform: translateX(-100%);
-    transition: transform .25s ease;
-    z-index: 40;
-    box-shadow: var(--shadow-lg);
-  }
-  .sidebar--open { transform: translateX(0); }
-  .overlay { display: block; }
-  .menu-btn { display: inline-flex; }
-  .layout__content { padding: 16px; }
-  .topbar { padding: 12px 16px; }
-}
-
-@media (max-width: 600px) {
-  .user-menu__name,
-  .topbar__date { display: none; }
-  .modal { padding: 16px; }
-  .card { padding: 16px; }
-}
-
-@media (max-width: 500px) {
-  .profile-form__actions { flex-direction: column-reverse; }
-  .profile-form__actions .btn { width: 100%; }
-  .login__demo-btns { flex-direction: column; }
-}
-
-/* ==================================================
-   TABS (Notes composer)
-================================================== */
 .tabs {
   display: flex;
   gap: 6px;
@@ -1850,9 +2075,10 @@ textarea { resize: vertical; min-height: 60px; }
   border-bottom-color: var(--accent);
 }
 
-/* ==================================================
-   QUILL EDITOR (react-quill-new)
-================================================== */
+/* ==========================================================================
+   QUILL EDITOR
+   ========================================================================== */
+
 .editor-label {
   display: block;
   font-size: 13px;
@@ -1905,7 +2131,6 @@ textarea { resize: vertical; min-height: 60px; }
 }
 .editor .ql-editor a { color: var(--accent); }
 
-/* Icon + picker colors in both themes */
 .editor .ql-snow .ql-stroke { stroke: var(--text-2); }
 .editor .ql-snow .ql-fill  { fill: var(--text-2); }
 .editor .ql-snow .ql-picker { color: var(--text-2); }
@@ -1933,89 +2158,9 @@ textarea { resize: vertical; min-height: 60px; }
 .editor .ql-snow button:hover .ql-fill  { fill: var(--accent); }
 .editor .ql-snow .ql-picker-label:hover { color: var(--accent); }
 
-/* ==================================================
-   RICH CONTENT (view mode for both roles)
-================================================== */
-.rich-content {
-  font-size: 14px;
-  line-height: 1.7;
-  color: var(--text);
-  padding: 22px 24px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  max-height: 55vh;
-  overflow-y: auto;
-}
-.rich-content h1 { font-size: 24px; margin: 8px 0 12px; color: var(--text); }
-.rich-content h2 { font-size: 20px; margin: 16px 0 10px; color: var(--text); }
-.rich-content h3 { font-size: 16px; margin: 14px 0 8px; color: var(--text); }
-.rich-content p  { margin-bottom: 10px; }
-.rich-content ul,
-.rich-content ol { margin: 8px 0 12px 24px; }
-.rich-content li { margin-bottom: 4px; }
-.rich-content blockquote {
-  border-left: 4px solid var(--accent);
-  padding: 4px 14px;
-  margin: 12px 0;
-  color: var(--muted);
-  font-style: italic;
-  background: var(--accent-soft);
-  border-radius: 0 8px 8px 0;
-}
-.rich-content pre {
-  background: var(--surface-3);
-  padding: 12px 14px;
-  border-radius: 8px;
-  font-size: 13px;
-  overflow-x: auto;
-  margin: 10px 0;
-}
-.rich-content code {
-  background: var(--surface-3);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 13px;
-}
-.rich-content a {
-  color: var(--accent);
-  text-decoration: underline;
-}
-.rich-content img {
-  max-width: 100%;
-  border-radius: 10px;
-  margin: 10px 0;
-  box-shadow: var(--shadow-sm);
-}
-
-.chip--pdf {
-  background: rgba(220, 38, 38, .12);
-  color: #b91c1c;
-  font-weight: 600;
-  font-size: 10px;
-  letter-spacing: .4px;
-  text-transform: uppercase;
-  padding: 2px 8px;
-  align-self: flex-start;
-}
-.chip--rich {
-  background: rgba(37, 99, 235, .12);
-  color: #1d4ed8;
-  font-weight: 600;
-  font-size: 10px;
-  letter-spacing: .4px;
-  text-transform: uppercase;
-  padding: 2px 8px;
-  align-self: flex-start;
-}
-[data-theme="dark"] .chip--pdf {
-  background: rgba(239, 68, 68, .18);
-  color: #fca5a5;
-}
-[data-theme="dark"] .chip--rich {
-  background: rgba(96, 165, 250, .18);
-  color: #bfdbfe;
-}
+/* ==========================================================================
+   CREDENTIALS CARD
+   ========================================================================== */
 
 .credentials-card {
   border-left: 4px solid var(--green);
@@ -2051,57 +2196,10 @@ textarea { resize: vertical; min-height: 60px; }
   color: var(--text);
 }
 
-.btn--sm {
-  padding: 6px 12px;
-  font-size: 12px;
-  gap: 6px;
-}
-.btn--sm svg {
-  flex-shrink: 0;
-}
-/* ==================================================
-   PASSWORD FIELD WITH SHOW/HIDE TOGGLE
-================================================== */
-.password-field {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.password-field input {
-  width: 100%;
-  padding-right: 42px;
-}
-
-.password-toggle {
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 6px;
-  color: var(--muted);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-  transition: background .15s, color .15s;
-}
-
-.password-toggle:hover {
-  background: var(--surface-3);
-  color: var(--text-2);
-}
-
-[data-theme="dark"] .password-toggle:hover {
-  background: var(--surface-2);
-}
-
 /* ==========================================================================
-   ADMIN — STUDENT PICKER (AdminResults list)
+   ADMIN — STUDENT PICKER & REPORT HEAD
    ========================================================================== */
+
 .student-card {
   display: flex;
   align-items: center;
@@ -2129,7 +2227,6 @@ textarea { resize: vertical; min-height: 60px; }
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-ring);
 }
-
 .student-card__info {
   display: flex;
   flex-direction: column;
@@ -2160,49 +2257,6 @@ textarea { resize: vertical; min-height: 60px; }
   transform: translateX(4px);
 }
 
-/* Search + filter bar */
-.filters-bar {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 18px;
-  flex-wrap: wrap;
-}
-.filters-bar__search {
-  flex: 1;
-  min-width: 220px;
-  position: relative;
-}
-.filters-bar__search input {
-  margin-top: 0;
-  padding-left: 38px;
-}
-.filters-bar__search svg {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--muted);
-  pointer-events: none;
-}
-.filters-bar__select {
-  min-width: 160px;
-}
-.filters-bar__select select {
-  margin-top: 0;
-}
-
-/* Empty state */
-.empty-state {
-  text-align: center;
-  padding: 40px 20px;
-  color: var(--muted);
-}
-.empty-state svg {
-  margin-bottom: 12px;
-  opacity: .5;
-}
-
-/* Report card header (results detail view) */
 .report-head {
   display: flex;
   justify-content: space-between;
@@ -2237,10 +2291,7 @@ textarea { resize: vertical; min-height: 60px; }
 .report-head__meta h2 { font-size: 20px; margin-bottom: 4px; }
 .report-head__meta p  { font-size: 13px; opacity: .9; }
 
-.report-head__grade {
-  text-align: right;
-  flex-shrink: 0;
-}
+.report-head__grade { text-align: right; flex-shrink: 0; }
 .report-head__grade .label {
   font-size: 11px;
   text-transform: uppercase;
@@ -2257,153 +2308,10 @@ textarea { resize: vertical; min-height: 60px; }
   opacity: .9;
 }
 
-/* Print-friendly */
-@media print {
-  .sidebar,
-  .topbar,
-  .page-header__actions,
-  .no-print { display: none !important; }
-  .layout__content { padding: 0; }
-  body { background: #fff; }
-  .card { box-shadow: none; border: 1px solid #ddd; }
-  .report-head { background: #f4f6fb !important; color: #000 !important; }
-  .report-head__avatar { background: #e2e8f0; color: #000; }
-}
-
 /* ==========================================================================
-   RAISE HAND
+   BULK UPLOAD
    ========================================================================== */
 
-.video-room__header-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.pill--hands {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(251, 191, 36, .2);
-  color: #fcd34d;
-  font-weight: 700;
-  animation: handPulse 1.4s ease-in-out infinite;
-}
-
-@keyframes handPulse {
-  0%, 100% { transform: scale(1); }
-  50%      { transform: scale(1.05); }
-}
-
-.video-toast {
-  position: absolute;
-  top: 80px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(15, 23, 42, .95);
-  color: #fff;
-  padding: 12px 20px;
-  border-radius: 30px;
-  font-size: 14px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, .4);
-  z-index: 200;
-  animation: toastIn .25s ease-out;
-  border: 1px solid rgba(255, 255, 255, .1);
-}
-
-@keyframes toastIn {
-  from { opacity: 0; transform: translate(-50%, -10px); }
-  to   { opacity: 1; transform: translate(-50%, 0); }
-}
-
-.raised-hands-bar {
-  background: linear-gradient(90deg, rgba(251, 191, 36, .15), rgba(251, 191, 36, .05));
-  border-bottom: 1px solid rgba(251, 191, 36, .25);
-  padding: 10px 22px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  animation: slideDown .25s ease-out;
-}
-
-@keyframes slideDown {
-  from { opacity: 0; transform: translateY(-8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.raised-hands-bar__label {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: #fcd34d;
-  font-weight: 600;
-}
-
-.raised-hands-bar__chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(251, 191, 36, .2);
-  color: #fcd34d;
-  border: 1px solid rgba(251, 191, 36, .4);
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background .15s, transform .12s;
-  font-family: inherit;
-}
-
-.raised-hands-bar__chip:hover {
-  background: rgba(251, 191, 36, .35);
-  transform: translateY(-1px);
-}
-
-.video-tile__hand-badge {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: rgba(251, 191, 36, .95);
-  color: #422006;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 700;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  z-index: 3;
-  animation: handPulse 1.4s ease-in-out infinite;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, .35);
-}
-
-.video-tile--hand {
-  outline: 3px solid rgba(251, 191, 36, .7);
-  outline-offset: -3px;
-}
-
-.video-controls__btn--hand-active {
-  background: #fbbf24;
-  color: #422006;
-  animation: handPulse 1.4s ease-in-out infinite;
-  box-shadow: 0 0 0 4px rgba(251, 191, 36, .25);
-}
-
-.video-controls__btn--hand-active:hover {
-  background: #f59e0b;
-}
-
-/* ==================================================
-   BULK UPLOAD (AdminStudents)
-================================================== */
 .bulk-info {
   background: var(--surface-2);
   border: 1px solid var(--border);
@@ -2453,7 +2361,6 @@ textarea { resize: vertical; min-height: 60px; }
   margin-top: 8px;
 }
 
-/* Results summary */
 .bulk-results__head {
   display: flex;
   justify-content: space-between;
@@ -2503,25 +2410,12 @@ textarea { resize: vertical; min-height: 60px; }
 }
 .bulk-stat--failed .bulk-stat__value { color: var(--red); }
 
-/* Scrollable table wrapper for long result lists */
-.table-wrap {
-  overflow-x: auto;
-  border-radius: var(--radius-md);
-}
-.table-wrap .table { min-width: 640px; }
-
-[data-theme="dark"] .bulk-info {
-  background: var(--surface-2);
-}
-[data-theme="dark"] .bulk-stat--success {
-  background: rgba(34, 197, 94, .1);
-}
-[data-theme="dark"] .bulk-stat--failed {
-  background: rgba(239, 68, 68, .1);
-}
+[data-theme="dark"] .bulk-info { background: var(--surface-2); }
+[data-theme="dark"] .bulk-stat--success { background: rgba(34, 197, 94, .1); }
+[data-theme="dark"] .bulk-stat--failed { background: rgba(239, 68, 68, .1); }
 
 /* ==========================================================================
-   BULK ACTIONS — checkboxes, bulk import, sticky action bar
+   BULK ACTIONS — checkboxes & selection
    ========================================================================== */
 
 .table-head {
@@ -2566,7 +2460,6 @@ textarea { resize: vertical; min-height: 60px; }
   filter: brightness(.98);
 }
 
-/* Bulk import UI */
 .bulk-import-row {
   display: flex;
   gap: 10px;
@@ -2609,9 +2502,7 @@ textarea { resize: vertical; min-height: 60px; }
   border-radius: 12px;
   font-size: 13px;
 }
-.import-result details {
-  margin-top: 10px;
-}
+.import-result details { margin-top: 10px; }
 .import-result summary {
   cursor: pointer;
   font-weight: 600;
@@ -2629,26 +2520,31 @@ textarea { resize: vertical; min-height: 60px; }
   font-family: 'Courier New', monospace;
 }
 
-/* Confirm modal item list */
-.confirm-list {
-  max-height: 240px;
-  overflow-y: auto;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 14px;
-  margin-top: 8px;
+.bulk-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-ring);
+  border-radius: var(--radius-md);
+  margin-bottom: 14px;
+  flex-wrap: wrap;
 }
-.confirm-list__row {
-  font-size: 12px;
-  padding: 6px 0;
-  border-bottom: 1px solid var(--border);
-  color: var(--text-2);
+.bulk-bar__count {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-text);
 }
-.confirm-list__row:last-child { border-bottom: none; }
+.bulk-bar__actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
 
 /* ==========================================================================
-   ENROLLMENT — clean two-column layout with grouped sections
+   ENROLLMENT
    ========================================================================== */
 
 .enroll-grid {
@@ -2656,10 +2552,6 @@ textarea { resize: vertical; min-height: 60px; }
   grid-template-columns: 1fr 1.4fr;
   gap: 20px;
   align-items: start;
-}
-
-@media (max-width: 1000px) {
-  .enroll-grid { grid-template-columns: 1fr; }
 }
 
 .enroll-card {
@@ -2732,40 +2624,8 @@ textarea { resize: vertical; min-height: 60px; }
   margin-top: 0;
 }
 
-.file-drop {
-  margin-top: 0;
-  padding: 20px 18px;
-  background: var(--surface-2);
-  border: 2px dashed var(--border-strong);
-  border-radius: 12px;
-  cursor: pointer;
-  font-size: 13px;
-  width: 100%;
-  transition: border-color .15s, background .15s;
-}
-.file-drop:hover {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-}
-.file-drop::file-selector-button {
-  margin-right: 14px;
-  padding: 8px 16px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text-2);
-  cursor: pointer;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 600;
-}
-.file-drop::file-selector-button:hover {
-  background: var(--surface-3);
-  border-color: var(--border-strong);
-}
-
 /* ==========================================================================
-   ADMIN CLASSES PAGE
+   ADMIN CLASSES
    ========================================================================== */
 
 .class-list {
@@ -2805,9 +2665,7 @@ textarea { resize: vertical; min-height: 60px; }
   text-align: left;
   transition: background .15s;
 }
-.class-card__head:hover {
-  background: var(--surface-2);
-}
+.class-card__head:hover { background: var(--surface-2); }
 
 .class-card__title {
   display: flex;
@@ -2854,6 +2712,10 @@ textarea { resize: vertical; min-height: 60px; }
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+.class-card__body--flat {
+  padding: 16px;
+  gap: 12px;
 }
 
 .class-teacher {
@@ -2910,65 +2772,6 @@ textarea { resize: vertical; min-height: 60px; }
 }
 .class-teacher__subjects svg { color: var(--muted); flex-shrink: 0; }
 
-.class-roster {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 16px;
-}
-.class-roster h4 {
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: .4px;
-  color: var(--muted);
-  margin-bottom: 12px;
-}
-.class-roster .table th,
-.class-roster .table td {
-  padding: 9px 10px;
-  font-size: 13px;
-}
-
-@media (max-width: 640px) {
-  .class-card__meta {
-    flex-direction: column;
-    gap: 4px;
-  }
-  .class-teacher__contacts {
-    margin-left: 0;
-    width: 100%;
-  }
-}
-
-/* ==========================================================================
-   BULK SELECTION BAR (Users page)
-   ========================================================================== */
-.bulk-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  background: var(--accent-soft);
-  border: 1px solid var(--accent-ring);
-  border-radius: var(--radius-md);
-  margin-bottom: 14px;
-  flex-wrap: wrap;
-}
-.bulk-bar__count {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--accent-text);
-}
-.bulk-bar__actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-/* ==========================================================================
-   CLASS TEACHER COMPACT (inside Users > Students class sections)
-   ========================================================================== */
 .class-teacher-compact {
   display: flex;
   align-items: center;
@@ -2990,69 +2793,136 @@ textarea { resize: vertical; min-height: 60px; }
   color: var(--text);
 }
 
-/* Flatten class-card body when used inside Users page */
-.class-card__body--flat {
+.class-roster {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
   padding: 16px;
-  gap: 12px;
 }
-
-/* ==========================================================================
-   TEACHER DASHBOARD — subjects chips in the welcome banner
-   ========================================================================== */
-
-.welcome-banner__left {
-  min-width: 0;
-  flex: 1;
-}
-
-.welcome-banner__subjects {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 10px;
-}
-.welcome-banner__chip {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 12px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, .18);
-  border: 1px solid rgba(255, 255, 255, .25);
-  backdrop-filter: blur(4px);
-  font-size: 12px;
-  font-weight: 600;
-  color: #fff;
-}
-
-.welcome-banner__empty {
-  font-size: 13px;
-  opacity: .75;
-  margin-top: 8px;
-  font-style: italic;
-}
-
-/* Teacher contact info block */
-.teacher-contact {
-  margin-top: 18px;
-  padding-top: 16px;
-  border-top: 1px dashed var(--border);
-}
-.teacher-contact h4 {
+.class-roster h4 {
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: .4px;
   color: var(--muted);
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
-.teacher-contact__row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 0;
+.class-roster .table th,
+.class-roster .table td {
+  padding: 9px 10px;
   font-size: 13px;
-  color: var(--text-2);
 }
-.teacher-contact__row svg {
-  color: var(--muted);
-  flex-shrink: 0;
+
+/* Class Overview — inline subject chips */
+.class-subject-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.class-subject-list .chip {
+  font-size: 11px;
+  padding: 3px 10px;
+}
+
+/* ==========================================================================
+   RESPONSIVE
+   ========================================================================== */
+
+@media (max-width: 1000px) {
+  .enroll-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 1024px) {
+  .login-split { grid-template-columns: 1fr; }
+  .login-hero {
+    padding: 40px 24px;
+    min-height: 380px;
+    align-items: flex-start;
+  }
+  .login-hero__content { max-width: 100%; }
+  .login-hero__tagline h2 { font-size: 26px; }
+  .login-hero__features { display: none; }
+  .login-hero__stats {
+    grid-template-columns: repeat(4, 1fr);
+    padding: 14px 0;
+  }
+  .login-hero__stat strong { font-size: 18px; }
+  .login-form-panel { padding: 32px 20px 40px; }
+  .login-form-panel__logo-mobile { display: grid; }
+}
+
+@media (max-width: 900px) {
+  .grid-2 { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    transform: translateX(-100%);
+    transition: transform .25s ease;
+    z-index: 40;
+    box-shadow: var(--shadow-lg);
+  }
+  .sidebar--open { transform: translateX(0); }
+  .overlay { display: block; }
+  .menu-btn { display: inline-flex; }
+  .layout__content { padding: 16px; }
+  .topbar { padding: 12px 16px; }
+}
+
+@media (max-width: 640px) {
+  .login-hero {
+    min-height: 280px;
+    padding: 28px 20px;
+  }
+  .login-hero__tagline h2 { font-size: 22px; }
+  .login-hero__tagline p  { font-size: 13px; }
+  .login-hero__stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    padding: 12px 0;
+  }
+  .login-hero__footer { display: none; }
+  .login-form-panel { padding: 28px 20px 36px; }
+  .login-form-panel__head h2 { font-size: 22px; }
+  .login-trust { gap: 12px; }
+
+  .class-card__meta {
+    flex-direction: column;
+    gap: 4px;
+  }
+  .class-teacher__contacts {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .user-menu__name,
+  .topbar__date { display: none; }
+  .modal { padding: 16px; }
+  .card { padding: 16px; }
+}
+
+@media (max-width: 500px) {
+  .profile-form__actions { flex-direction: column-reverse; }
+  .profile-form__actions .btn { width: 100%; }
+  .login-demo__btns { flex-direction: column; }
+}
+
+/* ==========================================================================
+   PRINT
+   ========================================================================== */
+
+@media print {
+  .sidebar,
+  .topbar,
+  .page-header__actions,
+  .no-print { display: none !important; }
+  .layout__content { padding: 0; }
+  body { background: #fff; }
+  .card { box-shadow: none; border: 1px solid #ddd; }
+  .report-head { background: #f4f6fb !important; color: #000 !important; }
+  .report-head__avatar { background: #e2e8f0; color: #000; }
 }

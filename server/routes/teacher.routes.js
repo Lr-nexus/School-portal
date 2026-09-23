@@ -94,15 +94,16 @@ router.patch('/me', async (req, res) => {
 });
 
 /* ==================================================================
-   MY CLASSES — every class where this teacher is form teacher
+   MY CLASSES — with subject fallback
 ================================================================== */
 router.get('/me/classes', async (req, res) => {
   const [teacherRows] = await pool.execute(
-    'SELECT id, form_class FROM teachers WHERE user_id = ?',
+    'SELECT id, form_class, subjects FROM teachers WHERE user_id = ?',
     [req.user.id]
   );
   if (!teacherRows.length) return res.json([]);
   const teacherId = teacherRows[0].id;
+  const teacherSubjects = parseSubjects(teacherRows[0].subjects);
 
   const [classes] = await pool.execute(
     'SELECT * FROM classes WHERE teacher_id = ? ORDER BY name',
@@ -114,10 +115,14 @@ router.get('/me/classes', async (req, res) => {
       'SELECT id, name, admission_no, class_name FROM students WHERE class_name = ? ORDER BY name',
       [c.name]
     );
+
+    const classSubjects = parseSubjects(c.subjects);
+    const subjects = classSubjects.length > 0 ? classSubjects : teacherSubjects;
+
     return {
       id: c.id,
       name: c.name,
-      subjects: parseSubjects(c.subjects),
+      subjects,
       students: students.map((s) => ({
         id: s.id,
         name: s.name,
@@ -144,14 +149,12 @@ router.get('/me/students', async (req, res) => {
 
   const teacher = teacherRows[0];
 
-  // All classes where this teacher is the form teacher
   const [classRows] = await pool.execute(
     'SELECT name FROM classes WHERE teacher_id = ? ORDER BY name',
     [teacher.id]
   );
 
   const classNames = classRows.map((c) => c.name);
-  // Also include form_class if not already in the list
   if (teacher.form_class && !classNames.includes(teacher.form_class)) {
     classNames.push(teacher.form_class);
   }
@@ -186,7 +189,7 @@ router.get('/me/students', async (req, res) => {
 });
 
 /* ==================================================================
-   ANNOUNCEMENTS (for dashboard)
+   ANNOUNCEMENTS
 ================================================================== */
 router.get('/me/announcements', async (req, res) => {
   const [rows] = await pool.execute(
