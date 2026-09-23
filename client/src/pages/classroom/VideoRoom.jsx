@@ -4,17 +4,18 @@ import { io } from 'socket.io-client';
 import Peer from 'simple-peer';
 import {
   FiMic, FiMicOff, FiVideo, FiVideoOff, FiPhoneOff, FiUsers,
-  FiAlertCircle, FiHand
+  FiAlertCircle
 } from 'react-icons/fi';
+import { FaHandPaper } from 'react-icons/fa';
 import { api } from '../../api/api';
 import { useAuth } from '../../context/AuthContext';
 
-/* ⭐ Force the deployed backend URL — no localhost */
+/* Force the deployed backend URL — no localhost */
 const SOCKET_URL =
   (process.env.REACT_APP_API_URL || 'https://school-portal-unva.onrender.com/api')
     .replace(/\/api\/?$/, '');
 
-/* ⭐ Public STUN servers so peers behind NAT can find each other */
+/* Public STUN servers so peers behind NAT can find each other */
 const ICE_SERVERS = [
   { urls: 'stun:stun.l.google.com:19302' },
   { urls: 'stun:stun1.l.google.com:19302' },
@@ -215,7 +216,7 @@ export default function VideoRoom() {
 
     const peer = new Peer({
       initiator: true,
-      trickle: false,            // ⭐ collect all ICE before sending
+      trickle: false,
       config: { iceServers: ICE_SERVERS },
       stream,
     });
@@ -377,18 +378,22 @@ export default function VideoRoom() {
         <div>
           <h2>{session.title}</h2>
           <p>
-            {session.subject} · {session.className} · Teacher: {session.teacherName || session.teacher_name}
+            {session.subject} · {session.className} · Teacher:{' '}
+            {session.teacherName || session.teacher_name}
           </p>
         </div>
         <div className="video-room__header-right">
           {socketStatus !== 'connected' && (
-            <span className="pill" style={{ background: 'rgba(220,38,38,.2)', color: '#fca5a5' }}>
+            <span
+              className="pill"
+              style={{ background: 'rgba(220,38,38,.2)', color: '#fca5a5' }}
+            >
               <FiAlertCircle size={12} /> {socketStatus}
             </span>
           )}
           {handRaised && (
             <span className="pill pill--hands">
-              <FiHand size={12} /> Hand raised
+              <FaHandPaper size={12} /> Hand raised
             </span>
           )}
           <span className="pill pill--live">
@@ -433,7 +438,9 @@ export default function VideoRoom() {
             <div className="video-tile__waiting-text">
               <div className="spinner" />
               <p>Waiting for others to join…</p>
-              <small>Share the class link, or ask students to open their Classroom page.</small>
+              <small>
+                Share the class link, or ask students to open their Classroom page.
+              </small>
             </div>
           </div>
         )}
@@ -457,11 +464,13 @@ export default function VideoRoom() {
         </button>
 
         <button
-          className={`video-controls__btn ${handRaised ? 'video-controls__btn--hand-active' : ''}`}
+          className={`video-controls__btn ${
+            handRaised ? 'video-controls__btn--hand-active' : ''
+          }`}
           onClick={toggleHand}
           title={handRaised ? 'Lower hand' : 'Raise hand'}
         >
-          <FiHand size={20} />
+          <FaHandPaper size={20} />
         </button>
 
         <button
