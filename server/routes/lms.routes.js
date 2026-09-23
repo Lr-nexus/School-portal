@@ -1,18 +1,31 @@
 const router = require('express').Router();
+const multer = require('multer');
+const xlsx = require('xlsx');
 const pool = require('../db');
 const { protect, allow } = require('../middleware/auth');
 
-/* Helper — get the teacher's assigned class from the DB */
-async function getTeacherClass(userId) {
+/* ---------- helpers ---------- */
+async function getTeacher(userId) {
   const [rows] = await pool.execute(
-    'SELECT id, form_class FROM teachers WHERE user_id = ?',
+    'SELECT id, name, form_class FROM teachers WHERE user_id = ?',
     [userId]
   );
-  if (!rows.length) return null;
-  return rows[0]; // { id, form_class }
+  return rows[0] || null;
 }
 
-/* ---------- STUDENT: list quizzes for my class ---------- */
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const ok = file.originalname.match(/\.(xlsx|xls|csv)$/i);
+    cb(ok ? null : new Error('Only .xlsx, .xls or .csv allowed'), ok);
+  }
+});
+
+/* ==========================================================================
+   STUDENT ENDPOINTS (unchanged)
+   ========================================================================== */
+
 router.get('/quizzes', protect, allow('student'), async (req, res) => {
   const [studentRows] = await pool.execute(
     'SELECT id, class_name FROM students WHERE user_id = ?',
@@ -21,14 +34,8 @@ router.get('/quizzes', protect, allow('student'), async (req, res) => {
   if (!studentRows.length) return res.json([]);
   const { id: studentId, class_name: className } = studentRows[0];
 
-  const [quizzes] = await pool.execute(
-    'SELECT * FROM quizzes WHERE class_name = ?',
-    [className]
-  );
-  const [submissions] = await pool.execute(
-    'SELECT * FROM quiz_submissions WHERE student_id = ?',
-    [studentId]
-  );
+  const [quizzes] = await pool.execute('SELECT * FROM quizzes WHERE class_name = ?', [className]);
+  const [submissions] = await pool.execute('SELECT * FROM quiz_submissions WHERE student_id = ?', [studentId]);
 
   res.json(quizzes.map((q) => {
     const sub = submissions.find((s) => s.quiz_id === q.id);
@@ -43,12 +50,10 @@ router.get('/quizzes', protect, allow('student'), async (req, res) => {
   }));
 });
 
-/* ---------- STUDENT: get one quiz ---------- */
 router.get('/quizzes/:id', protect, allow('student'), async (req, res) => {
   const [rows] = await pool.execute('SELECT * FROM quizzes WHERE id = ?', [req.params.id]);
   if (!rows.length) return res.status(404).json({ message: 'Quiz not found' });
   const quiz = rows[0];
-
   res.json({
     id: quiz.id, title: quiz.title, subject: quiz.subject,
     duration: quiz.duration, dueDate: quiz.due_date,
@@ -58,7 +63,6 @@ router.get('/quizzes/:id', protect, allow('student'), async (req, res) => {
   });
 });
 
-/* ---------- STUDENT: submit quiz ---------- */
 router.post('/quizzes/:id/submit', protect, allow('student'), async (req, res) => {
   const [quizRows] = await pool.execute('SELECT * FROM quizzes WHERE id = ?', [req.params.id]);
   if (!quizRows.length) return res.status(404).json({ message: 'Quiz not found' });
@@ -72,12 +76,12 @@ router.post('/quizzes/:id/submit', protect, allow('student'), async (req, res) =
     if (Number(answers[q.id]) === q.answer) score += 1;
   });
 
-  const [studentRows] = await pool.execute(
+  const [sRows] = await pool.execute(
     'SELECT id FROM students WHERE user_id = ?',
     [req.user.id]
   );
-  if (!studentRows.length) return res.status(404).json({ message: 'Student not found' });
-  const studentId = studentRows[0].id;
+  if (!sRows.length) return res.status(404).json({ message: 'Student not found' });
+  const studentId = sRows[0].id;
 
   const [existing] = await pool.execute(
     'SELECT id FROM quiz_submissions WHERE quiz_id = ? AND student_id = ?',
@@ -99,11 +103,9 @@ router.post('/quizzes/:id/submit', protect, allow('student'), async (req, res) =
   res.json({ message: 'Quiz submitted', score, total: questions.length });
 });
 
-/* ============================================================
-   TEACHER: create quiz
-   ⭐ The class is FORCED from the teacher's profile.
-      Whatever className the client sends is ignored.
-   ============================================================ */
+/* ==========================================================================
+   TEACHER — MANUAL quiz creation
+   ========================================================================== */
 router.post('/quizzes', protect, allow('teacher'), async (req, res) => {
   const { title, subject, duration, dueDate, questions } = req.body;
 
@@ -111,7 +113,7 @@ router.post('/quizzes', protect, allow('teacher'), async (req, res) => {
     return res.status(400).json({ message: 'Title, subject and at least one question are required' });
   }
 
-  const teacher = await getTeacherClass(req.user.id);
+  const teacher = await getTeacher(req.user.id);
   if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
   if (!teacher.form_class) {
     return res.status(400).json({ message: 'You have no class assigned. Contact the admin.' });
@@ -128,10 +130,7 @@ router.post('/quizzes', protect, allow('teacher'), async (req, res) => {
     `INSERT INTO quizzes (title, subject, class_name, teacher_id, duration, due_date, questions)
      VALUES (?, ?, ?, ?, ?, ?, ?)`,
     [
-      title,
-      subject,
-      teacher.form_class, // ⭐ forced
-      teacher.id,
+      title, subject, teacher.form_class, teacher.id,
       Number(duration) || 10,
       dueDate || new Date().toISOString().split('T')[0],
       JSON.stringify(formattedQuestions),
@@ -142,9 +141,124 @@ router.post('/quizzes', protect, allow('teacher'), async (req, res) => {
   res.status(201).json({ message: 'Quiz created', quiz: rows[0] });
 });
 
-/* ---------- TEACHER: my quizzes ---------- */
+/* ==========================================================================
+   TEACHER — BULK quiz creation from CSV/Excel
+   File columns: question, option1, option2, option3, option4, correct
+   'correct' can be A/B/C/D or 1/2/3/4 or 0/1/2/3
+   ========================================================================== */
+router.post('/quizzes/bulk', protect, allow('teacher'), upload.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+
+  const { title, subject, duration, dueDate } = req.body;
+  if (!title || !subject) {
+    return res.status(400).json({ message: 'Title and subject are required' });
+  }
+
+  let rows;
+  try {
+    const wb = xlsx.read(req.file.buffer, { type: 'buffer' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    rows = xlsx.utils.sheet_to_json(ws, { defval: '' });
+  } catch (err) {
+    return res.status(400).json({ message: 'Could not read file: ' + err.message });
+  }
+
+  if (!rows.length) return res.status(400).json({ message: 'Spreadsheet is empty' });
+
+  // Normalize header names
+  const normalize = (raw) => {
+    const out = {};
+    Object.keys(raw).forEach((k) => {
+      out[String(k).toLowerCase().replace(/[\s_-]/g, '')] = raw[k];
+    });
+    return out;
+  };
+
+  const parseAnswer = (val, options) => {
+    const v = String(val).trim().toUpperCase();
+    // A/B/C/D
+    if (['A', 'B', 'C', 'D'].includes(v)) return 'ABCD'.indexOf(v);
+    // 1/2/3/4
+    const n = Number(v);
+    if (!isNaN(n)) {
+      if (n >= 1 && n <= 4) return n - 1;
+      if (n >= 0 && n <= 3) return n;
+    }
+    // Match against option text
+    const idx = options.findIndex((o) => String(o).trim().toLowerCase() === v.toLowerCase());
+    return idx >= 0 ? idx : 0;
+  };
+
+  const questions = [];
+  const errors = [];
+
+  rows.forEach((raw, i) => {
+    const r = normalize(raw);
+    const line = i + 2;
+
+    const question = String(r.question || '').trim();
+    const opt1 = String(r.option1 || r.a || '').trim();
+    const opt2 = String(r.option2 || r.b || '').trim();
+    const opt3 = String(r.option3 || r.c || '').trim();
+    const opt4 = String(r.option4 || r.d || '').trim();
+    const correct = r.correct || r.answer || 'A';
+
+    if (!question || !opt1 || !opt2) {
+      errors.push(`Row ${line}: missing question or options`);
+      return;
+    }
+
+    const options = [opt1, opt2, opt3 || '', opt4 || ''].filter(Boolean);
+    while (options.length < 4) options.push(`Option ${options.length + 1}`);
+
+    questions.push({
+      id: questions.length + 1,
+      question,
+      options,
+      answer: parseAnswer(correct, options),
+    });
+  });
+
+  if (!questions.length) {
+    return res.status(400).json({
+      message: 'No valid questions found in the file',
+      errors,
+    });
+  }
+
+  const teacher = await getTeacher(req.user.id);
+  if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
+  if (!teacher.form_class) {
+    return res.status(400).json({ message: 'You have no class assigned. Contact the admin.' });
+  }
+
+  const [result] = await pool.execute(
+    `INSERT INTO quizzes (title, subject, class_name, teacher_id, duration, due_date, questions)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [
+      title, subject, teacher.form_class, teacher.id,
+      Number(duration) || 10,
+      dueDate || new Date().toISOString().split('T')[0],
+      JSON.stringify(questions),
+    ]
+  );
+
+  const [inserted] = await pool.execute('SELECT * FROM quizzes WHERE id = ?', [result.insertId]);
+
+  res.status(201).json({
+    message: `Quiz created with ${questions.length} question(s)`,
+    quiz: inserted[0],
+    questionCount: questions.length,
+    skipped: errors.length,
+    errors,
+  });
+});
+
+/* ==========================================================================
+   TEACHER — my quizzes
+   ========================================================================== */
 router.get('/my-quizzes', protect, allow('teacher'), async (req, res) => {
-  const teacher = await getTeacherClass(req.user.id);
+  const teacher = await getTeacher(req.user.id);
   if (!teacher) return res.json([]);
 
   const [rows] = await pool.execute(
