@@ -12,7 +12,7 @@ import { useAuth } from '../../context/AuthContext';
 
 /* Force the deployed backend URL — no localhost */
 const SOCKET_URL =
-  (process.env.REACT_APP_API_URL || 'https://school-portal-unva.onrender.com/api')
+  (process.env.REACT_APP_API_URL || 'https://nexus-nexus-1876.vercel.app/api')
     .replace(/\/api\/?$/, '');
 
 /* Public STUN servers so peers behind NAT can find each other */
