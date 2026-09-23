@@ -17,7 +17,6 @@ import StudentAssignments from '../pages/student/StudentAssignments';
 /* TEACHER */
 import TeacherHome from '../pages/teacher/TeacherHome';
 import TeacherProfile from '../pages/teacher/TeacherProfile';
-import TeacherClasses from '../pages/teacher/TeacherClasses';
 import TeacherLMS from '../pages/teacher/TeacherLMS';
 import TeacherClassroom from '../pages/teacher/TeacherClassroom';
 import TeacherNotes from '../pages/teacher/TeacherNotes';
@@ -74,7 +73,6 @@ export default function AppRoutes() {
           <Route path="notes"       element={<TeacherNotes />} />
           <Route path="assignments" element={<TeacherAssignments />} />
           <Route path="profile"     element={<TeacherProfile />} />
-          <Route path="classes"     element={<TeacherClasses />} />
           <Route path="students"    element={<TeacherStudents />} />
           <Route path="lms"         element={<TeacherLMS />} />
           <Route path="*"           element={<Navigate to="home" replace />} />

@@ -20,7 +20,6 @@ export const navConfig = {
     { to: '/teacher/classroom',   label: 'Classroom',       icon: FiVideo },
     { to: '/teacher/notes',       label: 'Notes',           icon: FiFileText },
     { to: '/teacher/assignments', label: 'Assignments',     icon: FiClipboard },
-    { to: '/teacher/classes',     label: 'My Classes',      icon: FiBook },
     { to: '/teacher/students',    label: 'My Students',     icon: FiUsers },
     { to: '/teacher/lms',         label: 'Tests & Quizzes', icon: FiEdit3 }
   ],
