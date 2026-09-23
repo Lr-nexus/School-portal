@@ -1,5 +1,5 @@
 /* ------------------------------------------------------------------
-   Socket.IO signaling server for WebRTC + participant tracking
+   Socket.IO signaling server for WebRTC + participant + hand tracking
 ------------------------------------------------------------------- */
 
 const roomParticipants = new Map(); // roomId -> Map<socketId, info>
@@ -29,12 +29,14 @@ function setupSocket(io) {
         userId: socket.userId,
         name: socket.userName,
         role: socket.userRole,
+        handRaised: false,
+        handRaisedAt: null,
         joinedAt: new Date().toISOString()
       });
 
       console.log(`👥 ${socket.userName} (${socket.userRole}) joined ${roomId}`);
 
-      // Send existing users to the newcomer
+      /* --- Send existing users to the newcomer --- */
       const existing = [];
       const room = io.sockets.adapter.rooms.get(roomId) || new Set();
       room.forEach((socketId) => {
@@ -51,9 +53,8 @@ function setupSocket(io) {
         }
       });
       socket.emit('existing-users', existing);
-      console.log(`📤 Sent ${existing.length} existing user(s) to ${socket.userName}`);
 
-      // Tell everyone else that someone new arrived
+      /* --- Tell everyone else that someone new arrived --- */
       socket.to(roomId).emit('user-joined', {
         socketId: socket.id,
         userId: socket.userId,
@@ -61,7 +62,7 @@ function setupSocket(io) {
         role: socket.userRole
       });
 
-      // Broadcast updated participants
+      /* --- Broadcast updated participants --- */
       io.to(roomId).emit('participants-updated', getRoomParticipants(roomId));
 
       if (ack) ack({ ok: true, existingCount: existing.length });
@@ -73,13 +74,68 @@ function setupSocket(io) {
         console.warn('⚠️ signal received without "to" or "signal"');
         return;
       }
-      console.log(`🔀 signal: ${socket.userName} → ${to}`);
       io.to(to).emit('signal', {
         from: socket.id,
         fromUserId: socket.userId,
         signal,
         name: name || socket.userName || 'Guest'
       });
+    });
+
+    /* ---------------- raise-hand ----------------
+       Only students can raise their hand. Teachers cannot.
+    ------------------------------------------------ */
+    socket.on('raise-hand', ({ roomId, raised }) => {
+      if (socket.userRole !== 'student') {
+        console.log(`🚫 teacher tried to raise hand (${socket.userName})`);
+        return;
+      }
+      const map = roomParticipants.get(roomId);
+      if (!map) return;
+      const me = map.get(socket.id);
+      if (!me) return;
+
+      me.handRaised = !!raised;
+      me.handRaisedAt = raised ? new Date().toISOString() : null;
+
+      console.log(`✋ ${me.name} ${raised ? 'raised' : 'lowered'} hand`);
+
+      io.to(roomId).emit('hand-raised', {
+        socketId: socket.id,
+        userId: me.userId,
+        name: me.name,
+        raised: !!raised
+      });
+
+      io.to(roomId).emit('participants-updated', getRoomParticipants(roomId));
+    });
+
+    /* ---------------- lower-hand (teacher only) ----------------
+       Allows the teacher to dismiss a specific student's raised hand.
+    ------------------------------------------------------------ */
+    socket.on('lower-hand', ({ roomId, socketId }) => {
+      if (socket.userRole !== 'teacher') {
+        console.log(`🚫 non-teacher tried to lower hand (${socket.userName})`);
+        return;
+      }
+      const map = roomParticipants.get(roomId);
+      if (!map) return;
+      const target = map.get(socketId);
+      if (!target) return;
+
+      target.handRaised = false;
+      target.handRaisedAt = null;
+
+      console.log(`✋ ${socket.userName} lowered hand for ${target.name}`);
+
+      io.to(roomId).emit('hand-raised', {
+        socketId,
+        userId: target.userId,
+        name: target.name,
+        raised: false
+      });
+
+      io.to(roomId).emit('participants-updated', getRoomParticipants(roomId));
     });
 
     /* ---------------- disconnecting ---------------- */

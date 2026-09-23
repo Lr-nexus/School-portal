@@ -3048,3 +3048,136 @@ textarea { resize: vertical; min-height: 60px; }
 [data-theme="dark"] .lms-format-example {
   background: var(--surface-2);
 }
+
+/* ==========================================================================
+   VIDEO ROOM — cleaner layout
+   ========================================================================== */
+
+.video-room__header-left { min-width: 0; }
+.video-room__header-left h2 { font-size: 17px; margin-bottom: 2px; }
+.video-room__header-left p {
+  font-size: 13px;
+  color: #94a3b8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 480px;
+}
+
+.pill--danger {
+  background: rgba(220, 38, 38, .2);
+  color: #fca5a5;
+  border: 1px solid rgba(220, 38, 38, .35);
+}
+
+/* ==========================================================================
+   RAISED HANDS BAR
+   ========================================================================== */
+
+.raised-hands-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 22px;
+  background: linear-gradient(90deg, rgba(251, 191, 36, .18), rgba(251, 191, 36, .04));
+  border-bottom: 1px solid rgba(251, 191, 36, .3);
+  flex-wrap: wrap;
+  animation: slideDown .25s ease-out;
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.raised-hands-bar__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fcd34d;
+  flex-shrink: 0;
+}
+
+.raised-hands-bar__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.raised-hands-bar__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: rgba(251, 191, 36, .22);
+  color: #fcd34d;
+  border: 1px solid rgba(251, 191, 36, .45);
+  border-radius: 20px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: default;
+  transition: background .15s, transform .12s;
+}
+.raised-hands-bar__chip:not(:disabled) {
+  cursor: pointer;
+}
+.raised-hands-bar__chip:not(:disabled):hover {
+  background: rgba(251, 191, 36, .4);
+  transform: translateY(-1px);
+}
+.raised-hands-bar__chip:disabled {
+  opacity: 1;
+}
+
+/* ==========================================================================
+   VIDEO TILE — hand raised state
+   ========================================================================== */
+
+.video-tile--hand {
+  outline: 3px solid #fbbf24;
+  outline-offset: -3px;
+  box-shadow: 0 0 0 0 rgba(251, 191, 36, .6);
+  animation: handGlow 1.8s ease-in-out infinite;
+}
+@keyframes handGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, .55); }
+  50%      { box-shadow: 0 0 0 10px rgba(251, 191, 36, 0); }
+}
+
+.video-tile__hand-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fbbf24;
+  color: #422006;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  z-index: 3;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .35);
+  animation: handPulse 1.4s ease-in-out infinite;
+}
+@keyframes handPulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.05); }
+}
+
+/* ==========================================================================
+   VIDEO CONTROLS — hand active state
+   ========================================================================== */
+
+.video-controls__btn--hand-active {
+  background: #fbbf24;
+  color: #422006;
+  box-shadow: 0 0 0 4px rgba(251, 191, 36, .25);
+  animation: handPulse 1.4s ease-in-out infinite;
+}
+.video-controls__btn--hand-active:hover {
+  background: #f59e0b;
+}

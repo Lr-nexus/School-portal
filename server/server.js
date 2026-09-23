@@ -24,7 +24,6 @@ const server = http.createServer(app);
 
 const allowedOrigins = [
   'https://nexus-nexus-1876.vercel.app',
-  'https://school-portal-unva.onrender.com',
   'http://localhost:3000',
   'http://localhost:3001'
 ];
