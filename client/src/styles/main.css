@@ -2926,3 +2926,38 @@ textarea { resize: vertical; min-height: 60px; }
   .report-head { background: #f4f6fb !important; color: #000 !important; }
   .report-head__avatar { background: #e2e8f0; color: #000; }
 }
+
+/* ==========================================================================
+   READONLY FORM FIELD (teacher's assigned class)
+   ========================================================================== */
+
+.form-field-readonly {
+  display: block;
+  margin-bottom: 12px;
+}
+
+.form-field-readonly__label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-2);
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+.form-field-readonly__value {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.form-field-readonly__value svg {
+  color: var(--accent);
+  flex-shrink: 0;
+}

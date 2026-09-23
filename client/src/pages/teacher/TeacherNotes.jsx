@@ -3,19 +3,22 @@ import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import {
   FiUploadCloud, FiFileText, FiTrash2, FiDownload,
-  FiMessageCircle, FiSend, FiX, FiEdit3, FiImage
+  FiMessageCircle, FiSend, FiX, FiEdit3, FiAlertCircle, FiUsers
 } from 'react-icons/fi';
 import { api } from '../../api/api';
 import { useAuth } from '../../context/AuthContext';
+import { useTeacherProfile } from '../../hooks/useTeacherProfile';
 import PageHeader from '../../components/PageHeader';
 import Loader from '../../components/Loader';
 
-const BASE_URL = 'https://nexus-nexus-1876.vercel.app';
+const BASE_URL =
+  (process.env.REACT_APP_API_URL || 'http://localhost:5000/api')
+    .replace(/\/api\/?$/, '');
+
 const SUBJECTS = [
   'Mathematics', 'English Language', 'Basic Science',
   'Social Studies', 'Computer Studies'
 ];
-const CLASSES = ['JSS 2A', 'JSS 2B', 'JSS 3A'];
 
 const QUILL_MODULES = {
   toolbar: [
@@ -29,15 +32,14 @@ const QUILL_MODULES = {
 };
 
 const QUILL_FORMATS = [
-  'header',
-  'bold', 'italic', 'underline', 'strike',
-  'list', 'bullet',
-  'blockquote', 'code-block',
-  'link', 'image'
+  'header', 'bold', 'italic', 'underline', 'strike',
+  'list', 'bullet', 'blockquote', 'code-block', 'link', 'image'
 ];
 
 export default function TeacherNotes() {
   const { user } = useAuth();
+  const { className, loading: profileLoading } = useTeacherProfile();
+
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
@@ -45,16 +47,11 @@ export default function TeacherNotes() {
   const [active, setActive] = useState(null);
   const [commentText, setCommentText] = useState('');
   const fileInputRef = useRef(null);
-
   const [mode, setMode] = useState('richtext');
 
   const [form, setForm] = useState({
-    title: '',
-    subject: 'Mathematics',
-    className: 'JSS 2A',
-    description: '',
-    file: null,
-    content: ''
+    title: '', subject: 'Mathematics',
+    description: '', file: null, content: ''
   });
 
   const load = () =>
@@ -67,7 +64,7 @@ export default function TeacherNotes() {
 
   const resetForm = () => {
     setForm({
-      title: '', subject: 'Mathematics', className: 'JSS 2A',
+      title: '', subject: 'Mathematics',
       description: '', file: null, content: ''
     });
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -93,13 +90,14 @@ export default function TeacherNotes() {
 
   const submitPdf = async (e) => {
     e.preventDefault();
-    if (!form.file) { setMessage('Please choose a PDF file'); return; }
+    if (!className) return setMessage('You have no class assigned');
+    if (!form.file) return setMessage('Please choose a PDF file');
 
     const fd = new FormData();
     fd.append('file', form.file);
     fd.append('title', form.title);
     fd.append('subject', form.subject);
-    fd.append('className', form.className);
+    fd.append('className', className);
     fd.append('description', form.description);
 
     setUploading(true);
@@ -125,8 +123,9 @@ export default function TeacherNotes() {
   const submitRich = async (e) => {
     e.preventDefault();
     const plain = form.content.replace(/<[^>]*>/g, '').trim();
-    if (!plain) { setMessage('Write something in the editor first'); return; }
-    if (!form.title) { setMessage('Give your note a title'); return; }
+    if (!plain) return setMessage('Write something in the editor first');
+    if (!form.title) return setMessage('Give your note a title');
+    if (!className) return setMessage('You have no class assigned');
 
     setUploading(true);
     try {
@@ -135,7 +134,7 @@ export default function TeacherNotes() {
         body: JSON.stringify({
           title: form.title,
           subject: form.subject,
-          className: form.className,
+          className,
           description: form.description,
           content: form.content
         })
@@ -185,7 +184,6 @@ export default function TeacherNotes() {
       return;
     }
 
-    // Rich text — download as .html or .txt
     const html = `
 <!doctype html>
 <html><head><meta charset="utf-8"><title>${note.title}</title>
@@ -221,18 +219,26 @@ ${note.content}
     }
   };
 
-  if (loading) return <Loader />;
+  if (loading || profileLoading) return <Loader />;
+
+  const noClass = !className;
 
   return (
     <div>
       <PageHeader
         title="Notes"
-        subtitle="Share PDFs or rich text notes with your classes"
+        subtitle={noClass ? 'No class assigned' : `Posting to ${className}`}
       />
 
       {message && <div className="alert alert--info">{message}</div>}
 
-      {/* ---------- COMPOSER ---------- */}
+      {noClass && (
+        <div className="alert alert--error">
+          <FiAlertCircle size={16} />
+          You have no class assigned. Ask the admin to assign you a form class before posting notes.
+        </div>
+      )}
+
       <div className="card">
         <div className="tabs">
           <button
@@ -256,20 +262,29 @@ ${note.content}
             <div className="form-grid">
               <label className="form-grid__full">
                 Title *
-                <input name="title" value={form.title} onChange={handleChange} required />
+                <input
+                  name="title"
+                  value={form.title}
+                  onChange={handleChange}
+                  required
+                  disabled={noClass}
+                />
               </label>
               <label>
                 Subject
-                <select name="subject" value={form.subject} onChange={handleChange}>
+                <select name="subject" value={form.subject} onChange={handleChange} disabled={noClass}>
                   {SUBJECTS.map((s) => <option key={s}>{s}</option>)}
                 </select>
               </label>
-              <label>
-                Class
-                <select name="className" value={form.className} onChange={handleChange}>
-                  {CLASSES.map((c) => <option key={c}>{c}</option>)}
-                </select>
-              </label>
+
+              <div className="form-field-readonly">
+                <span className="form-field-readonly__label">Class</span>
+                <div className="form-field-readonly__value">
+                  <FiUsers size={14} />
+                  {noClass ? 'No class assigned' : className}
+                </div>
+              </div>
+
               <label className="form-grid__full">
                 Short description (optional)
                 <input
@@ -277,6 +292,7 @@ ${note.content}
                   value={form.description}
                   onChange={handleChange}
                   placeholder="One-line summary"
+                  disabled={noClass}
                 />
               </label>
             </div>
@@ -288,7 +304,7 @@ ${note.content}
               onChange={(content) => setForm((prev) => ({ ...prev, content }))}
               modules={QUILL_MODULES}
               formats={QUILL_FORMATS}
-              placeholder="Write your note here — use the toolbar to format text, add lists, links, images…"
+              placeholder="Write your note here…"
               className="editor"
             />
 
@@ -296,7 +312,7 @@ ${note.content}
               <button type="button" className="btn btn--ghost" onClick={resetForm}>
                 Clear
               </button>
-              <button className="btn btn--primary" disabled={uploading}>
+              <button className="btn btn--primary" disabled={uploading || noClass}>
                 <FiSend size={16} /> {uploading ? 'Posting…' : 'Post Note'}
               </button>
             </div>
@@ -311,24 +327,28 @@ ${note.content}
                 accept="application/pdf"
                 onChange={handleFile}
                 required
+                disabled={noClass}
               />
             </label>
             <label className="form-grid__full">
               Title *
-              <input name="title" value={form.title} onChange={handleChange} required />
+              <input name="title" value={form.title} onChange={handleChange} required disabled={noClass} />
             </label>
             <label>
               Subject
-              <select name="subject" value={form.subject} onChange={handleChange}>
+              <select name="subject" value={form.subject} onChange={handleChange} disabled={noClass}>
                 {SUBJECTS.map((s) => <option key={s}>{s}</option>)}
               </select>
             </label>
-            <label>
-              Class
-              <select name="className" value={form.className} onChange={handleChange}>
-                {CLASSES.map((c) => <option key={c}>{c}</option>)}
-              </select>
-            </label>
+
+            <div className="form-field-readonly">
+              <span className="form-field-readonly__label">Class</span>
+              <div className="form-field-readonly__value">
+                <FiUsers size={14} />
+                {noClass ? 'No class assigned' : className}
+              </div>
+            </div>
+
             <label className="form-grid__full">
               Description
               <textarea
@@ -336,13 +356,14 @@ ${note.content}
                 name="description"
                 value={form.description}
                 onChange={handleChange}
+                disabled={noClass}
               />
             </label>
             <div className="form-grid__full form-grid__actions">
               <button type="button" className="btn btn--ghost" onClick={resetForm}>
                 Clear
               </button>
-              <button className="btn btn--primary" disabled={uploading}>
+              <button className="btn btn--primary" disabled={uploading || noClass}>
                 <FiUploadCloud size={16} /> {uploading ? 'Uploading…' : 'Upload PDF'}
               </button>
             </div>
@@ -350,7 +371,6 @@ ${note.content}
         )}
       </div>
 
-      {/* ---------- LIST ---------- */}
       <h3 className="section-title"><FiFileText /> My Notes ({notes.length})</h3>
       <div className="grid-3">
         {notes.map((n) => (
@@ -385,7 +405,6 @@ ${note.content}
         {!notes.length && <p className="muted">No notes yet.</p>}
       </div>
 
-      {/* ---------- VIEWER ---------- */}
       {active && (
         <div className="modal-backdrop" onClick={() => setActive(null)}>
           <div className="modal modal--wide" onClick={(e) => e.stopPropagation()}>
@@ -429,17 +448,13 @@ ${note.content}
                     <div className="comment__head">
                       <strong>{c.userName}</strong>
                       <span className={`badge badge--${c.role}`}>{c.role}</span>
-                      <span className="muted">
-                        {new Date(c.date).toLocaleString()}
-                      </span>
+                      <span className="muted">{new Date(c.date).toLocaleString()}</span>
                     </div>
                     <p>{c.text}</p>
                   </div>
                 </div>
               ))}
-              {!active.comments.length && (
-                <p className="muted">No comments yet.</p>
-              )}
+              {!active.comments.length && <p className="muted">No comments yet.</p>}
 
               <form className="comment-form" onSubmit={addComment}>
                 <input

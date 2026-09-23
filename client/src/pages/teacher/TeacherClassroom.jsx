@@ -1,24 +1,26 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  FiPlus, FiVideo, FiClock, FiPlay, FiX, FiTrash2
+  FiPlus, FiVideo, FiClock, FiPlay, FiX, FiTrash2,
+  FiAlertCircle, FiUsers
 } from 'react-icons/fi';
 import { api } from '../../api/api';
+import { useTeacherProfile } from '../../hooks/useTeacherProfile';
 import PageHeader from '../../components/PageHeader';
 import Loader from '../../components/Loader';
 
-const emptyForm = {
-  title: '',
-  subject: '',
-  className: 'JSS 2A',
-  description: '',
-  startTime: '',
-  endTime: ''
-};
+const SUBJECTS = [
+  'Mathematics', 'English Language', 'Basic Science',
+  'Social Studies', 'Computer Studies'
+];
 
 export default function TeacherClassroom() {
+  const { className, loading: profileLoading } = useTeacherProfile();
   const [sessions, setSessions] = useState([]);
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState({
+    title: '', subject: 'Mathematics',
+    description: '', startTime: '', endTime: ''
+  });
   const [showForm, setShowForm] = useState(false);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
@@ -36,10 +38,18 @@ export default function TeacherClassroom() {
 
   const planClass = async (e) => {
     e.preventDefault();
+    if (!className) return setMessage('You have no class assigned');
+
     try {
-      await api('/classroom/sessions', { method: 'POST', body: JSON.stringify(form) });
+      await api('/classroom/sessions', {
+        method: 'POST',
+        body: JSON.stringify({ ...form, className })
+      });
       setMessage('Class scheduled');
-      setForm(emptyForm);
+      setForm({
+        title: '', subject: 'Mathematics',
+        description: '', startTime: '', endTime: ''
+      });
       setShowForm(false);
       await load();
     } catch (err) { setMessage(err.message); }
@@ -68,7 +78,9 @@ export default function TeacherClassroom() {
     } catch (err) { setMessage(err.message); }
   };
 
-  if (loading) return <Loader />;
+  if (loading || profileLoading) return <Loader />;
+
+  const noClass = !className;
 
   const fmt = (iso) => new Date(iso).toLocaleString('en-GB', {
     weekday: 'short', day: 'numeric', month: 'short',
@@ -79,16 +91,29 @@ export default function TeacherClassroom() {
     <div>
       <PageHeader
         title="Live Classroom"
-        subtitle="Plan a new class, start a live session, or review past ones"
+        subtitle={noClass ? 'No class assigned' : `Broadcasting to ${className}`}
       >
-        <button className="btn btn--primary" onClick={() => setShowForm((v) => !v)}>
-          {showForm ? <><FiX size={16} /> Cancel</> : <><FiPlus size={16} /> Plan New Class</>}
+        <button
+          className="btn btn--primary"
+          onClick={() => setShowForm((v) => !v)}
+          disabled={noClass}
+        >
+          {showForm
+            ? <><FiX size={16} /> Cancel</>
+            : <><FiPlus size={16} /> Plan New Class</>}
         </button>
       </PageHeader>
 
       {message && <div className="alert alert--info">{message}</div>}
 
-      {showForm && (
+      {noClass && (
+        <div className="alert alert--error">
+          <FiAlertCircle size={16} />
+          You have no class assigned. Ask the admin to assign you a form class before planning live sessions.
+        </div>
+      )}
+
+      {showForm && !noClass && (
         <div className="card">
           <h3>Schedule a New Class</h3>
           <form className="form-grid" onSubmit={planClass}>
@@ -96,12 +121,19 @@ export default function TeacherClassroom() {
               <input name="title" value={form.title} onChange={handleChange} required />
             </label>
             <label>Subject
-              <input name="subject" value={form.subject} onChange={handleChange}
-                     placeholder="Mathematics" />
+              <select name="subject" value={form.subject} onChange={handleChange}>
+                {SUBJECTS.map((s) => <option key={s}>{s}</option>)}
+              </select>
             </label>
-            <label>Class *
-              <input name="className" value={form.className} onChange={handleChange} required />
-            </label>
+
+            <div className="form-field-readonly">
+              <span className="form-field-readonly__label">Class</span>
+              <div className="form-field-readonly__value">
+                <FiUsers size={14} />
+                {className}
+              </div>
+            </div>
+
             <label>Start Time
               <input type="datetime-local" name="startTime" value={form.startTime}
                      onChange={handleChange} />

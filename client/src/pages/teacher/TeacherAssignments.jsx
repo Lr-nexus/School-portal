@@ -1,29 +1,32 @@
 import { useEffect, useState } from 'react';
 import {
   FiPlus, FiClipboard, FiTrash2, FiEye, FiX,
-  FiCheckCircle, FiDownload, FiCheck
+  FiCheckCircle, FiDownload, FiCheck, FiAlertCircle, FiUsers
 } from 'react-icons/fi';
 import { api } from '../../api/api';
+import { useTeacherProfile } from '../../hooks/useTeacherProfile';
 import PageHeader from '../../components/PageHeader';
 import Loader from '../../components/Loader';
 
-const BASE_URL = 'https://nexus-nexus-1876.vercel.app';
+const BASE_URL =
+  (process.env.REACT_APP_API_URL || 'http://localhost:5000/api')
+    .replace(/\/api\/?$/, '');
+
 const SUBJECTS = [
   'Mathematics', 'English Language', 'Basic Science',
   'Social Studies', 'Computer Studies'
 ];
-const CLASSES = ['JSS 2A', 'JSS 2B', 'JSS 3A'];
 
 const emptyForm = {
   title: '',
   subject: 'Mathematics',
-  className: 'JSS 2A',
   description: '',
   dueDate: '',
   totalMarks: 10
 };
 
 export default function TeacherAssignments() {
+  const { className, loading: profileLoading } = useTeacherProfile();
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
@@ -39,10 +42,7 @@ export default function TeacherAssignments() {
 
   useEffect(() => { load(); }, []);
 
-  const close = () => {
-    setActive(null);
-  };
-
+  const close = () => setActive(null);
   const closeForm = () => {
     setForm(emptyForm);
     setShowForm(false);
@@ -53,8 +53,13 @@ export default function TeacherAssignments() {
 
   const submit = async (e) => {
     e.preventDefault();
+    if (!className) return setMessage('You have no class assigned');
+
     try {
-      await api('/assignments', { method: 'POST', body: JSON.stringify(form) });
+      await api('/assignments', {
+        method: 'POST',
+        body: JSON.stringify({ ...form, className })
+      });
       setMessage('Assignment posted successfully');
       setForm(emptyForm);
       setShowForm(false);
@@ -97,14 +102,20 @@ export default function TeacherAssignments() {
     a.click();
   };
 
-  if (loading) return <Loader />;
+  if (loading || profileLoading) return <Loader />;
+
+  const noClass = !className;
 
   return (
     <div>
-      <PageHeader title="Assignments" subtitle="Post assignments and grade submissions">
+      <PageHeader
+        title="Assignments"
+        subtitle={noClass ? 'No class assigned' : `Posting to ${className}`}
+      >
         <button
           className="btn btn--primary"
           onClick={() => (showForm ? closeForm() : setShowForm(true))}
+          disabled={noClass}
         >
           {showForm
             ? <><FiX size={16} /> Cancel</>
@@ -114,7 +125,14 @@ export default function TeacherAssignments() {
 
       {message && <div className="alert alert--info">{message}</div>}
 
-      {showForm && (
+      {noClass && (
+        <div className="alert alert--error">
+          <FiAlertCircle size={16} />
+          You have no class assigned. Ask the admin to assign you a form class before posting assignments.
+        </div>
+      )}
+
+      {showForm && !noClass && (
         <div className="card">
           <h3><FiClipboard size={16} /> Create Assignment</h3>
           <form className="form-grid" onSubmit={submit}>
@@ -126,11 +144,15 @@ export default function TeacherAssignments() {
                 {SUBJECTS.map((s) => <option key={s}>{s}</option>)}
               </select>
             </label>
-            <label>Class *
-              <select name="className" value={form.className} onChange={handleChange}>
-                {CLASSES.map((c) => <option key={c}>{c}</option>)}
-              </select>
-            </label>
+
+            <div className="form-field-readonly">
+              <span className="form-field-readonly__label">Class</span>
+              <div className="form-field-readonly__value">
+                <FiUsers size={14} />
+                {className}
+              </div>
+            </div>
+
             <label>Due Date
               <input type="date" name="dueDate" value={form.dueDate} onChange={handleChange} />
             </label>
@@ -224,9 +246,7 @@ export default function TeacherAssignments() {
             )}
 
             <div className="modal__actions">
-              <button className="btn btn--ghost" onClick={close}>
-                Close
-              </button>
+              <button className="btn btn--ghost" onClick={close}>Close</button>
             </div>
           </div>
         </div>
