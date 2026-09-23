@@ -104,7 +104,7 @@ export default function VideoRoom() {
 
     console.log('🔌 connecting to socket at', SOCKET_URL);
     const socket = io(SOCKET_URL, {
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'],
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 2000
