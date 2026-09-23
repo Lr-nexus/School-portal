@@ -11,8 +11,11 @@ import { api } from '../../api/api';
 import { useAuth } from '../../context/AuthContext';
 
 const SOCKET_URL =
-  (process.env.REACT_APP_API_URL || 'https://school-portal-1-xaio.onrender.com/api')
-    .replace(/\/api\/?$/, '');
+  (
+    process.env.REACT_APP_BACKEND_URL ||
+    process.env.REACT_APP_API_URL ||
+    'https://school-portal-1-xaio.onrender.com/api'
+  ).replace(/\/api\/?$/, '');
 
 const ICE_SERVERS = [
   { urls: 'stun:stun.l.google.com:19302' },
@@ -48,9 +51,18 @@ export default function VideoRoom() {
 
   /* ---------- 1. Verify room ---------- */
   useEffect(() => {
-    api(`/classroom/rooms/${roomId}`)
-      .then(setSession)
-      .catch((e) => setError(e.message));
+  api(`/classroom/rooms/${roomId}`)
+    .then((raw) => {
+      // Normalize snake_case → camelCase so the rest of the component works
+      setSession({
+        ...raw,
+        roomId: raw.roomId || raw.room_id,
+        teacherId: raw.teacherId || raw.teacher_id,
+        className: raw.className || raw.class_name,
+        teacherName: raw.teacherName || raw.teacher_name,
+      });
+    })
+    .catch((e) => setError(e.message));
   }, [roomId]);
 
   /* ---------- 2. Get camera + mic ---------- */

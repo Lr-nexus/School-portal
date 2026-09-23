@@ -1,4 +1,9 @@
-const BASE_URL = 'https://school-portal-1-xaio.onrender.com/api';
+/* Support both env var names — whichever is set will be used */
+const BASE_URL =
+  process.env.REACT_APP_BACKEND_URL ||
+  process.env.REACT_APP_API_URL ||
+  'https://school-portal-1-xaio.onrender.com/api';
+
 const STORAGE_KEY = 'user';
 
 function currentUser() {
@@ -26,9 +31,10 @@ export async function api(path, options = {}) {
   });
 
   const data = await res.json().catch(() => ({}));
-
   if (!res.ok) {
     throw new Error(data.message || 'Something went wrong');
   }
   return data;
 }
+
+export { BASE_URL };

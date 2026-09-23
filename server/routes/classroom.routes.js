@@ -106,7 +106,21 @@ router.get('/rooms/:roomId', async (req, res) => {
   if (rows[0].status !== 'live') {
     return res.status(400).json({ message: 'This class is not live yet' });
   }
-  res.json(rows[0]);
+
+  const s = rows[0];
+  res.json({
+    id: s.id,
+    roomId: s.room_id,
+    title: s.title,
+    subject: s.subject,
+    className: s.class_name,
+    description: s.description,
+    teacherId: s.teacher_id,
+    teacherName: s.teacher_name || 'Teacher',
+    startTime: s.start_time,
+    endTime: s.end_time,
+    status: s.status,
+  });
 });
 
 router.get('/sessions/:id', async (req, res) => {
