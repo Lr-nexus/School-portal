@@ -12,7 +12,7 @@ import PageHeader from '../../components/PageHeader';
 import Loader from '../../components/Loader';
 
 const BASE_URL =
-  (process.env.REACT_APP_API_URL || 'http://localhost:5000/api')
+  (process.env.REACT_APP_API_URL || 'https://school-portal-1-xaio.onrender.com/api')
     .replace(/\/api\/?$/, '');
 
 const SUBJECTS = [

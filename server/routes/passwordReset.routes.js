@@ -42,7 +42,7 @@ router.post('/forgot', async (req, res) => {
   );
 
   // Build the reset link — frontend URL, not API URL
-  const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+  const clientUrl = process.env.CLIENT_URL || 'https://nexus-nexus-1876.vercel.app';
   const resetUrl = `${clientUrl}/reset-password/${token}`;
 
   // Send email (falls back to console log if no Resend key)
