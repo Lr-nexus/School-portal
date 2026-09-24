@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const pool = require('../db');
 const { protect } = require('../middleware/auth');
+const { notify } = require('../utils/notify');
 
 router.use(protect);
 
@@ -9,8 +10,6 @@ const pair = (a, b) => (a < b ? [a, b] : [b, a]);
 
 /* ============================================================
    GET /api/messages/conversations
-   Lists all conversations the current user is part of,
-   with the other user's name, last message, unread count.
    ============================================================ */
 router.get('/conversations', async (req, res) => {
   const me = req.user.id;
@@ -63,7 +62,6 @@ router.get('/conversations', async (req, res) => {
 
 /* ============================================================
    POST /api/messages/conversations
-   Start (or reuse) a conversation with another user
    body: { otherUserId }
    ============================================================ */
 router.post('/conversations', async (req, res) => {
@@ -96,7 +94,6 @@ router.post('/conversations', async (req, res) => {
 
 /* ============================================================
    GET /api/messages/conversations/:id
-   Load message history + mark unread messages as read
    ============================================================ */
 router.get('/conversations/:id', async (req, res) => {
   const me = req.user.id;
@@ -125,7 +122,6 @@ router.get('/conversations/:id', async (req, res) => {
     [id]
   );
 
-  // Mark other user's messages as read
   await pool.execute(
     'UPDATE messages SET read_at = NOW() WHERE conversation_id = ? AND sender_id != ? AND read_at IS NULL',
     [id, me]
@@ -149,6 +145,8 @@ router.get('/conversations/:id', async (req, res) => {
 /* ============================================================
    POST /api/messages/conversations/:id/send
    body: { body }
+
+   ⭐ NEW: Notifies the recipient so their bell lights up.
    ============================================================ */
 router.post('/conversations/:id/send', async (req, res) => {
   const me = req.user.id;
@@ -158,10 +156,12 @@ router.post('/conversations/:id/send', async (req, res) => {
   if (!text) return res.status(400).json({ message: 'Message cannot be empty' });
 
   const [convRows] = await pool.execute(
-    'SELECT id FROM conversations WHERE id = ? AND (user1_id = ? OR user2_id = ?)',
+    'SELECT id, user1_id, user2_id FROM conversations WHERE id = ? AND (user1_id = ? OR user2_id = ?)',
     [id, me, me]
   );
   if (!convRows.length) return res.status(404).json({ message: 'Conversation not found' });
+
+  const conv = convRows[0];
 
   const [result] = await pool.execute(
     'INSERT INTO messages (conversation_id, sender_id, body) VALUES (?, ?, ?)',
@@ -179,6 +179,34 @@ router.post('/conversations/:id/send', async (req, res) => {
   );
   const m = rows[0];
 
+  /* ⭐ Notify the other participant */
+  try {
+    const recipientId = conv.user1_id === me ? conv.user2_id : conv.user1_id;
+
+    // Look up recipient's role so the notification link points to the right page
+    const [recipientRows] = await pool.execute(
+      'SELECT id, name, role FROM users WHERE id = ?',
+      [recipientId]
+    );
+
+    if (recipientRows.length && recipientRows[0].id !== me) {
+      const recipient = recipientRows[0];
+      const preview =
+        text.length > 80 ? `${text.slice(0, 80)}…` : text;
+
+      await notify({
+        userId: recipient.id,
+        type: 'message',
+        title: `New message from ${req.user.name}`,
+        body: preview,
+        link: `/${recipient.role}/messages`,
+      });
+    }
+  } catch (notifyErr) {
+    // Never fail the send because of a notification error
+    console.error('Message notification failed:', notifyErr.message);
+  }
+
   res.status(201).json({
     message: {
       id: m.id,
@@ -191,8 +219,7 @@ router.post('/conversations/:id/send', async (req, res) => {
 });
 
 /* ============================================================
-   GET /api/messages/contacts
-   Who can I message? Based on role.
+   GET /api/messages/contacts  (unchanged)
    ============================================================ */
 router.get('/contacts', async (req, res) => {
   const me = req.user.id;
@@ -201,7 +228,6 @@ router.get('/contacts', async (req, res) => {
 
   try {
     if (role === 'student') {
-      // Students can message: teachers of their class, admins, parents
       const [studentRows] = await pool.execute(
         'SELECT class_name, parent_id FROM students WHERE user_id = ?',
         [me]
@@ -238,7 +264,6 @@ router.get('/contacts', async (req, res) => {
         }
       }
     } else if (role === 'teacher') {
-      // Teachers: students in their classes, other teachers, admins, parents of their students
       const [teacherRows] = await pool.execute(
         'SELECT id FROM teachers WHERE user_id = ?',
         [me]
@@ -288,7 +313,6 @@ router.get('/contacts', async (req, res) => {
         id: a.id, name: a.name, role: a.role, detail: a.sub,
       })));
     } else if (role === 'parent') {
-      // Parents: their child's teachers + admins
       const [childRows] = await pool.execute(
         `SELECT s.class_name
          FROM students s
@@ -318,7 +342,6 @@ router.get('/contacts', async (req, res) => {
         id: a.id, name: a.name, role: a.role, detail: a.sub,
       })));
     } else if (role === 'admin') {
-      // Admins: everyone
       const [all] = await pool.execute(
         'SELECT id, name, role FROM users WHERE id != ? ORDER BY name',
         [me]
@@ -328,7 +351,6 @@ router.get('/contacts', async (req, res) => {
       })));
     }
 
-    // De-dupe by id
     const seen = new Set();
     const unique = contacts.filter((c) => {
       if (seen.has(c.id)) return false;
