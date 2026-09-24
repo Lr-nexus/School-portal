@@ -38,6 +38,7 @@ const allowedOrigins = [
 ];
 
 function corsOriginCheck(origin, callback) {
+  // Allow server-to-server / curl / same-origin (no Origin header)
   if (!origin) return callback(null, true);
   if (allowedOrigins.includes(origin)) return callback(null, true);
   console.log(`❌ CORS blocked: ${origin}`);
@@ -48,7 +49,7 @@ const corsOptions = {
   origin: corsOriginCheck,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-User-Id']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-User-Id'],
 };
 
 /* ============================================================
@@ -59,11 +60,11 @@ const io = new Server(server, {
   cors: {
     origin: '*',
     credentials: false,
-    methods: ['GET', 'POST']
+    methods: ['GET', 'POST'],
   },
   transports: ['polling', 'websocket'],
   pingTimeout: 60000,
-  pingInterval: 25000
+  pingInterval: 25000,
 });
 
 setupSocket(io);
@@ -81,6 +82,16 @@ app.use((req, res, next) => {
 });
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+/* ============================================================
+   ⭐ HEALTH CHECK — must respond BEFORE any DB work
+   Render pings this every ~30s to decide if the service is alive.
+   If it doesn't respond within ~90s, Render reports "no open ports"
+   and returns 502 to every request.
+   ============================================================ */
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'healthy', uptime: process.uptime() });
+});
 
 app.get('/', (req, res) =>
   res.json({ message: 'School Portal API is running' })
@@ -114,7 +125,29 @@ app.use((req, res) =>
   res.status(404).json({ message: 'Route not found' })
 );
 
+/* ============================================================
+   STARTUP
+   ============================================================ */
+
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () =>
-  console.log(`🚀 Server running on port ${PORT}`)
-);
+const HOST = '0.0.0.0';   // ⭐ Render needs this, NOT localhost
+
+server.listen(PORT, HOST, () => {
+  console.log(`🚀 Server running on ${HOST}:${PORT}`);
+  console.log(`   NODE_ENV = ${process.env.NODE_ENV || 'development'}`);
+  console.log(`   DB_HOST  = ${process.env.DB_HOST || '(not set)'}`);
+  console.log(`   DB_NAME  = ${process.env.DB_NAME || '(not set)'}`);
+});
+
+/* Non-fatal DB ping — never blocks the HTTP listener */
+setTimeout(() => {
+  require('./db')
+    .getConnection()
+    .then((conn) => {
+      console.log('✅ DB connection verified');
+      conn.release();
+    })
+    .catch((err) => {
+      console.error('⚠️  DB ping failed (server still running):', err.message);
+    });
+}, 3000);

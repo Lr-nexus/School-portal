@@ -8,47 +8,40 @@ const pool = mysql.createPool({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
 
-  // ⭐ Tuned for a DB with max_user_connections = 5
+  // Tuned for a DB with max_user_connections = 5
   waitForConnections: true,
-  connectionLimit: 3,        // hard ceiling — never more than 3 at once
-  maxIdle: 2,                // only keep 2 warm idle connections
-  idleTimeout: 30000,        // close idle connections after 30s
-  queueLimit: 0,             // queue extra requests instead of erroring
+  connectionLimit: 3,
+  maxIdle: 2,
+  idleTimeout: 30000,
+  queueLimit: 0,
 
   connectTimeout: 10000,
   enableKeepAlive: true,
   keepAliveInitialDelay: 10000,
 
   // Clever Cloud requires SSL
-  ssl: { rejectUnauthorized: false }
+  ssl: { rejectUnauthorized: false },
 });
 
-// Startup ping — logs connection state on boot
+/* Non-blocking startup ping. If the DB is down we log a warning but
+   DO NOT crash — Render will still serve /health and return a proper
+   503 on DB routes instead of killing the whole service. */
 (async () => {
   try {
     const conn = await pool.getConnection();
     await conn.ping();
-    const [rows] = await conn.query(
-      `SELECT COUNT(*) AS c FROM information_schema.tables
-       WHERE table_schema = ?`,
-      [process.env.DB_NAME]
-    );
     conn.release();
-    if (rows[0].c === 0) {
-      console.warn('⚠️  Database is empty. Run `npm run setup` first.');
-    } else {
-      console.log(`✅ MySQL connected → ${process.env.DB_NAME} (${rows[0].c} tables)`);
-    }
+    console.log('✅ MySQL pool ready');
   } catch (err) {
-    console.error('❌ MySQL connection FAILED:', err.message);
+    console.error('⚠️  MySQL connection FAILED:', err.message);
     if (err.code === 'ECONNREFUSED') {
-      console.error('   → Database server not reachable.');
+      console.error('   → Database server not reachable from Render.');
     } else if (err.code === 'ER_BAD_DB_ERROR') {
       console.error('   → Database does not exist.');
     } else if (err.code === 'ER_ACCESS_DENIED_ERROR') {
       console.error('   → Wrong DB credentials.');
     } else if (err.code === 'ER_USER_LIMIT_REACHED') {
-      console.error('   → Hit max_user_connections. Check nothing else is connected.');
+      console.error('   → Hit max_user_connections.');
     }
   }
 })();
