@@ -286,7 +286,7 @@ export default function AdminEnrollTeachers() {
               </label>
               <label>Password
                 <input name="password" value={form.password}
-                  onChange={handleChange} placeholder="Password" />
+                  onChange={handleChange} placeholder="Leave blank → Teacher@123" />
               </label>
               <label>Phone
                 <input name="phone" value={form.phone}

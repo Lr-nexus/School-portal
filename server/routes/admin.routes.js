@@ -35,7 +35,6 @@ function normalizeRow(raw) {
   return out;
 }
 
-/* Helper — write the (class, subject) pairs for a teacher */
 async function writeAssignments(conn, teacherId, assignments) {
   if (!Array.isArray(assignments)) return;
   await conn.execute('DELETE FROM teacher_assignments WHERE teacher_id = ?', [teacherId]);
@@ -60,9 +59,7 @@ async function readAssignments(teacherId) {
    PROFILE
 ================================================================== */
 router.get('/me', async (req, res) => {
-  const [rows] = await pool.execute(
-    'SELECT * FROM admins WHERE user_id = ?', [req.user.id]
-  );
+  const [rows] = await pool.execute('SELECT * FROM admins WHERE user_id = ?', [req.user.id]);
   if (!rows.length) return res.status(404).json({ message: 'Admin not found' });
   const a = rows[0];
   res.json({
@@ -72,9 +69,7 @@ router.get('/me', async (req, res) => {
 });
 
 router.patch('/me', async (req, res) => {
-  const [existing] = await pool.execute(
-    'SELECT id FROM admins WHERE user_id = ?', [req.user.id]
-  );
+  const [existing] = await pool.execute('SELECT id FROM admins WHERE user_id = ?', [req.user.id]);
   if (!existing.length) return res.status(404).json({ message: 'Admin not found' });
 
   const map = { name: 'name', email: 'email', phone: 'phone', office: 'office', title: 'title' };
@@ -146,13 +141,11 @@ router.get('/classes', async (req, res) => {
       return {
         id: c.id,
         name: c.name,
-        teacher: c.teacher_name
-          ? {
-              id: c.teacher_id, name: c.teacher_name, email: c.teacher_email,
-              phone: c.teacher_phone, staffNo: c.teacher_staff_no,
-              subjects: teacherSubjects,
-            }
-          : null,
+        teacher: c.teacher_name ? {
+          id: c.teacher_id, name: c.teacher_name, email: c.teacher_email,
+          phone: c.teacher_phone, staffNo: c.teacher_staff_no,
+          subjects: teacherSubjects,
+        } : null,
         students: students.map((s) => ({
           id: s.id, name: s.name, admissionNo: s.admission_no,
           gender: s.gender, email: s.email,
@@ -383,9 +376,7 @@ router.delete('/parents/:id', async (req, res) => {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
-    const [rows] = await conn.execute(
-      'SELECT id, user_id, name FROM parents WHERE id = ?', [req.params.id]
-    );
+    const [rows] = await conn.execute('SELECT id, user_id, name FROM parents WHERE id = ?', [req.params.id]);
     if (!rows.length) {
       await conn.rollback();
       return res.status(404).json({ message: 'Parent not found' });
@@ -421,12 +412,10 @@ router.post('/students', async (req, res) => {
   if (!name || !email || !className) {
     return res.status(400).json({ message: 'Name, email and class are required' });
   }
-  const [emailTaken] = await pool.execute(
-    'SELECT id FROM users WHERE email = ?', [email.toLowerCase()]
-  );
+  const [emailTaken] = await pool.execute('SELECT id FROM users WHERE email = ?', [email.toLowerCase()]);
   if (emailTaken.length) return res.status(400).json({ message: 'A user with that email already exists' });
 
-  const loginPassword = (password && password.trim()) || 'changeme123';
+  const loginPassword = (password && password.trim()) || 'Student@123';
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
@@ -481,17 +470,13 @@ router.post('/students-with-parent', async (req, res) => {
 
   const conn = await pool.getConnection();
   try {
-    const [emailTaken] = await conn.execute(
-      'SELECT id FROM users WHERE email = ?', [email.toLowerCase()]
-    );
+    const [emailTaken] = await conn.execute('SELECT id FROM users WHERE email = ?', [email.toLowerCase()]);
     if (emailTaken.length) {
       conn.release();
       return res.status(400).json({ message: 'Student email already exists' });
     }
     if (wantsParent) {
-      const [pTaken] = await conn.execute(
-        'SELECT id FROM users WHERE email = ?', [parentEmail.toLowerCase()]
-      );
+      const [pTaken] = await conn.execute('SELECT id FROM users WHERE email = ?', [parentEmail.toLowerCase()]);
       if (pTaken.length) {
         conn.release();
         return res.status(400).json({ message: 'Parent email already exists' });
@@ -499,7 +484,7 @@ router.post('/students-with-parent', async (req, res) => {
     }
 
     await conn.beginTransaction();
-    const studentPwd = (password && password.trim()) || 'changeme123';
+    const studentPwd = (password && password.trim()) || 'Student@123';
     const [sU] = await conn.execute(
       'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
       [name, email.toLowerCase(), studentPwd, 'student']
@@ -613,8 +598,17 @@ router.post('/students/bulk-delete', async (req, res) => {
   } finally { conn.release(); }
 });
 
+/* ==================================================================
+   ⭐ BULK IMPORT — students + optional parent per row
+   CSV columns:
+     name, email, password, classname, gender,
+     guardianname, guardianphone, address,
+     parentemail, parentname, parentpassword, parentrelationship
+   Only `parentemail` is required to trigger parent creation.
+================================================================== */
 router.post('/students/bulk-import', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+
   let rows;
   try {
     const wb = xlsx.read(req.file.buffer, { type: 'buffer' });
@@ -627,31 +621,53 @@ router.post('/students/bulk-import', upload.single('file'), async (req, res) => 
 
   const created = [];
   const failed = [];
+
   for (let i = 0; i < rows.length; i++) {
     const row = normalizeRow(rows[i]);
     const line = i + 2;
+
     const name = row.name;
     const email = (row.email || '').toLowerCase();
     const className = row.classname || row.class;
-    const password = row.password || 'changeme123';
+    const password = row.password || 'Student@123';
+
+    // Optional parent columns
+    const parentEmail = (row.parentemail || '').toLowerCase();
+    const parentName = row.parentname || '';
+    const parentPassword = row.parentpassword || 'Parent@123';
+    const parentRelationship = row.parentrelationship || 'Guardian';
 
     if (!name || !email || !className) {
       failed.push({ line, name, email, reason: 'name, email and classname are required' });
       continue;
     }
+
     try {
       const [taken] = await pool.execute('SELECT id FROM users WHERE email = ?', [email]);
       if (taken.length) {
-        failed.push({ line, name, email, reason: 'Email already exists' });
+        failed.push({ line, name, email, reason: 'Student email already exists' });
         continue;
       }
+      if (parentEmail) {
+        const [pTaken] = await pool.execute('SELECT id FROM users WHERE email = ?', [parentEmail]);
+        if (pTaken.length) {
+          failed.push({ line, name, email, reason: `Parent email ${parentEmail} already exists` });
+          continue;
+        }
+      }
+
       const conn = await pool.getConnection();
       try {
         await conn.beginTransaction();
+
+        // 1. Student user
         const [uResult] = await conn.execute(
           'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
           [name, email, password, 'student']
         );
+        const studentUserId = uResult.insertId;
+
+        // 2. Ensure class exists
         const [cls] = await conn.execute('SELECT id FROM classes WHERE name = ?', [className]);
         if (!cls.length) {
           await conn.execute(
@@ -659,18 +675,56 @@ router.post('/students/bulk-import', upload.single('file'), async (req, res) => 
             [className, JSON.stringify([]), JSON.stringify([])]
           );
         }
+
+        // 3. Admission number
         const [[{ maxId }]] = await conn.execute('SELECT MAX(id) AS maxId FROM students');
         const admissionNo = `STD/${new Date().getFullYear()}/${String((maxId || 0) + 1).padStart(3, '0')}`;
-        await conn.execute(
+
+        // 4. Student row
+        const [sResult] = await conn.execute(
           `INSERT INTO students (user_id, name, admission_no, class_name, gender,
              guardian_name, guardian_phone, address, email, house)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [uResult.insertId, name, admissionNo, className,
-            row.gender || 'Not specified', row.guardianname || '', row.guardianphone || '',
+          [studentUserId, name, admissionNo, className,
+            row.gender || 'Not specified',
+            row.guardianname || parentName || '',
+            row.guardianphone || '',
             row.address || '', email, 'Unassigned']
         );
+        const studentId = sResult.insertId;
+
+        // 5. Optional parent
+        let parentInfo = null;
+        if (parentEmail) {
+          const finalParentName = parentName || row.guardianname || `${name}'s Guardian`;
+
+          const [pU] = await conn.execute(
+            'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
+            [finalParentName, parentEmail, parentPassword, 'parent']
+          );
+
+          const [pRes] = await conn.execute(
+            `INSERT INTO parents (user_id, name, email, phone, relationship, address)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [pU.insertId, finalParentName, parentEmail,
+              row.guardianphone || '', parentRelationship, row.address || '']
+          );
+
+          await conn.execute(
+            'UPDATE students SET parent_id = ? WHERE id = ?',
+            [pRes.insertId, studentId]
+          );
+
+          parentInfo = {
+            name: finalParentName,
+            email: parentEmail,
+            password: parentPassword,
+            relationship: parentRelationship,
+          };
+        }
+
         await conn.commit();
-        created.push({ name, email, className, admissionNo });
+        created.push({ name, email, className, admissionNo, parent: parentInfo });
       } catch (innerErr) {
         await conn.rollback();
         throw innerErr;
@@ -679,9 +733,15 @@ router.post('/students/bulk-import', upload.single('file'), async (req, res) => 
       failed.push({ line, name, email, reason: err.message });
     }
   }
+
+  const withParents = created.filter((c) => c.parent).length;
   res.json({
-    message: `${created.length} student(s) imported, ${failed.length} failed`,
-    totalRows: rows.length, created, failed,
+    message:
+      `${created.length} student(s) imported, ${failed.length} failed` +
+      (withParents ? ` — ${withParents} linked to a parent account` : ''),
+    totalRows: rows.length,
+    created,
+    failed,
   });
 });
 
@@ -779,7 +839,7 @@ router.delete('/students/:id/results/:resultId', async (req, res) => {
 });
 
 /* ==================================================================
-   ⭐ TEACHERS — list includes type + assignments
+   TEACHERS
 ================================================================== */
 router.get('/teachers', async (req, res) => {
   const [rows] = await pool.execute('SELECT * FROM teachers ORDER BY id');
@@ -800,7 +860,6 @@ router.get('/teachers', async (req, res) => {
   res.json(result);
 });
 
-/* ⭐ TEACHERS — create */
 router.post('/teachers', async (req, res) => {
   const {
     name, email, password, phone, subjects,
@@ -820,7 +879,7 @@ router.post('/teachers', async (req, res) => {
     : String(subjects || '').split(',').map((s) => s.trim()).filter(Boolean);
 
   const type = teacherType === 'subject_teacher' ? 'subject_teacher' : 'class_teacher';
-  const loginPassword = (password && password.trim()) || 'changeme123';
+  const loginPassword = (password && password.trim()) || 'Teacher@123';
 
   const conn = await pool.getConnection();
   try {
@@ -908,28 +967,23 @@ router.post('/teachers', async (req, res) => {
   } finally { conn.release(); }
 });
 
-/* ⭐ TEACHERS — update assignments */
 router.patch('/teachers/:id/assignments', async (req, res) => {
   const { assignments, teacherType, formClass } = req.body;
-
   const [rows] = await pool.execute('SELECT id FROM teachers WHERE id = ?', [req.params.id]);
   if (!rows.length) return res.status(404).json({ message: 'Teacher not found' });
 
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
-
     if (teacherType === 'class_teacher' || teacherType === 'subject_teacher') {
       await conn.execute(
         'UPDATE teachers SET teacher_type = ?, form_class = ? WHERE id = ?',
         [teacherType, teacherType === 'class_teacher' ? (formClass || null) : null, req.params.id]
       );
     }
-
     if (Array.isArray(assignments)) {
       await writeAssignments(conn, req.params.id, assignments);
     }
-
     await conn.commit();
     const updated = await readAssignments(req.params.id);
     res.json({ message: 'Assignments updated', assignments: updated });
@@ -1012,7 +1066,7 @@ router.post('/teachers/bulk-import', upload.single('file'), async (req, res) => 
     const line = i + 2;
     const name = row.name;
     const email = (row.email || '').toLowerCase();
-    const password = row.password || 'changeme123';
+    const password = row.password || 'Teacher@123';
     const formClass = row.formclass || '';
     const subjectsRaw = row.subjects || '';
     const type = row.teachertype || (formClass ? 'class_teacher' : 'subject_teacher');
@@ -1148,6 +1202,168 @@ router.post('/announcements', async (req, res) => {
   });
   const [rows] = await pool.execute('SELECT * FROM announcements WHERE id = ?', [result.insertId]);
   res.status(201).json({ message: 'Announcement posted', announcement: rows[0] });
+});
+
+/* ==================================================================
+   CREDENTIALS EXPORT  (with filters)
+   Query params:
+     role       = all | admin | teacher | teacher-class | teacher-subject
+                | student | parent          (default: all)
+     className  = e.g. "JSS 1A"             (only applies when role=student or all)
+   ================================================================== */
+router.get('/credentials', async (req, res) => {
+  try {
+    const roleFilter = String(req.query.role || 'all').toLowerCase();
+    const classFilter = String(req.query.className || '').trim();
+
+    const includeAdmin     = roleFilter === 'all' || roleFilter === 'admin';
+    const includeClassTr   = roleFilter === 'all' || roleFilter === 'teacher' || roleFilter === 'teacher-class';
+    const includeSubjectTr = roleFilter === 'all' || roleFilter === 'teacher' || roleFilter === 'teacher-subject';
+    const includeStudents  = roleFilter === 'all' || roleFilter === 'student';
+    const includeParents   = roleFilter === 'all' || roleFilter === 'parent';
+
+    const rows = [];
+    const summary = {
+      admins: 0,
+      classTeachers: 0,
+      subjectTeachers: 0,
+      students: 0,
+      parents: 0,
+    };
+
+    /* ---------- Admins ---------- */
+    if (includeAdmin) {
+      const [admins] = await pool.execute(`
+        SELECT u.name, u.email, u.password, a.title, a.office
+        FROM users u
+        LEFT JOIN admins a ON a.user_id = u.id
+        WHERE u.role = 'admin'
+        ORDER BY u.name
+      `);
+      admins.forEach((a) => rows.push({
+        role: 'Admin',
+        name: a.name,
+        email: a.email,
+        password: a.password,
+        detail: a.title || 'Administrator',
+        reference: a.office || '',
+      }));
+      summary.admins = admins.length;
+    }
+
+    /* ---------- Class teachers ---------- */
+    if (includeClassTr) {
+      const [classTeachers] = await pool.execute(`
+        SELECT u.name, u.email, u.password, t.staff_no, t.form_class
+        FROM users u
+        JOIN teachers t ON t.user_id = u.id
+        WHERE u.role = 'teacher' AND t.teacher_type = 'class_teacher'
+        ORDER BY t.form_class, u.name
+      `);
+      classTeachers.forEach((t) => rows.push({
+        role: 'Teacher (Class)',
+        name: t.name,
+        email: t.email,
+        password: t.password,
+        detail: `Form class: ${t.form_class || '—'}`,
+        reference: t.staff_no,
+      }));
+      summary.classTeachers = classTeachers.length;
+    }
+
+    /* ---------- Subject teachers ---------- */
+    if (includeSubjectTr) {
+      const [subjectTeachers] = await pool.execute(`
+        SELECT u.name, u.email, u.password, t.staff_no,
+               GROUP_CONCAT(CONCAT(ta.class_name, ' → ', ta.subject) SEPARATOR '; ') AS assignments
+        FROM users u
+        JOIN teachers t ON t.user_id = u.id
+        LEFT JOIN teacher_assignments ta ON ta.teacher_id = t.id
+        WHERE u.role = 'teacher' AND t.teacher_type = 'subject_teacher'
+        GROUP BY u.id, u.name, u.email, u.password, t.staff_no
+        ORDER BY u.name
+      `);
+      subjectTeachers.forEach((t) => rows.push({
+        role: 'Teacher (Subject)',
+        name: t.name,
+        email: t.email,
+        password: t.password,
+        detail: t.assignments || 'No assignments',
+        reference: t.staff_no,
+      }));
+      summary.subjectTeachers = subjectTeachers.length;
+    }
+
+    /* ---------- Students (optionally filtered by class) ---------- */
+    if (includeStudents) {
+      let sql = `
+        SELECT u.name, u.email, u.password, s.class_name, s.admission_no
+        FROM users u
+        JOIN students s ON s.user_id = u.id
+        WHERE u.role = 'student'
+      `;
+      const params = [];
+      if (classFilter) {
+        sql += ' AND s.class_name = ?';
+        params.push(classFilter);
+      }
+      sql += ' ORDER BY s.class_name, u.name';
+
+      const [students] = await pool.execute(sql, params);
+      students.forEach((s) => rows.push({
+        role: 'Student',
+        name: s.name,
+        email: s.email,
+        password: s.password,
+        detail: s.class_name,
+        reference: s.admission_no,
+      }));
+      summary.students = students.length;
+    }
+
+    /* ---------- Parents (optionally filtered by child's class) ---------- */
+    if (includeParents) {
+      // If a class filter is set AND we're exporting parents, only include
+      // parents whose linked child is in that class.
+      let sql = `
+        SELECT u.name, u.email, u.password, p.relationship,
+               GROUP_CONCAT(CONCAT(s.name, ' (', s.class_name, ')') SEPARATOR '; ') AS children
+        FROM users u
+        JOIN parents p ON p.user_id = u.id
+        LEFT JOIN students s ON s.parent_id = p.id
+        WHERE u.role = 'parent'
+      `;
+      const params = [];
+      if (classFilter && roleFilter === 'all') {
+        sql += ' AND s.class_name = ?';
+        params.push(classFilter);
+      }
+      sql += ' GROUP BY u.id, u.name, u.email, u.password, p.relationship ORDER BY u.name';
+
+      const [parents] = await pool.execute(sql, params);
+      parents.forEach((p) => rows.push({
+        role: 'Parent',
+        name: p.name,
+        email: p.email,
+        password: p.password,
+        detail: p.children || 'No linked child',
+        reference: p.relationship || 'Guardian',
+      }));
+      summary.parents = parents.length;
+    }
+
+    /* ---------- Respond ---------- */
+    res.json({
+      generatedAt: new Date().toISOString(),
+      filters: { role: roleFilter, className: classFilter || null },
+      total: rows.length,
+      summary,
+      rows,
+    });
+  } catch (err) {
+    console.error('Credentials export failed:', err);
+    res.status(500).json({ message: err.message || 'Export failed' });
+  }
 });
 
 module.exports = router;

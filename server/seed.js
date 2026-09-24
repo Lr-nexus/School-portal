@@ -542,10 +542,10 @@ async function seed() {
     console.log('   Demo logins:');
     console.log('   ─────────────────────────────────────────────');
     console.log('   Admin:   admin@school.com     / admin123');
-    console.log('   Teacher: teacher@school.com   / teacher123   (class teacher, JSS 2A)');
-    console.log('   Teacher: emeka@school.com     / teacher123   (subject teacher)');
-    console.log('   Student: ada@school.com       / changeme123');
-    console.log('   Parent:  parent@school.com    / parent123');
+    console.log('   Teacher: teacher@school.com   / Teacher@123   (class teacher, JSS 2A)');
+    console.log('   Teacher: emeka@school.com     / Teacher@123   (subject teacher)');
+    console.log('   Student: ada@school.com       / Student@123');
+    console.log('   Parent:  parent@school.com    / Parent@123');
     console.log('');
     console.log(`   ${CLASS_DEFS.length} classes · ${teachers.length} teachers · ${studentIds.length} students`);
     console.log(`   ${studentIds.length * TERMS.length * SUBJECTS.length} result rows · ${studentIds.length * TERMS.length} fee rows`);

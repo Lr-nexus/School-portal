@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   FiLogIn, FiUser, FiUsers, FiShield, FiHeart,
   FiBookOpen, FiVideo, FiFileText, FiClipboard,
-  FiAward, FiTrendingUp, FiCheckCircle
+  FiAward, FiTrendingUp, FiCheckCircle,
 } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 
@@ -24,12 +24,12 @@ const STATS = [
   { value: '98%',  label: 'Pass Rate' },
 ];
 
-/* ---------- Demo accounts ---------- */
+/* ⭐ Updated demo credentials */
 const DEMO_ACCOUNTS = {
-  student: { email: 'ada@school.com',    password: 'changeme123', label: 'Student' },
-  teacher: { email: 'teacher@school.com', password: 'teacher123',  label: 'Teacher' },
+  student: { email: 'ada@school.com',     password: 'Student@123', label: 'Student' },
+  teacher: { email: 'teacher@school.com', password: 'Teacher@123', label: 'Teacher' },
   admin:   { email: 'admin@school.com',   password: 'admin123',    label: 'Admin'   },
-  parent:  { email: 'parent@school.com',  password: 'parent123',   label: 'Parent'  },
+  parent:  { email: 'parent@school.com',  password: 'Parent@123',  label: 'Parent'  },
 };
 
 export default function Login() {
@@ -65,12 +65,8 @@ export default function Login() {
 
   return (
     <div className="login-split">
-      {/* LEFT PANEL — Hero */}
       <div className="login-hero">
-        <div
-          className="login-hero__bg"
-          style={{ backgroundImage: `url(${HERO_IMAGE})` }}
-        />
+        <div className="login-hero__bg" style={{ backgroundImage: `url(${HERO_IMAGE})` }} />
         <div className="login-hero__overlay" />
 
         <div className="login-hero__content">
@@ -93,9 +89,7 @@ export default function Login() {
           <ul className="login-hero__features">
             {FEATURES.map(({ icon: Icon, text }) => (
               <li key={text}>
-                <span className="login-hero__feature-icon">
-                  <Icon size={16} />
-                </span>
+                <span className="login-hero__feature-icon"><Icon size={16} /></span>
                 <span>{text}</span>
               </li>
             ))}
@@ -117,7 +111,6 @@ export default function Login() {
         </div>
       </div>
 
-      {/* RIGHT PANEL — Form */}
       <div className="login-form-panel">
         <div className="login-form-panel__inner">
           <div className="login-form-panel__head">
@@ -163,80 +156,46 @@ export default function Login() {
             </button>
 
             <div style={{ textAlign: 'right', marginTop: 8 }}>
-              <Link
-                to="/forgot-password"
-                style={{ fontSize: 12, color: 'var(--muted)' }}
-              >
+              <Link to="/forgot-password" style={{ fontSize: 12, color: 'var(--muted)' }}>
                 Forgot password?
               </Link>
             </div>
           </form>
 
-          {/* ---------- Demo accounts ---------- */}
           <div className="login-demo">
-            <div className="login-demo__head">
-              <span>Try a demo account</span>
-            </div>
+            <div className="login-demo__head"><span>Try a demo account</span></div>
 
             <div className="login-demo__btns">
               <button type="button" onClick={() => quickFill('student')}>
                 <FiUser size={15} />
-                <div>
-                  <strong>Student</strong>
-                  <span>{DEMO_ACCOUNTS.student.email}</span>
-                </div>
+                <div><strong>Student</strong><span>{DEMO_ACCOUNTS.student.email}</span></div>
               </button>
-
               <button type="button" onClick={() => quickFill('teacher')}>
                 <FiUsers size={15} />
-                <div>
-                  <strong>Teacher</strong>
-                  <span>{DEMO_ACCOUNTS.teacher.email}</span>
-                </div>
+                <div><strong>Teacher</strong><span>{DEMO_ACCOUNTS.teacher.email}</span></div>
               </button>
-
               <button type="button" onClick={() => quickFill('admin')}>
                 <FiShield size={15} />
-                <div>
-                  <strong>Admin</strong>
-                  <span>{DEMO_ACCOUNTS.admin.email}</span>
-                </div>
+                <div><strong>Admin</strong><span>{DEMO_ACCOUNTS.admin.email}</span></div>
               </button>
-
               <button type="button" onClick={() => quickFill('parent')}>
                 <FiHeart size={15} />
-                <div>
-                  <strong>Parent</strong>
-                  <span>{DEMO_ACCOUNTS.parent.email}</span>
-                </div>
+                <div><strong>Parent</strong><span>{DEMO_ACCOUNTS.parent.email}</span></div>
               </button>
             </div>
 
-            <p className="login-demo__hint">
-              Click any button to auto-fill the credentials
-            </p>
+            <p className="login-demo__hint">Click any button to auto-fill the credentials</p>
           </div>
 
-          {/* Trust badges */}
           <div className="login-trust">
-            <div className="login-trust__item">
-              <FiAward size={16} />
-              <span>Accredited</span>
-            </div>
-            <div className="login-trust__item">
-              <FiTrendingUp size={16} />
-              <span>Modern Curriculum</span>
-            </div>
-            <div className="login-trust__item">
-              <FiCheckCircle size={16} />
-              <span>Safe & Secure</span>
-            </div>
+            <div className="login-trust__item"><FiAward size={16} /><span>Accredited</span></div>
+            <div className="login-trust__item"><FiTrendingUp size={16} /><span>Modern Curriculum</span></div>
+            <div className="login-trust__item"><FiCheckCircle size={16} /><span>Safe & Secure</span></div>
           </div>
 
           <p className="login-form-panel__footer">
             © {new Date().getFullYear()} Bright Future Secondary School.
-            <br />
-            All rights reserved.
+            <br />All rights reserved.
           </p>
         </div>
       </div>

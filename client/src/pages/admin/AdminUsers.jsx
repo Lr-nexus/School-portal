@@ -3,7 +3,7 @@ import {
   FiUsers, FiUserCheck, FiTrash2, FiX, FiAlertTriangle,
   FiSearch, FiCheckSquare, FiSquare, FiMinusSquare,
   FiChevronDown, FiChevronUp, FiMail, FiLayers,
-  FiPlus, FiSettings, FiCheck,
+  FiPlus, FiSettings, FiCheck, FiDownload, FiFilter, FiPrinter,
 } from 'react-icons/fi';
 import { api } from '../../api/api';
 import PageHeader from '../../components/PageHeader';
@@ -16,6 +16,346 @@ const SUBJECTS = [
   'Biology', 'Literature',
 ];
 
+const ROLE_OPTIONS = [
+  { value: 'all',             label: 'Everyone' },
+  { value: 'admin',           label: 'Admins only' },
+  { value: 'teacher-class',   label: 'Class teachers' },
+  { value: 'teacher-subject', label: 'Subject teachers' },
+  { value: 'teacher',         label: 'All teachers' },
+  { value: 'student',         label: 'Students' },
+  { value: 'parent',          label: 'Parents' },
+];
+
+/* ==================================================================
+   CSV helpers
+   ================================================================== */
+function escapeCSV(val) {
+  const s = String(val ?? '');
+  if (s.includes(',') || s.includes('"') || s.includes('\n') || s.includes(';')) {
+    return `"${s.replace(/"/g, '""')}"`;
+  }
+  return s;
+}
+
+function buildCredentialsCSV(data) {
+  const header = ['#', 'Role', 'Name', 'Email (login)', 'Password', 'Detail', 'Reference'];
+  const lines = [header.map(escapeCSV).join(',')];
+
+  data.rows.forEach((r, i) => {
+    lines.push([
+      i + 1, r.role, r.name, r.email, r.password, r.detail, r.reference,
+    ].map(escapeCSV).join(','));
+  });
+
+  lines.push('');
+  lines.push([escapeCSV(`Generated: ${new Date(data.generatedAt).toLocaleString()}`)]);
+  lines.push([escapeCSV(`Filter: ${data.filters.role}${data.filters.className ? ` · Class: ${data.filters.className}` : ''}`)]);
+  lines.push([escapeCSV(`Total users: ${data.total}`)]);
+  lines.push([escapeCSV(
+    `Admins: ${data.summary.admins} · Class teachers: ${data.summary.classTeachers} · ` +
+    `Subject teachers: ${data.summary.subjectTeachers} · Students: ${data.summary.students} · ` +
+    `Parents: ${data.summary.parents}`
+  )]);
+
+  return lines.join('\n');
+}
+
+function downloadCSVFile(content, filename) {
+  const blob = new Blob(['\uFEFF' + content], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 500);
+}
+
+/* ==================================================================
+   PRINTABLE HTML
+   ================================================================== */
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]));
+}
+
+function buildCredentialsPrintHTML(data) {
+  const groups = {};
+  data.rows.forEach((r) => {
+    if (!groups[r.role]) groups[r.role] = [];
+    groups[r.role].push(r);
+  });
+
+  const ROLE_ORDER = [
+    'Admin',
+    'Teacher (Class)',
+    'Teacher (Subject)',
+    'Student',
+    'Parent',
+  ];
+  const orderedRoles = [
+    ...ROLE_ORDER.filter((r) => groups[r]),
+    ...Object.keys(groups).filter((r) => !ROLE_ORDER.includes(r)),
+  ];
+
+  const sectionHTML = orderedRoles.map((role) => {
+    const rows = groups[role];
+
+    let subtitle = '';
+    if (role === 'Student' && data.filters.className) {
+      subtitle = `Class ${data.filters.className} · ${rows.length} student${rows.length === 1 ? '' : 's'}`;
+    } else {
+      subtitle = `${rows.length} record${rows.length === 1 ? '' : 's'}`;
+    }
+
+    const rowsHTML = rows.map((r, i) => `
+      <tr>
+        <td class="num">${i + 1}</td>
+        <td class="name">${escapeHtml(r.name)}</td>
+        <td class="email">${escapeHtml(r.email)}</td>
+        <td class="pw">${escapeHtml(r.password)}</td>
+        <td class="detail">${escapeHtml(r.detail)}</td>
+      </tr>
+    `).join('');
+
+    return `
+      <section class="block">
+        <header class="block__head">
+          <h2>${escapeHtml(role.toUpperCase())}${role.endsWith('s') ? '' : 'S'}</h2>
+          <span class="block__sub">${escapeHtml(subtitle)}</span>
+        </header>
+        <table>
+          <thead>
+            <tr>
+              <th class="num">#</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Password</th>
+              <th>Detail</th>
+            </tr>
+          </thead>
+          <tbody>${rowsHTML}</tbody>
+        </table>
+      </section>
+    `;
+  }).join('');
+
+  const filterLabel =
+    data.filters.role === 'all'
+      ? 'Everyone'
+      : data.filters.role.charAt(0).toUpperCase() + data.filters.role.slice(1).replace('-', ' ');
+
+  const classLabel = data.filters.className ? ` · Class ${data.filters.className}` : '';
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Credentials — ${escapeHtml(filterLabel)}${escapeHtml(classLabel)}</title>
+<style>
+  @page { size: A4 portrait; margin: 15mm 12mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    color: #0b1220;
+    font-size: 11px;
+    line-height: 1.4;
+    padding: 0;
+    background: #fff;
+  }
+
+  .sheet-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    padding-bottom: 12px;
+    margin-bottom: 18px;
+    border-bottom: 3px double #0b1220;
+  }
+  .sheet-head__brand { display: flex; align-items: center; gap: 12px; }
+  .sheet-head__logo {
+    width: 46px; height: 46px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #1d4ed8, #2563eb);
+    color: #fff;
+    display: grid;
+    place-items: center;
+    font-weight: 800;
+    font-size: 15px;
+    letter-spacing: .5px;
+  }
+  .sheet-head h1 {
+    font-size: 18px;
+    letter-spacing: .3px;
+    margin-bottom: 2px;
+  }
+  .sheet-head .sub {
+    font-size: 11px;
+    color: #475569;
+  }
+  .sheet-head__meta {
+    text-align: right;
+    font-size: 10.5px;
+    color: #475569;
+    line-height: 1.55;
+  }
+  .sheet-head__meta strong { color: #0b1220; }
+
+  .block {
+    page-break-inside: avoid;
+    margin-bottom: 18px;
+  }
+  .block__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    padding: 6px 10px;
+    background: #f1f5f9;
+    border-left: 4px solid #2563eb;
+    border-radius: 4px;
+    margin-bottom: 8px;
+  }
+  .block__head h2 {
+    font-size: 12.5px;
+    letter-spacing: 1px;
+    color: #1e293b;
+  }
+  .block__sub {
+    font-size: 10px;
+    color: #64748b;
+    font-weight: 500;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10.5px;
+  }
+  th, td {
+    text-align: left;
+    padding: 5px 8px;
+    border-bottom: 1px solid #e2e8f0;
+    vertical-align: top;
+  }
+  thead th {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    color: #64748b;
+    border-bottom: 1.5px solid #0b1220;
+    padding-bottom: 4px;
+  }
+  tbody tr:nth-child(even) { background: #f8fafc; }
+  .num     { width: 22px;  text-align: right; color: #94a3b8; }
+  .name    { width: 22%;   font-weight: 600; color: #0b1220; }
+  .email   { width: 30%;   font-family: 'Courier New', monospace; font-size: 10px; color: #1d4ed8; }
+  .pw      { width: 16%;   font-family: 'Courier New', monospace; font-size: 10px; color: #b45309; font-weight: 700; }
+  .detail  { width: auto;  color: #475569; }
+
+  .sheet-foot {
+    margin-top: 22px;
+    padding-top: 12px;
+    border-top: 1.5px solid #0b1220;
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    font-size: 9.5px;
+    color: #475569;
+  }
+  .sheet-foot strong { color: #0b1220; }
+</style>
+</head>
+<body>
+
+  <div class="sheet-head">
+    <div class="sheet-head__brand">
+      <div class="sheet-head__logo">BF</div>
+      <div>
+        <h1>Bright Future Secondary School</h1>
+        <div class="sub">Portal Login Credentials — Session 2024/2025</div>
+      </div>
+    </div>
+    <div class="sheet-head__meta">
+      <div><strong>Filter:</strong> ${escapeHtml(filterLabel)}${escapeHtml(classLabel)}</div>
+      <div><strong>Total users:</strong> ${data.total}</div>
+      <div><strong>Generated:</strong> ${escapeHtml(new Date(data.generatedAt).toLocaleString())}</div>
+    </div>
+  </div>
+
+  ${sectionHTML}
+
+  <div class="sheet-foot">
+    <div>
+      <strong>Admins:</strong> ${data.summary.admins} ·
+      <strong>Class teachers:</strong> ${data.summary.classTeachers} ·
+      <strong>Subject teachers:</strong> ${data.summary.subjectTeachers} ·
+      <strong>Students:</strong> ${data.summary.students} ·
+      <strong>Parents:</strong> ${data.summary.parents}
+    </div>
+    <div>Confidential — handle with care.</div>
+  </div>
+
+</body>
+</html>`;
+}
+
+/* --------------------------------------------------------------
+   Print via hidden iframe — no popup, no new tab.
+   Works inside any browser (Chrome, Firefox, Safari, Edge).
+   The iframe is removed from the DOM after printing.
+-------------------------------------------------------------- */
+function printViaIframe(html) {
+  // Create a hidden iframe
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'fixed';
+  iframe.style.right = '0';
+  iframe.style.bottom = '0';
+  iframe.style.width = '0';
+  iframe.style.height = '0';
+  iframe.style.border = '0';
+  iframe.style.visibility = 'hidden';
+  iframe.setAttribute('aria-hidden', 'true');
+  iframe.setAttribute('title', 'Print preview');
+
+  document.body.appendChild(iframe);
+
+  // Write the HTML inside the iframe
+  const doc = iframe.contentWindow.document;
+  doc.open();
+  doc.write(html);
+  doc.close();
+
+  // Wait for images/fonts (none in our case, but be safe) then print
+  const triggerPrint = () => {
+    try {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+    } catch (e) {
+      console.error('Print failed:', e);
+    }
+
+    // Clean up after the print dialog closes (or immediately on cancel)
+    // 800ms is a safe delay — long enough for the dialog to open,
+    // short enough that we don't leak iframes.
+    setTimeout(() => {
+      if (iframe.parentNode) {
+        iframe.parentNode.removeChild(iframe);
+      }
+    }, 800);
+  };
+
+  // The document is fully available synchronously after doc.close(),
+  // but wait one tick to be extra safe in Safari.
+  setTimeout(triggerPrint, 50);
+}
+
+/* ==================================================================
+   MAIN COMPONENT
+   ================================================================== */
 export default function AdminUsers() {
   const [teachers, setTeachers] = useState([]);
   const [students, setStudents] = useState([]);
@@ -32,9 +372,10 @@ export default function AdminUsers() {
   const [deleting, setDeleting] = useState(false);
   const [manageTeacher, setManageTeacher] = useState(null);
 
+  const [showExport, setShowExport] = useState(false);
+
   const [expanded, setExpanded] = useState({});
 
-  /* ---------- load ---------- */
   const load = async () => {
     try {
       const [t, s, c] = await Promise.all([
@@ -54,7 +395,6 @@ export default function AdminUsers() {
 
   useEffect(() => { load(); }, []);
 
-  /* ---------- filtering ---------- */
   const filteredTeachers = useMemo(() => {
     const q = teacherSearch.trim().toLowerCase();
     if (!q) return teachers;
@@ -80,7 +420,6 @@ export default function AdminUsers() {
     );
   }, [students, studentSearch]);
 
-  /* ---------- group students by class ---------- */
   const studentsByClass = useMemo(() => {
     const hasSearch = studentSearch.trim().length > 0;
     const map = {};
@@ -115,7 +454,6 @@ export default function AdminUsers() {
 
   const collapseAllClasses = () => setExpanded({});
 
-  /* ---------- selection ---------- */
   const isTeachersTab = tab === 'teachers';
   const currentList = isTeachersTab ? filteredTeachers : filteredStudents;
 
@@ -136,7 +474,6 @@ export default function AdminUsers() {
 
   const clearSelection = () => setSelected([]);
 
-  /* ---------- delete ---------- */
   const performDelete = async () => {
     if (!confirmDelete) return;
     setDeleting(true);
@@ -178,7 +515,15 @@ export default function AdminUsers() {
       <PageHeader
         title="Users"
         subtitle="Browse and manage every teacher and student in the school"
-      />
+      >
+        <button
+          className="btn btn--ghost"
+          onClick={() => setShowExport(true)}
+          title="Download or print login credentials"
+        >
+          <FiDownload size={16} /> Export / Print Credentials
+        </button>
+      </PageHeader>
 
       {message && <div className="alert alert--info">{message}</div>}
 
@@ -323,7 +668,7 @@ export default function AdminUsers() {
       )}
 
       {/* ============================================================
-          STUDENTS TAB — grouped by class
+          STUDENTS TAB
       ============================================================ */}
       {tab === 'students' && (
         <>
@@ -591,12 +936,24 @@ export default function AdminUsers() {
           }}
         />
       )}
+
+      {/* ---------- EXPORT / PRINT MODAL ---------- */}
+      {showExport && (
+        <ExportCredentialsModal
+          classes={classes}
+          onClose={() => setShowExport(false)}
+          onDone={(msg) => {
+            setShowExport(false);
+            setMessage(msg);
+          }}
+        />
+      )}
     </div>
   );
 }
 
 /* ==================================================================
-   MANAGE ASSIGNMENTS MODAL
+   MANAGE ASSIGNMENTS MODAL (unchanged)
    ================================================================== */
 function ManageAssignmentsModal({ teacher, classes, onClose, onSaved }) {
   const [teacherType, setTeacherType] = useState(
@@ -665,9 +1022,7 @@ function ManageAssignmentsModal({ teacher, classes, onClose, onSaved }) {
         <div className="modal__head">
           <div>
             <h3><FiSettings size={18} /> Manage Assignments</h3>
-            <p className="muted">
-              {teacher.name} · {teacher.staffNo}
-            </p>
+            <p className="muted">{teacher.name} · {teacher.staffNo}</p>
           </div>
           <button className="btn btn--ghost" onClick={onClose} disabled={saving}>
             <FiX size={16} />
@@ -680,7 +1035,6 @@ function ManageAssignmentsModal({ teacher, classes, onClose, onSaved }) {
           </div>
         )}
 
-        {/* ---------- TYPE TOGGLE ---------- */}
         <h4 className="enroll-section-title">Teacher Type</h4>
         <div className="teacher-type-toggle">
           <button
@@ -705,7 +1059,6 @@ function ManageAssignmentsModal({ teacher, classes, onClose, onSaved }) {
           </button>
         </div>
 
-        {/* ---------- FORM CLASS for class teachers ---------- */}
         {isClassTeacher && (
           <>
             <h4 className="enroll-section-title">Form Class</h4>
@@ -724,15 +1077,9 @@ function ManageAssignmentsModal({ teacher, classes, onClose, onSaved }) {
                 ))}
               </datalist>
             </label>
-            <p className="muted" style={{ fontSize: 12, marginTop: -10, marginBottom: 16 }}>
-              Class teachers can post any subject inside their own form class.
-              Their <code>teacher_assignments</code> list below is optional —
-              used to display the subjects they teach.
-            </p>
           </>
         )}
 
-        {/* ---------- ASSIGNMENTS EDITOR ---------- */}
         <h4 className="enroll-section-title">
           <FiLayers size={12} style={{ marginRight: 6 }} />
           {isClassTeacher ? 'Subjects taught (optional)' : 'Class + Subject assignments'}
@@ -760,7 +1107,6 @@ function ManageAssignmentsModal({ teacher, classes, onClose, onSaved }) {
                 className="btn btn--ghost btn--sm"
                 onClick={() => removeAssignment(i)}
                 disabled={assignments.length === 1 || saving}
-                title="Remove"
               >
                 <FiX size={14} />
               </button>
@@ -782,6 +1128,163 @@ function ManageAssignmentsModal({ teacher, classes, onClose, onSaved }) {
           </button>
           <button className="btn btn--primary" onClick={save} disabled={saving}>
             <FiCheck size={16} /> {saving ? 'Saving…' : 'Save Changes'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ==================================================================
+   EXPORT / PRINT CREDENTIALS MODAL
+   ================================================================== */
+function ExportCredentialsModal({ classes, onClose, onDone }) {
+  const [role, setRole] = useState('all');
+  const [className, setClassName] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+
+  const showClassFilter = role === 'all' || role === 'student';
+
+  const fetchData = async (overrideRole) => {
+    const useRole = overrideRole || role;
+    const params = new URLSearchParams();
+    params.set('role', useRole);
+    if (showClassFilter && className) params.set('className', className);
+    return api(`/admin/credentials?${params.toString()}`);
+  };
+
+  const downloadCSV = async (overrideRole) => {
+    setErr('');
+    setBusy(true);
+    try {
+      const data = await fetchData(overrideRole);
+      if (!data.rows?.length) {
+        setErr('No matching users to export');
+        setBusy(false);
+        return;
+      }
+      const csv = buildCredentialsCSV(data);
+      const stamp = new Date().toISOString().slice(0, 10);
+      const label = (overrideRole || role) === 'all' ? 'all' : (overrideRole || role);
+      const cls = (showClassFilter && className) ? `-${className.replace(/\s+/g, '')}` : '';
+      downloadCSVFile(csv, `credentials-${label}${cls}-${stamp}.csv`);
+      onDone(`Downloaded ${data.total} credential${data.total === 1 ? '' : 's'} as CSV`);
+    } catch (ex) {
+      setErr(ex.message || 'Download failed');
+      setBusy(false);
+    }
+  };
+
+  const printSheet = async (overrideRole) => {
+    setErr('');
+    setBusy(true);
+    try {
+      const data = await fetchData(overrideRole);
+      if (!data.rows?.length) {
+        setErr('No matching users to print');
+        setBusy(false);
+        return;
+      }
+      const html = buildCredentialsPrintHTML(data);
+      printViaIframe(html);
+      onDone(
+        `Print sheet opened for ${data.total} credential${data.total === 1 ? '' : 's'} — use your browser's Print dialog`
+      );
+    } catch (ex) {
+      setErr(ex.message || 'Print failed');
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="modal-backdrop" onClick={() => !busy && onClose()}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal__head">
+          <div>
+            <h3><FiFilter size={18} /> Export / Print Credentials</h3>
+            <p className="muted">Choose who to include, then download a CSV or print an A4 sheet</p>
+          </div>
+          <button className="btn btn--ghost" onClick={onClose} disabled={busy}>
+            <FiX size={16} />
+          </button>
+        </div>
+
+        {err && (
+          <div className="alert alert--error">
+            <FiAlertTriangle size={16} /> {err}
+          </div>
+        )}
+
+        <label>
+          Who do you want?
+          <select value={role} onChange={(e) => setRole(e.target.value)} disabled={busy}>
+            {ROLE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+        </label>
+
+        {showClassFilter && (
+          <label>
+            Class (optional)
+            <select
+              value={className}
+              onChange={(e) => setClassName(e.target.value)}
+              disabled={busy}
+            >
+              <option value="">All classes</option>
+              {classes.map((c) => (
+                <option key={c.id} value={c.name}>{c.name}</option>
+              ))}
+            </select>
+          </label>
+        )}
+
+        <div
+          className="alert alert--info"
+          style={{ fontSize: 12, marginTop: 4, flexDirection: 'column', alignItems: 'flex-start' }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <FiDownload size={14} /> <strong>CSV</strong> — opens in Excel / Google Sheets
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
+            <FiPrinter size={14} /> <strong>Print</strong> — opens your browser's print dialog directly
+          </div>
+        </div>
+
+        <div className="modal__actions" style={{ flexWrap: 'wrap', gap: 8 }}>
+          <button
+            type="button"
+            className="btn btn--ghost"
+            onClick={() => printSheet('all')}
+            disabled={busy}
+          >
+            <FiPrinter size={14} /> Print Everyone
+          </button>
+          <button
+            type="button"
+            className="btn btn--ghost"
+            onClick={() => downloadCSV('all')}
+            disabled={busy}
+          >
+            <FiDownload size={14} /> CSV Everyone
+          </button>
+          <button
+            type="button"
+            className="btn btn--ghost"
+            onClick={() => printSheet()}
+            disabled={busy}
+          >
+            <FiPrinter size={14} /> Print
+          </button>
+          <button
+            type="button"
+            className="btn btn--primary"
+            onClick={() => downloadCSV()}
+            disabled={busy}
+          >
+            <FiDownload size={14} /> {busy ? 'Preparing…' : 'Download CSV'}
           </button>
         </div>
       </div>
