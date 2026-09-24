@@ -18,7 +18,7 @@ import StudentLMS from '../pages/student/StudentLMS';
 import StudentClassroom from '../pages/student/StudentClassroom';
 import StudentNotes from '../pages/student/StudentNotes';
 import StudentAssignments from '../pages/student/StudentAssignments';
-import StudentAttendance from '../pages/StudentAttendance';
+import StudentAttendance from '../pages/studentAttendance';
 import StudentTimetable from '../pages/student/StudentTimetable';
 
 /* TEACHER */
