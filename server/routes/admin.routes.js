@@ -394,6 +394,155 @@ router.delete('/fees/:reference', async (req, res) => {
 });
 
 /* ==================================================================
+   PARENTS — LIST
+================================================================== */
+router.get('/parents', async (req, res) => {
+  const [rows] = await pool.execute(`
+    SELECT
+      p.*,
+      s.name AS child_name,
+      s.admission_no AS child_admission_no,
+      s.class_name AS child_class
+    FROM parents p
+    LEFT JOIN students s ON s.parent_id = p.id
+    ORDER BY p.id DESC
+  `);
+
+  res.json(rows.map((r) => ({
+    id: r.id,
+    userId: r.user_id,
+    name: r.name,
+    email: r.email,
+    phone: r.phone,
+    relationship: r.relationship,
+    address: r.address,
+    childName: r.child_name,
+    childAdmissionNo: r.child_admission_no,
+    childClass: r.child_class,
+  })));
+});
+
+/* ==================================================================
+   PARENTS — ENROLL (create user + parent + link to student)
+================================================================== */
+router.post('/parents', async (req, res) => {
+  const {
+    name, email, password, phone, relationship, address, studentId,
+  } = req.body;
+
+  if (!name || !email || !studentId) {
+    return res.status(400).json({
+      message: 'Name, email and studentId are required',
+    });
+  }
+
+  const [taken] = await pool.execute(
+    'SELECT id FROM users WHERE email = ?',
+    [email.toLowerCase()]
+  );
+  if (taken.length) {
+    return res.status(400).json({ message: 'A user with that email already exists' });
+  }
+
+  const [studentRows] = await pool.execute(
+    'SELECT id, name FROM students WHERE id = ?',
+    [studentId]
+  );
+  if (!studentRows.length) {
+    return res.status(404).json({ message: 'Student not found' });
+  }
+
+  const loginPassword = (password && password.trim()) || 'Parent@123';
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const [uResult] = await conn.execute(
+      'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
+      [name, email.toLowerCase(), loginPassword, 'parent']
+    );
+    const userId = uResult.insertId;
+
+    const [pResult] = await conn.execute(
+      `INSERT INTO parents (user_id, name, email, phone, relationship, address)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [userId, name, email.toLowerCase(), phone || '', relationship || 'Guardian', address || '']
+    );
+    const parentId = pResult.insertId;
+
+    await conn.execute(
+      'UPDATE students SET parent_id = ? WHERE id = ?',
+      [parentId, studentId]
+    );
+
+    await conn.commit();
+
+    res.status(201).json({
+      message: 'Parent enrolled and linked',
+      credentials: {
+        email: email.toLowerCase(),
+        password: loginPassword,
+      },
+      parent: {
+        id: parentId,
+        userId,
+        name,
+        email: email.toLowerCase(),
+        relationship: relationship || 'Guardian',
+        childName: studentRows[0].name,
+      },
+    });
+  } catch (err) {
+    await conn.rollback();
+    console.error('Enroll parent failed:', err);
+    res.status(500).json({ message: err.message || 'Failed to enroll parent' });
+  } finally {
+    conn.release();
+  }
+});
+
+/* ==================================================================
+   PARENTS — DELETE
+================================================================== */
+router.delete('/parents/:id', async (req, res) => {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const [rows] = await conn.execute(
+      'SELECT id, user_id, name FROM parents WHERE id = ?',
+      [req.params.id]
+    );
+    if (!rows.length) {
+      await conn.rollback();
+      return res.status(404).json({ message: 'Parent not found' });
+    }
+    const parent = rows[0];
+
+    // Unlink from student
+    await conn.execute(
+      'UPDATE students SET parent_id = NULL WHERE parent_id = ?',
+      [parent.id]
+    );
+
+    await conn.execute('DELETE FROM parents WHERE id = ?', [parent.id]);
+    if (parent.user_id) {
+      await conn.execute('DELETE FROM users WHERE id = ?', [parent.user_id]);
+    }
+
+    await conn.commit();
+    res.json({ message: `Removed ${parent.name}` });
+  } catch (err) {
+    await conn.rollback();
+    console.error('Delete parent failed:', err);
+    res.status(500).json({ message: err.message || 'Failed to delete parent' });
+  } finally {
+    conn.release();
+  }
+});
+
+/* ==================================================================
    STUDENTS — LIST
 ================================================================== */
 router.get('/students', async (req, res) => {

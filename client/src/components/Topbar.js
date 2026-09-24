@@ -7,6 +7,13 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import NotificationBell from './NotificationBell';
+import GlobalSearch from './GlobalSearch';
+
+const BASE_URL =
+  (process.env.REACT_APP_BACKEND_URL ||
+    process.env.REACT_APP_API_URL ||
+    'https://school-portal-1-xaio.onrender.com/api'
+  ).replace(/\/api\/?$/, '');
 
 export default function Topbar({ onMenuClick }) {
   const { user, logout } = useAuth();
@@ -34,6 +41,11 @@ export default function Topbar({ onMenuClick }) {
     navigate('/login', { replace: true });
   };
 
+  const avatarInitial = user?.name?.charAt(0) || 'U';
+  const photoSrc = user?.photo
+    ? (user.photo.startsWith('http') ? user.photo : `${BASE_URL}${user.photo}`)
+    : null;
+
   return (
     <header className="topbar">
       <button className="menu-btn" onClick={onMenuClick} title="Menu">
@@ -50,6 +62,8 @@ export default function Topbar({ onMenuClick }) {
             weekday: 'long', day: 'numeric', month: 'long'
           })}
         </span>
+
+        <GlobalSearch />
 
         <button
           className="topbar__icon-btn"
@@ -69,7 +83,11 @@ export default function Topbar({ onMenuClick }) {
             aria-expanded={open}
           >
             <div className="avatar avatar--sm">
-              {user?.name?.charAt(0) || 'U'}
+              {photoSrc ? (
+                <img src={photoSrc} alt={user?.name} />
+              ) : (
+                avatarInitial
+              )}
             </div>
             <span className="user-menu__name">{user?.name}</span>
             <FiChevronDown
@@ -81,7 +99,13 @@ export default function Topbar({ onMenuClick }) {
           {open && (
             <div className="user-menu__dropdown">
               <div className="user-menu__header">
-                <div className="avatar">{user?.name?.charAt(0) || 'U'}</div>
+                <div className="avatar">
+                  {photoSrc ? (
+                    <img src={photoSrc} alt={user?.name} />
+                  ) : (
+                    avatarInitial
+                  )}
+                </div>
                 <div>
                   <strong>{user?.name}</strong>
                   <span className="badge">{user?.role}</span>

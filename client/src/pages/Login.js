@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   FiLogIn, FiUser, FiUsers, FiShield,
   FiBookOpen, FiVideo, FiFileText, FiClipboard,
@@ -7,7 +7,6 @@ import {
 } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 
-/* Hero image — a stable Unsplash classroom photo */
 const HERO_IMAGE =
   'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=1600&q=80';
 
@@ -50,9 +49,9 @@ export default function Login() {
 
   const quickFill = (role) => {
     const map = {
-      student: ['chukwuemeka.okafor11@school.com', 'Student@123'],
-      teacher: ['adewale.johnson@school.com', 'Teacher@123'],
-      admin:   ['admin@school.com', 'admin123']
+      student: ['student@school.com', 'student123'],
+      teacher: ['teacher@school.com', 'teacher123'],
+      admin:   ['admin@school.com', 'admin123'],
     };
     setEmail(map[role][0]);
     setPassword(map[role][1]);
@@ -61,9 +60,7 @@ export default function Login() {
 
   return (
     <div className="login-split">
-      {/* ================================================================
-          LEFT PANEL — Hero / Branding
-      ================================================================= */}
+      {/* LEFT PANEL — Hero */}
       <div className="login-hero">
         <div
           className="login-hero__bg"
@@ -115,9 +112,7 @@ export default function Login() {
         </div>
       </div>
 
-      {/* ================================================================
-          RIGHT PANEL — Login Form
-      ================================================================= */}
+      {/* RIGHT PANEL — Form */}
       <div className="login-form-panel">
         <div className="login-form-panel__inner">
           <div className="login-form-panel__head">
@@ -165,6 +160,15 @@ export default function Login() {
               <FiLogIn size={16} />
               {loading ? 'Signing in…' : 'Sign In'}
             </button>
+
+            <div style={{ textAlign: 'right', marginTop: 8 }}>
+              <Link
+                to="/forgot-password"
+                style={{ fontSize: 12, color: 'var(--muted)' }}
+              >
+                Forgot password?
+              </Link>
+            </div>
           </form>
 
           {/* Demo accounts */}
@@ -178,7 +182,7 @@ export default function Login() {
                 <FiUser size={15} />
                 <div>
                   <strong>Student</strong>
-                  <span>chukwuemeka.okafor11</span>
+                  <span>student@school.com</span>
                 </div>
               </button>
 
@@ -186,7 +190,7 @@ export default function Login() {
                 <FiUsers size={15} />
                 <div>
                   <strong>Teacher</strong>
-                  <span>adewale.johnson</span>
+                  <span>teacher@school.com</span>
                 </div>
               </button>
 
@@ -194,7 +198,7 @@ export default function Login() {
                 <FiShield size={15} />
                 <div>
                   <strong>Admin</strong>
-                  <span>admin</span>
+                  <span>admin@school.com</span>
                 </div>
               </button>
             </div>

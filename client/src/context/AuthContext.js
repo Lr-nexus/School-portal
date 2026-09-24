@@ -24,9 +24,7 @@ function writeUser(user) {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(readUser);
 
-  /* ⭐ On app startup, refresh the user's info from the server.
-     This corrects any stale values (e.g. after editing the profile
-     in another tab, or after a DB-level fix). */
+  /* On startup, refresh the user's info from the server */
   useEffect(() => {
     const stored = readUser();
     if (!stored) return;
@@ -41,15 +39,14 @@ export function AuthProvider({ children }) {
           name: data.name,
           email: data.email,
           role: data.role,
+          photo: data.profile?.photo || null,
         };
         writeUser(fresh);
         setUser(fresh);
       })
       .catch((err) => {
         if (cancelled) return;
-        // Session is bad (user deleted, or backend down)
         console.warn('Session refresh failed:', err.message);
-        // Only clear if it's an auth problem
         if (err.message.toLowerCase().includes('authoriz')) {
           writeUser(null);
           setUser(null);
@@ -65,9 +62,21 @@ export function AuthProvider({ children }) {
       body: JSON.stringify({ email, password }),
     });
 
-    writeUser(data.user);
-    setUser(data.user);
-    return data.user;
+    // Fetch full profile (includes photo)
+    let fullUser = data.user;
+    try {
+      const me = await api('/auth/me');
+      fullUser = {
+        ...data.user,
+        photo: me.profile?.photo || null,
+      };
+    } catch {
+      // Non-fatal
+    }
+
+    writeUser(fullUser);
+    setUser(fullUser);
+    return fullUser;
   };
 
   const logout = () => {
@@ -75,8 +84,6 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
-  /* Merge a partial update into the current user, persist it,
-     and let every consumer re-render. */
   const updateUser = (patch) => {
     setUser((prev) => {
       if (!prev) return prev;

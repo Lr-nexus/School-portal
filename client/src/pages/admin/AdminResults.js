@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  FiArrowLeft, FiSearch, FiPrinter, FiUser,
+  FiArrowLeft, FiPrinter, FiSearch, FiUser,
   FiAward, FiTrendingUp, FiBookOpen
 } from 'react-icons/fi';
 import { api } from '../../api/api';
@@ -15,6 +16,8 @@ export default function AdminResults() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [classFilter, setClassFilter] = useState('all');
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     api('/admin/students')
@@ -38,25 +41,25 @@ export default function AdminResults() {
     setData(null);
   };
 
-  const classes = useMemo(
-    () => Array.from(new Set(students.map((s) => s.className).filter(Boolean))).sort(),
-    [students]
-  );
+  const classes = Array.from(
+    new Set(students.map((s) => s.className).filter(Boolean))
+  ).sort();
 
-  const filtered = useMemo(() => {
+  const filtered = students.filter((s) => {
     const q = search.trim().toLowerCase();
-    return students.filter((s) => {
-      const matchesClass = classFilter === 'all' || s.className === classFilter;
-      const matchesSearch =
-        !q ||
-        s.name.toLowerCase().includes(q) ||
-        s.admissionNo.toLowerCase().includes(q);
-      return matchesClass && matchesSearch;
-    });
-  }, [students, search, classFilter]);
+    const matchesClass = classFilter === 'all' || s.className === classFilter;
+    const matchesSearch =
+      !q ||
+      s.name.toLowerCase().includes(q) ||
+      s.admissionNo.toLowerCase().includes(q);
+    return matchesClass && matchesSearch;
+  });
 
   if (loading) return <Loader />;
 
+  /* ==================================================================
+     Detail view — single student's results
+     ================================================================== */
   if (selected) {
     if (!data) return <Loader text="Loading results..." />;
 
@@ -72,9 +75,18 @@ export default function AdminResults() {
           title="Result Sheet"
           subtitle={`${data.session} · ${data.term}`}
         >
-          <div className="no-print" style={{ display: 'flex', gap: 10 }}>
-            <button className="btn btn--ghost" onClick={() => window.print()}>
-              <FiPrinter size={16} /> Print
+          <div className="no-print" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button
+              className="btn btn--ghost"
+              onClick={() => navigate(`/print/id-card/${selected.id}`)}
+            >
+              <FiPrinter size={16} /> ID Card
+            </button>
+            <button
+              className="btn btn--primary"
+              onClick={() => navigate(`/print/report-card/${selected.id}`)}
+            >
+              <FiPrinter size={16} /> Report Card
             </button>
             <button className="btn btn--ghost" onClick={backToList}>
               <FiArrowLeft size={16} /> Back to Students
@@ -89,9 +101,7 @@ export default function AdminResults() {
             </div>
             <div className="report-head__meta">
               <h2>{data.student.name}</h2>
-              <p>
-                {data.student.className} · {data.student.admissionNo}
-              </p>
+              <p>{data.student.className} · {data.student.admissionNo}</p>
             </div>
           </div>
           <div className="report-head__grade">
@@ -168,6 +178,9 @@ export default function AdminResults() {
     );
   }
 
+  /* ==================================================================
+     List view — pick a student
+     ================================================================== */
   return (
     <div>
       <PageHeader

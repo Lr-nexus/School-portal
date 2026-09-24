@@ -1,26 +1,26 @@
 import { useEffect, useState } from 'react';
-import { FiBarChart2, FiCalendar, FiAlertCircle } from 'react-icons/fi';
+import { FiBarChart2, FiCalendar, FiPrinter, FiAlertCircle } from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../../api/api';
 import PageHeader from '../../components/PageHeader';
 import StatCard from '../../components/StatCard';
 import Loader from '../../components/Loader';
 
-export default function StudentResults() {
+export default function ParentResults() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
   const [session, setSession] = useState('');
   const [term, setTerm] = useState('');
+  const navigate = useNavigate();
 
-  const load = async (overrideSession, overrideTerm) => {
+  const load = async (s, t) => {
     setLoading(true);
     try {
       const qs = new URLSearchParams();
-      if (overrideSession) qs.append('session', overrideSession);
-      if (overrideTerm) qs.append('term', overrideTerm);
-
-      const url = '/students/me/results' + (qs.toString() ? '?' + qs.toString() : '');
-      const res = await api(url);
+      if (s) qs.append('session', s);
+      if (t) qs.append('term', t);
+      const res = await api('/parents/me/child/results' + (qs.toString() ? '?' + qs.toString() : ''));
       setData(res);
       setSession(res.current.session);
       setTerm(res.current.term);
@@ -33,91 +33,57 @@ export default function StudentResults() {
 
   useEffect(() => { load(); }, []);
 
-  const changeSelection = (newSession, newTerm) => {
-    load(newSession, newTerm);
-  };
-
   if (loading && !data) return <Loader />;
-  if (!data) {
+  if (errorMsg) {
     return (
       <div>
-        <PageHeader title="Check Results" />
-        <div className="alert alert--error">
-          <FiAlertCircle size={16} /> {errorMsg || 'Could not load results'}
-        </div>
+        <PageHeader title="Child Results" />
+        <div className="alert alert--error"><FiAlertCircle size={16} /> {errorMsg}</div>
       </div>
     );
   }
+  if (!data) return <Loader />;
 
   const hasResults = data.subjects.length > 0;
-  const hasAnyHistory = data.sessions.length > 0;
 
   return (
     <div>
       <PageHeader
-        title="Check Results"
-        subtitle={
-          hasAnyHistory
-            ? `${data.current.session || ''} · ${data.current.term || ''}`
-            : 'No results available yet'
-        }
-      />
+        title={`${data.child.name}'s Results`}
+        subtitle={`${data.child.className} · ${data.current.session || ''} · ${data.current.term || ''}`}
+      >
+        <button
+          className="btn btn--primary"
+          onClick={() => navigate(`/print/report-card/${data.child.id}?session=${session}&term=${encodeURIComponent(term)}`)}
+          disabled={!hasResults}
+        >
+          <FiPrinter size={16} /> Print Report Card
+        </button>
+      </PageHeader>
 
-      {errorMsg && (
-        <div className="alert alert--error">
-          <FiAlertCircle size={16} /> {errorMsg}
-        </div>
-      )}
-
-      {hasAnyHistory && (
+      {data.sessions.length > 0 && (
         <div className="card results-filter">
           <div className="results-filter__item">
-            <label>
-              <FiCalendar size={14} /> Session
-              <select
-                value={session}
-                onChange={(e) => changeSelection(e.target.value, term)}
-              >
-                {data.sessions.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
+            <label><FiCalendar size={14} /> Session
+              <select value={session} onChange={(e) => load(e.target.value, term)}>
+                {data.sessions.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
             </label>
           </div>
-
           <div className="results-filter__item">
-            <label>
-              <FiCalendar size={14} /> Term
-              <select
-                value={term}
-                onChange={(e) => changeSelection(session, e.target.value)}
-              >
-                {data.terms.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
+            <label><FiCalendar size={14} /> Term
+              <select value={term} onChange={(e) => load(session, e.target.value)}>
+                {data.terms.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
             </label>
           </div>
         </div>
       )}
 
-      {!hasAnyHistory && (
+      {!hasResults && (
         <div className="card empty-state">
           <FiBarChart2 size={32} />
-          <p>No results have been recorded yet.</p>
-          <p className="muted" style={{ fontSize: 13 }}>
-            Your results will appear here once teachers submit them.
-          </p>
-        </div>
-      )}
-
-      {hasAnyHistory && !hasResults && (
-        <div className="card empty-state">
-          <FiBarChart2 size={32} />
-          <p>No results for this term.</p>
-          <p className="muted" style={{ fontSize: 13 }}>
-            Try a different session or term.
-          </p>
+          <p>No results recorded for this term.</p>
         </div>
       )}
 

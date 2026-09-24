@@ -1,42 +1,27 @@
 const router = require('express').Router();
-const path = require('path');
-const fs = require('fs');
 const multer = require('multer');
 const pool = require('../db');
 const { protect, allow } = require('../middleware/auth');
 const { notify, notifyClassStudents } = require('../utils/notify');
+const { uploadFile, deleteFile } = require('../utils/cloudStorage');
 
 router.use(protect);
 
-const uploadDir = path.join(__dirname, '..', 'uploads');
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => {
-    const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    const safe = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
-    cb(null, `${unique}-${safe}`);
-  }
-});
-
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 20 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (file.mimetype === 'application/pdf') return cb(null, true);
     cb(new Error('Only PDF files are allowed'));
-  }
+  },
 });
 
-/* Helper — get the teacher's assigned class from the DB */
 async function getTeacher(userId) {
   const [rows] = await pool.execute(
     'SELECT id, name, form_class FROM teachers WHERE user_id = ?',
     [userId]
   );
-  if (!rows.length) return null;
-  return rows[0];
+  return rows[0] || null;
 }
 
 /* GET /api/notes */
@@ -69,11 +54,19 @@ router.get('/', async (req, res) => {
   const [notes] = await pool.execute(query, params);
 
   res.json(notes.map((n) => ({
-    id: n.id, teacherId: n.teacher_id, teacherName: n.teacher_name || 'Teacher',
-    title: n.title, subject: n.subject, className: n.class_name,
-    description: n.description, type: n.type,
-    fileName: n.file_name, originalName: n.original_name,
-    fileSize: n.file_size, fileUrl: n.file_url, uploadedAt: n.uploaded_at,
+    id: n.id,
+    teacherId: n.teacher_id,
+    teacherName: n.teacher_name || 'Teacher',
+    title: n.title,
+    subject: n.subject,
+    className: n.class_name,
+    description: n.description,
+    type: n.type,
+    fileName: n.file_name,
+    originalName: n.original_name,
+    fileSize: n.file_size,
+    fileUrl: n.file_url,
+    uploadedAt: n.uploaded_at,
     commentCount: n.comment_count,
   })));
 });
@@ -110,74 +103,79 @@ router.get('/:id', async (req, res) => {
   );
 
   res.json({
-    id: note.id, teacherId: note.teacher_id, teacherName: note.teacher_name,
-    title: note.title, subject: note.subject, className: note.class_name,
-    description: note.description, type: note.type,
-    fileName: note.file_name, originalName: note.original_name,
-    fileSize: note.file_size, fileUrl: note.file_url, content: note.content,
+    id: note.id,
+    teacherId: note.teacher_id,
+    teacherName: note.teacher_name,
+    title: note.title,
+    subject: note.subject,
+    className: note.class_name,
+    description: note.description,
+    type: note.type,
+    fileName: note.file_name,
+    originalName: note.original_name,
+    fileSize: note.file_size,
+    fileUrl: note.file_url,
+    content: note.content,
     uploadedAt: note.uploaded_at,
     comments: comments.map((c) => ({
-      id: c.id, userId: c.user_id, userName: c.user_name,
-      role: c.role, text: c.text, date: c.date,
+      id: c.id,
+      userId: c.user_id,
+      userName: c.user_name,
+      role: c.role,
+      text: c.text,
+      date: c.date,
     })),
   });
 });
 
-/* ============================================================
-   POST /api/notes — PDF upload
-   ⭐ class_name is FORCED from the teacher's profile.
-   ============================================================ */
+/* POST /api/notes — PDF upload via Cloudinary */
 router.post('/', allow('teacher'), upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
 
   const { title, subject, description } = req.body;
-
-  if (!title) {
-    fs.unlinkSync(req.file.path);
-    return res.status(400).json({ message: 'Title is required' });
-  }
+  if (!title) return res.status(400).json({ message: 'Title is required' });
 
   const teacher = await getTeacher(req.user.id);
-  if (!teacher) {
-    fs.unlinkSync(req.file.path);
-    return res.status(404).json({ message: 'Teacher not found' });
-  }
+  if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
   if (!teacher.form_class) {
-    fs.unlinkSync(req.file.path);
     return res.status(400).json({ message: 'You have no class assigned. Contact the admin.' });
   }
 
-  const [result] = await pool.execute(
-    `INSERT INTO notes (teacher_id, title, subject, class_name, description, type, file_name, original_name, file_size, file_url, uploaded_at)
-     VALUES (?, ?, ?, ?, ?, 'pdf', ?, ?, ?, ?, NOW())`,
-    [
-      teacher.id,
-      title,
-      subject || 'General',
-      teacher.form_class, // ⭐ forced
-      description || '',
-      req.file.filename,
-      req.file.originalname,
-      req.file.size,
-      `/uploads/${req.file.filename}`,
-    ]
-  );
+  try {
+    const up = await uploadFile(req.file.buffer, req.file.originalname, 'notes');
 
-  await notifyClassStudents(teacher.form_class, {
-    type: 'note',
-    title: 'New note uploaded',
-    body: `${teacher.name} uploaded "${title}"`,
-    link: '/student/notes',
-  });
+    const [result] = await pool.execute(
+      `INSERT INTO notes (teacher_id, title, subject, class_name, description, type, file_name, original_name, file_size, file_url, uploaded_at)
+       VALUES (?, ?, ?, ?, ?, 'pdf', ?, ?, ?, ?, NOW())`,
+      [
+        teacher.id,
+        title,
+        subject || 'General',
+        teacher.form_class,
+        description || '',
+        up.publicId || up.url,
+        req.file.originalname,
+        req.file.size,
+        up.url,
+      ]
+    );
 
-  const [rows] = await pool.execute('SELECT * FROM notes WHERE id = ?', [result.insertId]);
-  res.status(201).json({ message: 'Note uploaded', note: rows[0] });
+    await notifyClassStudents(teacher.form_class, {
+      type: 'note',
+      title: 'New note uploaded',
+      body: `${teacher.name} uploaded "${title}"`,
+      link: '/student/notes',
+    });
+
+    const [rows] = await pool.execute('SELECT * FROM notes WHERE id = ?', [result.insertId]);
+    res.status(201).json({ message: 'Note uploaded', note: rows[0] });
+  } catch (err) {
+    console.error('Note upload failed:', err);
+    res.status(500).json({ message: err.message || 'Upload failed' });
+  }
 });
 
-/* ============================================================
-   POST /api/notes/rich — rich text note
-   ⭐ class_name is FORCED from the teacher's profile.
-   ============================================================ */
+/* POST /api/notes/rich */
 router.post('/rich', allow('teacher'), async (req, res) => {
   const { title, subject, description, content } = req.body;
 
@@ -200,7 +198,7 @@ router.post('/rich', allow('teacher'), async (req, res) => {
       teacher.id,
       title,
       subject || 'General',
-      teacher.form_class, // ⭐ forced
+      teacher.form_class,
       description || '',
       content,
     ]
@@ -229,10 +227,7 @@ router.delete('/:id', allow('teacher'), async (req, res) => {
   if (!rows.length) return res.status(404).json({ message: 'Note not found' });
   const note = rows[0];
 
-  if (note.type === 'pdf' && note.file_name) {
-    const fp = path.join(uploadDir, note.file_name);
-    if (fs.existsSync(fp)) fs.unlinkSync(fp);
-  }
+  if (note.file_name) await deleteFile(note.file_name);
 
   await pool.execute('DELETE FROM notes WHERE id = ?', [note.id]);
   res.json({ message: 'Note deleted' });
@@ -289,4 +284,3 @@ router.delete('/:id/comments/:commentId', async (req, res) => {
 });
 
 module.exports = router;
-module.exports.uploadDir = uploadDir;

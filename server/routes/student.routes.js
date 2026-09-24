@@ -18,6 +18,7 @@ router.get('/me', async (req, res) => {
     className: s.class_name, gender: s.gender, dob: s.dob,
     guardianName: s.guardian_name, guardianPhone: s.guardian_phone,
     address: s.address, email: s.email, house: s.house,
+    photo: s.photo || null,
   });
 });
 
@@ -42,7 +43,7 @@ router.patch('/me', async (req, res) => {
     await pool.execute(`UPDATE students SET ${updates.join(', ')} WHERE user_id = ?`, values);
   }
 
-  // ⭐ Sync the shared users table so the sidebar / topbar reflect the change
+  // Sync shared users table
   const userUpdates = [], userValues = [];
   if (req.body.name !== undefined)  { userUpdates.push('name = ?');  userValues.push(req.body.name); }
   if (req.body.email !== undefined) { userUpdates.push('email = ?'); userValues.push(String(req.body.email).toLowerCase()); }
@@ -60,6 +61,7 @@ router.patch('/me', async (req, res) => {
       className: s.class_name, gender: s.gender, dob: s.dob,
       guardianName: s.guardian_name, guardianPhone: s.guardian_phone,
       address: s.address, email: s.email, house: s.house,
+      photo: s.photo || null,
     },
   });
 });
@@ -94,30 +96,59 @@ router.get('/me/classes', async (req, res) => {
   });
 });
 
-/* ---------- RESULTS ---------- */
+/* ---------- RESULTS (with session / term filter) ---------- */
 router.get('/me/results', async (req, res) => {
   const [studentRows] = await pool.execute(
     'SELECT id FROM students WHERE user_id = ?',
     [req.user.id]
   );
   if (!studentRows.length) {
-    return res.json({ session: '', term: '', subjects: [], average: 0, overallGrade: 'F' });
+    return res.json({
+      sessions: [], terms: [],
+      current: { session: '', term: '' },
+      subjects: [], average: 0, overallGrade: 'F'
+    });
   }
-  const [rows] = await pool.execute(
-    'SELECT * FROM results WHERE student_id = ? ORDER BY subject',
-    [studentRows[0].id]
+  const studentId = studentRows[0].id;
+
+  const [combos] = await pool.execute(
+    `SELECT DISTINCT session, term FROM results
+     WHERE student_id = ?
+     ORDER BY session DESC, term ASC`,
+    [studentId]
   );
+
+  let session = req.query.session;
+  let term = req.query.term;
+
+  if (!session || !term) {
+    if (combos.length) {
+      session = combos[0].session;
+      term = combos[0].term;
+    }
+  }
+
+  const [rows] = await pool.execute(
+    `SELECT * FROM results
+     WHERE student_id = ? AND session = ? AND term = ?
+     ORDER BY subject`,
+    [studentId, session, term]
+  );
+
   const formatted = rows.map((r) => {
     const total = totalOf(r);
     const { grade, remark } = gradeFor(total);
     return { id: r.id, subject: r.subject, ca: r.ca, exam: r.exam, total, grade, remark };
   });
+
   const average = formatted.length
     ? Math.round(formatted.reduce((sum, r) => sum + r.total, 0) / formatted.length)
     : 0;
+
   res.json({
-    session: rows[0]?.session || '2024/2025',
-    term: rows[0]?.term || 'First Term',
+    sessions: [...new Set(combos.map((c) => c.session))],
+    terms: ['First Term', 'Second Term', 'Third Term'],
+    current: { session: session || '', term: term || '' },
     subjects: formatted,
     average,
     overallGrade: gradeFor(average).grade,

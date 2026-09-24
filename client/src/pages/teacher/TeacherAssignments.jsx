@@ -7,6 +7,7 @@ import { api } from '../../api/api';
 import { useTeacherProfile } from '../../hooks/useTeacherProfile';
 import PageHeader from '../../components/PageHeader';
 import Loader from '../../components/Loader';
+import DiscussionPanel from '../../components/DiscussionPanel';
 
 const BASE_URL =
   (process.env.REACT_APP_API_URL || 'http://localhost:5000/api')
@@ -327,6 +328,7 @@ function SubmissionRow({ submission, totalMarks, onGrade, onDownload }) {
             : <><FiCheckCircle size={14} /> {busy ? 'Saving…' : (submission.score === null ? 'Grade' : 'Update')}</>}
         </button>
       </form>
+      <DiscussionPanel assignmentId={active.id} />
 
       {err && <p className="muted" style={{ color: 'var(--red)', fontSize: 12 }}>{err}</p>}
     </div>
