@@ -6,7 +6,7 @@ import { navConfig } from '../config/navConfig';
 export default function Sidebar({ open, onClose }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const items = navConfig[user?.role] || [];
+  const groups = navConfig[user?.role] || [];
 
   const handleLogout = () => {
     logout();
@@ -15,6 +15,7 @@ export default function Sidebar({ open, onClose }) {
 
   return (
     <aside className={`sidebar ${open ? 'sidebar--open' : ''}`}>
+      {/* Brand */}
       <div className="sidebar__brand">
         <div className="sidebar__logo">BF</div>
         <div>
@@ -23,6 +24,7 @@ export default function Sidebar({ open, onClose }) {
         </div>
       </div>
 
+      {/* Current user */}
       <div className="sidebar__user">
         <div className="avatar">{user?.name?.charAt(0) || 'U'}</div>
         <div>
@@ -31,23 +33,34 @@ export default function Sidebar({ open, onClose }) {
         </div>
       </div>
 
+      {/* Grouped navigation */}
       <nav className="sidebar__nav">
-        {items.map((item) => {
-          const Icon = item.icon;
-          return (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              onClick={onClose}
-              className={({ isActive }) => `nav-item ${isActive ? 'nav-item--active' : ''}`}
-            >
-              <span className="nav-item__icon"><Icon size={18} /></span>
-              <span>{item.label}</span>
-            </NavLink>
-          );
-        })}
+        {groups.map((group) => (
+          <div className="sidebar__group" key={group.label}>
+            <div className="sidebar__group-label">{group.label}</div>
+            {group.items.map((item) => {
+              const Icon = item.icon;
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  onClick={onClose}
+                  className={({ isActive }) =>
+                    `nav-item ${isActive ? 'nav-item--active' : ''}`
+                  }
+                >
+                  <span className="nav-item__icon">
+                    <Icon size={17} />
+                  </span>
+                  <span>{item.label}</span>
+                </NavLink>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
+      {/* Logout — pinned to the bottom */}
       <button className="logout-btn" onClick={handleLogout}>
         <FiLogOut size={16} />
         <span>Logout</span>
