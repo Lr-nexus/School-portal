@@ -8,6 +8,7 @@
     "setup": "node setup.js",
     "migrate": "node scripts/migrate.js",
     "upgrade": "node scripts/upgrade.js",
+    "set-passwords": "node scripts/set-passwords.js",
     "fix-db": "node scripts/migrate.js && node scripts/upgrade.js",
     "init-db": "node init.js",
     "seed": "node seed.js"

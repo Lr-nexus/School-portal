@@ -88,11 +88,11 @@ async function seed() {
     const adminUserId = await step('Creating admin', async () => {
       const [u] = await q(
         `INSERT INTO users (name, email, password, role)
-         VALUES ('Grace Ade', 'admin@school.com', 'admin123', 'admin')`
+         VALUES ('Husain Ade', 'admin@school.com', 'admin123', 'admin')`
       );
       await q(
         `INSERT INTO admins (user_id, name, title, email, phone, office, joined)
-         VALUES (?, 'Grace Ade', 'Principal', 'admin@school.com',
+         VALUES (?, 'Husain Ade', 'Principal', 'admin@school.com',
                  '0809 777 8888', 'Principal Office', CURDATE())`,
         [u.insertId]
       );
