@@ -6,6 +6,9 @@
     "start": "node server.js",
     "dev": "nodemon server.js",
     "setup": "node setup.js",
+    "migrate": "node scripts/migrate.js",
+    "upgrade": "node scripts/upgrade.js",
+    "fix-db": "node scripts/migrate.js && node scripts/upgrade.js",
     "init-db": "node init.js",
     "seed": "node seed.js"
   },
