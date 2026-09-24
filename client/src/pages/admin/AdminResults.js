@@ -429,22 +429,29 @@ function PrintClassModal({ classes, defaultClass, onClose, onDone }) {
     }
   };
 
-  /* ⭐ NEW: Download batch PDF */
+    /* ⭐ Download batch PDF */
   const handleDownloadPdf = async () => {
-    setErr(''); setPdfBusy(true);
+    setErr('');
+    setPdfBusy(true);
     try {
       const batch = await fetchBatch();
       if (!batch.cards?.length) {
-        setErr(`No results recorded for ${className} in ${batch.session || session} ${batch.term || term}`);
-        setPdfBusy(false); return;
+        setErr(
+          `No results recorded for ${className} in ${batch.session || session} ${batch.term || term}`
+        );
+        setPdfBusy(false);
+        return;
       }
-      // Each card wrapped in `.pdf-page` triggers a page break
-      const pagesHtml = batch.cards.map((c, i) => cardHtml(c, i === batch.cards.length - 1));
+      const pagesHtml = batch.cards.map((c, i) =>
+        cardHtml(c, i === batch.cards.length - 1)
+      );
       const filename =
-        `report-cards-${className}-${batch.session}-${batch.term}.pdf`.replace(/\s+/g, '-');
+        `report-cards-${className}-${batch.session}-${batch.term}.pdf`
+          .replace(/\s+/g, '-');
       await downloadBatchAsPdf(pagesHtml, filename, BATCH_REPORT_CSS);
       onDone();
     } catch (ex) {
+      console.error('Batch PDF failed:', ex);
       setErr(ex.message || 'PDF generation failed');
       setPdfBusy(false);
     }
