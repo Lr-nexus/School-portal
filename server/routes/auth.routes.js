@@ -27,24 +27,16 @@ async function getDisplayName(userId, role, fallback) {
         [userId]
       );
       if (rows.length && rows[0].name) return rows[0].name;
-    } else if (req.user.role === 'parent') {
-        const [rows] = await pool.execute(
-          'SELECT * FROM parents WHERE user_id = ?',
-          [req.user.id]
-        );
-        if (rows.length) {
-          const p = rows[0];
-          profile = {
-            id: p.id,
-            name: p.name,
-            email: p.email,
-            phone: p.phone,
-            relationship: p.relationship,
-            address: p.address,
-            photo: p.photo,
-          };
-        }
+    } else if (role === 'parent') {
+      const [rows] = await pool.execute(
+        'SELECT * FROM parents WHERE user_id = ?',
+        [userId]
+      );
+      if (rows.length) {
+        const p = rows[0];
+        return p.name || fallback;   // you only need the name here
       }
+    }
   } catch (err) {
     console.error('getDisplayName failed:', err);
   }
