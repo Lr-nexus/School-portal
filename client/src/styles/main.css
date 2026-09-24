@@ -1,5 +1,5 @@
 /* ==========================================================================
-   DESIGN TOKENS
+   1. DESIGN TOKENS
    ========================================================================== */
 
 :root {
@@ -74,7 +74,7 @@
   color-scheme: dark;
 }
 
-/* Role-based accent colors */
+/* Role-based accents */
 [data-role="student"] {
   --accent:      #2563eb;
   --accent-2:    #1d4ed8;
@@ -95,6 +95,13 @@
   --accent-soft: #ecfdf5;
   --accent-text: #115e59;
   --accent-ring: rgba(13, 148, 136, .2);
+}
+[data-role="parent"] {
+  --accent:      #d97706;
+  --accent-2:    #b45309;
+  --accent-soft: #fffbeb;
+  --accent-text: #92400e;
+  --accent-ring: rgba(217, 119, 6, .2);
 }
 
 [data-theme="dark"][data-role="student"] {
@@ -118,9 +125,16 @@
   --accent-text: #99f6e4;
   --accent-ring: rgba(45, 212, 191, .25);
 }
+[data-theme="dark"][data-role="parent"] {
+  --accent:      #fbbf24;
+  --accent-2:    #fcd34d;
+  --accent-soft: #451a03;
+  --accent-text: #fde68a;
+  --accent-ring: rgba(251, 191, 36, .25);
+}
 
 /* ==========================================================================
-   BASE
+   2. BASE
    ========================================================================== */
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -141,7 +155,7 @@ a:hover { color: var(--accent-2); }
 .muted { color: var(--muted); }
 
 /* ==========================================================================
-   LAYOUT
+   3. LAYOUT
    ========================================================================== */
 
 .layout { display: flex; min-height: 100vh; }
@@ -157,7 +171,67 @@ a:hover { color: var(--accent-2); }
 }
 
 /* ==========================================================================
-   SIDEBAR
+   4. PAGE HEADER
+   ========================================================================== */
+
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+}
+.page-header > div:first-child {
+  min-width: 0;
+  flex: 1 1 260px;
+}
+.page-header h2 {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--text);
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+.page-header p {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.page-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.page-header__actions .btn { white-space: nowrap; }
+
+/* Back link — used above PageHeader on detail views */
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 4px 0;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: color .15s, transform .15s;
+}
+.back-link:hover {
+  color: var(--accent);
+  transform: translateX(-2px);
+}
+.back-link svg { flex-shrink: 0; }
+
+/* ==========================================================================
+   5. SIDEBAR
    ========================================================================== */
 
 .sidebar {
@@ -234,6 +308,12 @@ a:hover { color: var(--accent-2); }
 }
 .avatar--sm { width: 32px; height: 32px; font-size: 14px; }
 .avatar--lg { width: 72px; height: 72px; font-size: 28px; }
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
 
 .sidebar__nav {
   display: flex;
@@ -287,7 +367,7 @@ a:hover { color: var(--accent-2); }
 .logout-btn svg { flex-shrink: 0; }
 
 /* ==========================================================================
-   TOPBAR
+   6. TOPBAR
    ========================================================================== */
 
 .topbar {
@@ -336,7 +416,7 @@ a:hover { color: var(--accent-2); }
 }
 
 /* ==========================================================================
-   CARDS & STATS
+   7. CARDS & STATS
    ========================================================================== */
 
 .card {
@@ -398,7 +478,7 @@ a:hover { color: var(--accent-2); }
 }
 
 /* ==========================================================================
-   WELCOME BANNER
+   8. WELCOME BANNER
    ========================================================================== */
 
 .welcome-banner {
@@ -423,11 +503,7 @@ a:hover { color: var(--accent-2); }
   font-size: 13px;
   backdrop-filter: blur(4px);
 }
-
-.welcome-banner__left {
-  min-width: 0;
-  flex: 1;
-}
+.welcome-banner__left { min-width: 0; flex: 1; }
 .welcome-banner__subjects {
   display: flex;
   flex-wrap: wrap;
@@ -454,7 +530,7 @@ a:hover { color: var(--accent-2); }
 }
 
 /* ==========================================================================
-   TABLES
+   9. TABLES
    ========================================================================== */
 
 .table { width: 100%; border-collapse: collapse; font-size: 14px; }
@@ -478,15 +554,11 @@ a:hover { color: var(--accent-2); }
   color: var(--accent-text);
 }
 .right { text-align: right; }
-
-.table-wrap {
-  overflow-x: auto;
-  border-radius: var(--radius-md);
-}
+.table-wrap { overflow-x: auto; border-radius: var(--radius-md); }
 .table-wrap .table { min-width: 640px; }
 
 /* ==========================================================================
-   BUTTONS
+   10. BUTTONS
    ========================================================================== */
 
 .btn {
@@ -503,10 +575,7 @@ a:hover { color: var(--accent-2); }
   transition: background .15s, transform .12s, border-color .15s;
 }
 .btn:disabled { opacity: .55; cursor: not-allowed; }
-.btn--primary {
-  background: var(--accent);
-  color: #fff;
-}
+.btn--primary { background: var(--accent); color: #fff; }
 .btn--primary:hover:not(:disabled) { background: var(--accent-2); }
 .btn--ghost {
   background: var(--surface);
@@ -514,21 +583,27 @@ a:hover { color: var(--accent-2); }
   color: var(--text-2);
 }
 .btn--ghost:hover:not(:disabled) { background: var(--surface-3); border-color: var(--border-strong); }
-.btn--danger {
-  background: var(--red);
-  color: #fff;
-}
+.btn--danger { background: var(--red); color: #fff; }
 .btn--danger:hover:not(:disabled) { background: #b91c1c; }
 .btn--full { width: 100%; }
-.btn--sm {
-  padding: 6px 12px;
-  font-size: 12px;
-  gap: 6px;
-}
+.btn--sm { padding: 6px 12px; font-size: 12px; gap: 6px; }
 .btn--sm svg { flex-shrink: 0; }
 
+/* Grouped action buttons (report card / ID card) */
+.action-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.action-group .btn { border-radius: 8px; }
+[data-theme="dark"] .action-group { background: var(--surface); }
+
 /* ==========================================================================
-   FORMS
+   11. FORMS
    ========================================================================== */
 
 label {
@@ -571,7 +646,6 @@ textarea { resize: vertical; min-height: 60px; }
   margin-top: 4px;
 }
 
-/* Readonly field (teacher's assigned class) */
 .form-field-readonly { display: block; margin-bottom: 12px; }
 .form-field-readonly__label {
   display: block;
@@ -592,10 +666,7 @@ textarea { resize: vertical; min-height: 60px; }
   font-weight: 600;
   color: var(--text);
 }
-.form-field-readonly__value svg {
-  color: var(--accent);
-  flex-shrink: 0;
-}
+.form-field-readonly__value svg { color: var(--accent); flex-shrink: 0; }
 
 /* Password field with toggle */
 .password-field {
@@ -603,10 +674,7 @@ textarea { resize: vertical; min-height: 60px; }
   display: flex;
   align-items: center;
 }
-.password-field input {
-  width: 100%;
-  padding-right: 42px;
-}
+.password-field input { width: 100%; padding-right: 42px; }
 .password-toggle {
   position: absolute;
   right: 8px;
@@ -623,10 +691,7 @@ textarea { resize: vertical; min-height: 60px; }
   border-radius: 6px;
   transition: background .15s, color .15s;
 }
-.password-toggle:hover {
-  background: var(--surface-3);
-  color: var(--text-2);
-}
+.password-toggle:hover { background: var(--surface-3); color: var(--text-2); }
 [data-theme="dark"] .password-toggle:hover { background: var(--surface-2); }
 
 /* File drop */
@@ -641,10 +706,7 @@ textarea { resize: vertical; min-height: 60px; }
   width: 100%;
   transition: border-color .15s, background .15s;
 }
-.file-drop:hover {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-}
+.file-drop:hover { border-color: var(--accent); background: var(--accent-soft); }
 .file-drop::file-selector-button {
   margin-right: 14px;
   padding: 8px 16px;
@@ -663,21 +725,9 @@ textarea { resize: vertical; min-height: 60px; }
 }
 
 /* Filters bar */
-.filters-bar {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 18px;
-  flex-wrap: wrap;
-}
-.filters-bar__search {
-  flex: 1;
-  min-width: 220px;
-  position: relative;
-}
-.filters-bar__search input {
-  margin-top: 0;
-  padding-left: 38px;
-}
+.filters-bar { display: flex; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+.filters-bar__search { flex: 1; min-width: 220px; position: relative; }
+.filters-bar__search input { margin-top: 0; padding-left: 38px; }
 .filters-bar__search svg {
   position: absolute;
   left: 12px;
@@ -690,7 +740,7 @@ textarea { resize: vertical; min-height: 60px; }
 .filters-bar__select select { margin-top: 0; }
 
 /* ==========================================================================
-   ALERTS
+   12. ALERTS
    ========================================================================== */
 
 .alert {
@@ -714,7 +764,7 @@ textarea { resize: vertical; min-height: 60px; }
 }
 
 /* ==========================================================================
-   PILLS / BADGES / CHIPS
+   13. PILLS / BADGES / CHIPS
    ========================================================================== */
 
 .pill {
@@ -742,6 +792,15 @@ textarea { resize: vertical; min-height: 60px; }
   background: rgba(220, 38, 38, .2);
   color: #fca5a5;
   border: 1px solid rgba(220, 38, 38, .35);
+}
+.pill--hands {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(251, 191, 36, .2);
+  color: #fcd34d;
+  font-weight: 700;
+  animation: handPulse 1.4s ease-in-out infinite;
 }
 
 [data-theme="dark"] .pill--paid    { background: rgba(34, 197, 94, .18);  color: #86efac; }
@@ -785,7 +844,6 @@ textarea { resize: vertical; min-height: 60px; }
   font-size: 12px;
   font-weight: 500;
 }
-
 .chip--pdf {
   background: rgba(220, 38, 38, .12);
   color: #b91c1c;
@@ -810,7 +868,7 @@ textarea { resize: vertical; min-height: 60px; }
 [data-theme="dark"] .chip--rich { background: rgba(96, 165, 250, .18); color: #bfdbfe; }
 
 /* ==========================================================================
-   QUICK ACTIONS
+   14. QUICK ACTIONS
    ========================================================================== */
 
 .quick-actions { display: flex; flex-direction: column; gap: 8px; }
@@ -858,7 +916,7 @@ textarea { resize: vertical; min-height: 60px; }
 .teacher-contact__row svg { color: var(--muted); flex-shrink: 0; }
 
 /* ==========================================================================
-   ANNOUNCEMENTS
+   15. INLINE ANNOUNCEMENTS (dashboard card)
    ========================================================================== */
 
 .announcement {
@@ -871,7 +929,7 @@ textarea { resize: vertical; min-height: 60px; }
 .announcement span { font-size: 11px; color: var(--muted-2); }
 
 /* ==========================================================================
-   MODAL
+   16. MODAL
    ========================================================================== */
 
 .modal-backdrop {
@@ -942,7 +1000,7 @@ textarea { resize: vertical; min-height: 60px; }
 .confirm-list__row:last-child { border-bottom: none; }
 
 /* ==========================================================================
-   USER DROPDOWN
+   17. USER DROPDOWN
    ========================================================================== */
 
 .user-menu { position: relative; }
@@ -960,10 +1018,7 @@ textarea { resize: vertical; min-height: 60px; }
   color: inherit;
   transition: background .15s, border-color .15s;
 }
-.user-menu__trigger:hover {
-  background: var(--surface-3);
-  border-color: var(--border);
-}
+.user-menu__trigger:hover { background: var(--surface-3); border-color: var(--border); }
 .user-menu__name {
   font-size: 13px;
   font-weight: 600;
@@ -1031,7 +1086,7 @@ textarea { resize: vertical; min-height: 60px; }
 .user-menu__item--danger:hover { background: rgba(220, 38, 38, .08); }
 
 /* ==========================================================================
-   NOTIFICATIONS
+   18. NOTIFICATIONS
    ========================================================================== */
 
 .notif { position: relative; }
@@ -1139,7 +1194,7 @@ textarea { resize: vertical; min-height: 60px; }
 .notif__item-del:hover { color: var(--red); }
 
 /* ==========================================================================
-   LOGIN — Split-screen
+   19. LOGIN — Split-screen
    ========================================================================== */
 
 .login-split {
@@ -1327,6 +1382,50 @@ textarea { resize: vertical; min-height: 60px; }
   font-weight: 600;
 }
 
+/* Password field with eye toggle */
+.login-password-wrap { position: relative; }
+.login-password-wrap input { padding-right: 44px !important; }
+.login-password-toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--muted);
+  padding: 6px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s, color .15s;
+}
+.login-password-toggle:hover {
+  background: var(--surface-3);
+  color: var(--text-2);
+}
+
+/* Password row + forgot link */
+.login-form__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 6px;
+  margin-bottom: 6px;
+}
+.login-form__forgot {
+  font-size: 12px;
+  color: var(--accent);
+  font-weight: 500;
+  text-decoration: none;
+}
+.login-form__forgot:hover {
+  text-decoration: underline;
+  color: var(--accent-2);
+}
+
+/* Demo accounts */
 .login-demo {
   margin-top: 32px;
   padding-top: 24px;
@@ -1399,6 +1498,25 @@ textarea { resize: vertical; min-height: 60px; }
   text-align: center;
 }
 
+/* Compact 2x2 demo grid */
+.login-demo__btns--grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.login-demo__btns--grid button {
+  padding: 10px 12px;
+  min-width: 0;
+}
+.login-demo__btns--grid button:hover { transform: translateY(-1px); }
+.login-demo__btns--grid button > div { overflow: hidden; }
+.login-demo__btns--grid button strong { font-size: 12.5px; }
+.login-demo__btns--grid button span {
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+/* Trust badges */
 .login-trust {
   display: flex;
   justify-content: center;
@@ -1424,8 +1542,56 @@ textarea { resize: vertical; min-height: 60px; }
   line-height: 1.6;
 }
 
+/* Nicer error alert on login */
+.login-form-panel .alert {
+  border-radius: 12px;
+  animation: shakeIn .28s ease-out;
+}
+@keyframes shakeIn {
+  0%   { transform: translateX(0); }
+  25%  { transform: translateX(-4px); }
+  50%  { transform: translateX(4px); }
+  75%  { transform: translateX(-2px); }
+  100% { transform: translateX(0); }
+}
+
 /* ==========================================================================
-   PROFILE
+   20. AUTH SIMPLE PAGES (Forgot / Reset Password)
+   ========================================================================== */
+
+.auth-simple {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--bg);
+}
+.auth-simple__card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  width: min(420px, 100%);
+  box-shadow: var(--shadow-lg);
+}
+.auth-simple__card > .btn--ghost { margin-bottom: 20px; }
+.auth-simple__card h1 {
+  font-size: 22px;
+  margin-bottom: 6px;
+  color: var(--text);
+}
+.auth-simple__card .muted { font-size: 13px; margin-bottom: 20px; }
+.auth-simple__card form { margin-top: 16px; }
+.auth-simple__footer {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+}
+.auth-simple__footer a { color: var(--accent); text-decoration: none; }
+
+/* ==========================================================================
+   21. PROFILE
    ========================================================================== */
 
 .profile-card__head {
@@ -1456,8 +1622,36 @@ textarea { resize: vertical; min-height: 60px; }
   justify-content: center;
 }
 
+/* Profile photo uploader */
+.photo-uploader {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.photo-uploader__preview {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 40px;
+  overflow: hidden;
+  flex-shrink: 0;
+  box-shadow: 0 6px 18px var(--accent-ring);
+}
+.photo-uploader__preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.photo-uploader__info { flex: 1; min-width: 200px; }
+
 /* ==========================================================================
-   NOTES
+   22. NOTES
    ========================================================================== */
 
 .note-card {
@@ -1488,7 +1682,6 @@ textarea { resize: vertical; min-height: 60px; }
   font-size: 12px;
   justify-content: center;
 }
-
 .pdf-viewer {
   width: 100%;
   height: 55vh;
@@ -1590,7 +1783,7 @@ textarea { resize: vertical; min-height: 60px; }
 }
 
 /* ==========================================================================
-   ASSIGNMENTS
+   23. ASSIGNMENTS
    ========================================================================== */
 
 .assignment-card { display: flex; flex-direction: column; gap: 6px; }
@@ -1647,7 +1840,98 @@ textarea { resize: vertical; min-height: 60px; }
 .submission__grade input { margin-bottom: 0; flex: 1; min-width: 120px; }
 
 /* ==========================================================================
-   CLASSROOM / SESSIONS
+   24. DISCUSSION
+   ========================================================================== */
+
+.discussion {
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.discussion__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+.discussion__list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 380px;
+  overflow-y: auto;
+  margin-bottom: 14px;
+}
+.discuss-comment {
+  display: flex;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.discuss-comment:last-child { border-bottom: none; }
+.discuss-comment--reply {
+  margin-left: 42px;
+  border-left: 2px solid var(--accent-ring);
+  padding-left: 12px;
+}
+.discuss-comment__body { flex: 1; min-width: 0; }
+.discuss-comment__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+.discuss-comment__head strong { font-size: 13px; color: var(--text); }
+.discuss-comment__body p {
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+.discuss-comment__actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 6px;
+}
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+}
+.btn-link:hover { color: var(--accent); }
+.btn-link--danger:hover { color: var(--red); }
+
+.discussion__form {
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
+}
+.discussion__replying {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 8px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.discussion__replying strong { color: var(--accent); }
+.discussion__row { display: flex; gap: 8px; }
+.discussion__row input { margin-top: 0; flex: 1; }
+.discussion__row .btn { padding: 10px 14px; }
+
+/* ==========================================================================
+   25. CLASSROOM / SESSIONS
    ========================================================================== */
 
 .dot {
@@ -1719,7 +2003,7 @@ textarea { resize: vertical; min-height: 60px; }
 .participant__info .badge { align-self: flex-start; font-size: 10px; }
 
 /* ==========================================================================
-   VIDEO ROOM (always dark)
+   26. VIDEO ROOM (always dark)
    ========================================================================== */
 
 .video-room {
@@ -1752,6 +2036,9 @@ textarea { resize: vertical; min-height: 60px; }
   margin: 0 auto 16px;
   animation: spin 0.9s linear infinite;
 }
+
+/* Generic spinning icon (used on "Preparing…" buttons) */
+.spin { animation: spin 0.9s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .video-room__header {
@@ -1780,17 +2067,6 @@ textarea { resize: vertical; min-height: 60px; }
   flex-wrap: wrap;
 }
 
-/* Hand-raise pill in the header */
-.pill--hands {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(251, 191, 36, .2);
-  color: #fcd34d;
-  font-weight: 700;
-  animation: handPulse 1.4s ease-in-out infinite;
-}
-
 .video-toast {
   position: absolute;
   top: 80px;
@@ -1815,8 +2091,7 @@ textarea { resize: vertical; min-height: 60px; }
   to   { opacity: 1; transform: translate(-50%, 0); }
 }
 
-/* ---------------- Raised hands bar ---------------- */
-
+/* Raised hands bar */
 .raised-hands-bar {
   display: flex;
   align-items: center;
@@ -1840,11 +2115,7 @@ textarea { resize: vertical; min-height: 60px; }
   color: #fcd34d;
   flex-shrink: 0;
 }
-.raised-hands-bar__chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
+.raised-hands-bar__chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .raised-hands-bar__chip {
   display: inline-flex;
   align-items: center;
@@ -1867,8 +2138,7 @@ textarea { resize: vertical; min-height: 60px; }
 }
 .raised-hands-bar__chip:disabled { opacity: 1; }
 
-/* ---------------- Video grid ---------------- */
-
+/* Video grid */
 .video-grid {
   flex: 1;
   padding: 18px;
@@ -1926,7 +2196,6 @@ textarea { resize: vertical; min-height: 60px; }
 .video-tile__waiting-text p { margin-top: 8px; color: #e2e8f0; font-size: 14px; }
 .video-tile__waiting-text small { display: block; margin-top: 6px; font-size: 12px; opacity: .75; }
 
-/* Hand raised state on tile */
 .video-tile--hand {
   outline: 3px solid #fbbf24;
   outline-offset: -3px;
@@ -1958,8 +2227,6 @@ textarea { resize: vertical; min-height: 60px; }
   0%, 100% { transform: scale(1); }
   50%      { transform: scale(1.05); }
 }
-
-/* ---------------- Controls ---------------- */
 
 .video-controls {
   padding: 14px;
@@ -1994,7 +2261,7 @@ textarea { resize: vertical; min-height: 60px; }
 .video-controls__btn--hand-active:hover { background: #f59e0b; }
 
 /* ==========================================================================
-   QUIZZES
+   27. QUIZZES
    ========================================================================== */
 
 .quiz-card { display: flex; flex-direction: column; gap: 8px; }
@@ -2027,7 +2294,7 @@ textarea { resize: vertical; min-height: 60px; }
 .result-card p { color: var(--muted); margin-bottom: 20px; }
 
 /* ==========================================================================
-   LMS — question head, paste format, preview
+   28. LMS — paste format, preview
    ========================================================================== */
 
 .lms-question-head {
@@ -2051,6 +2318,8 @@ textarea { resize: vertical; min-height: 60px; }
   line-height: 1.6;
   overflow-x: auto;
 }
+[data-theme="dark"] .lms-format-example { background: var(--surface-2); }
+
 .lms-paste-textarea {
   font-family: 'Courier New', monospace;
   font-size: 13px;
@@ -2084,29 +2353,13 @@ textarea { resize: vertical; min-height: 60px; }
   display: block;
   margin-bottom: 6px;
 }
-.lms-preview__item ul {
-  list-style: none;
-  margin: 0;
-  padding-left: 8px;
-}
-.lms-preview__item li {
-  font-size: 12px;
-  color: var(--text-2);
-  padding: 3px 0;
-}
-.lms-preview__correct {
-  color: var(--green) !important;
-  font-weight: 600;
-}
-.lms-preview__tick {
-  font-size: 11px;
-  opacity: .8;
-  margin-left: 4px;
-}
-[data-theme="dark"] .lms-format-example { background: var(--surface-2); }
+.lms-preview__item ul { list-style: none; margin: 0; padding-left: 8px; }
+.lms-preview__item li { font-size: 12px; color: var(--text-2); padding: 3px 0; }
+.lms-preview__correct { color: var(--green) !important; font-weight: 600; }
+.lms-preview__tick { font-size: 11px; opacity: .8; margin-left: 4px; }
 
 /* ==========================================================================
-   MISC
+   29. MISC
    ========================================================================== */
 
 .loader {
@@ -2128,22 +2381,6 @@ textarea { resize: vertical; min-height: 60px; }
   animation: spin 0.9s linear infinite;
 }
 
-.fee-card__head {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-.fee-card__head h3 { margin-bottom: 4px; }
-.fee-card__head small { font-size: 11px; color: var(--muted); }
-.fee-card__actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 14px;
-  flex-wrap: wrap;
-}
-
 .empty-state {
   text-align: center;
   padding: 40px 20px;
@@ -2152,7 +2389,7 @@ textarea { resize: vertical; min-height: 60px; }
 .empty-state svg { margin-bottom: 12px; opacity: .5; }
 
 /* ==========================================================================
-   TABS
+   30. TABS
    ========================================================================== */
 
 .tabs {
@@ -2179,13 +2416,10 @@ textarea { resize: vertical; min-height: 60px; }
   margin-bottom: -1px;
 }
 .tab:hover { color: var(--text-2); }
-.tab--active {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-}
+.tab--active { color: var(--accent); border-bottom-color: var(--accent); }
 
 /* ==========================================================================
-   QUILL EDITOR
+   31. QUILL EDITOR
    ========================================================================== */
 
 .editor-label {
@@ -2266,7 +2500,7 @@ textarea { resize: vertical; min-height: 60px; }
 .editor .ql-snow .ql-picker-label:hover { color: var(--accent); }
 
 /* ==========================================================================
-   CREDENTIALS CARD
+   32. CREDENTIALS CARD
    ========================================================================== */
 
 .credentials-card {
@@ -2304,7 +2538,7 @@ textarea { resize: vertical; min-height: 60px; }
 }
 
 /* ==========================================================================
-   ADMIN — STUDENT PICKER & REPORT HEAD
+   33. STUDENT PICKER & REPORT HEAD
    ========================================================================== */
 
 .student-card {
@@ -2349,10 +2583,7 @@ textarea { resize: vertical; min-height: 60px; }
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.student-card__info span {
-  font-size: 12px;
-  color: var(--muted);
-}
+.student-card__info span { font-size: 12px; color: var(--muted); }
 .student-card__arrow {
   font-size: 22px;
   line-height: 1;
@@ -2409,13 +2640,10 @@ textarea { resize: vertical; min-height: 60px; }
   font-weight: 700;
   line-height: 1.1;
 }
-.report-head__grade .sub {
-  font-size: 12px;
-  opacity: .9;
-}
+.report-head__grade .sub { font-size: 12px; opacity: .9; }
 
 /* ==========================================================================
-   BULK UPLOAD
+   34. BULK UPLOAD
    ========================================================================== */
 
 .bulk-info {
@@ -2446,13 +2674,9 @@ textarea { resize: vertical; min-height: 60px; }
   font-size: 12px;
   color: var(--text);
 }
+[data-theme="dark"] .bulk-info { background: var(--surface-2); }
 
-.bulk-actions {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
+.bulk-actions { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
 
 .bulk-file-chip {
   display: inline-flex;
@@ -2515,13 +2739,11 @@ textarea { resize: vertical; min-height: 60px; }
   background: rgba(220, 38, 38, .06);
 }
 .bulk-stat--failed .bulk-stat__value { color: var(--red); }
-
-[data-theme="dark"] .bulk-info { background: var(--surface-2); }
 [data-theme="dark"] .bulk-stat--success { background: rgba(34, 197, 94, .1); }
 [data-theme="dark"] .bulk-stat--failed { background: rgba(239, 68, 68, .1); }
 
 /* ==========================================================================
-   BULK ACTIONS — checkboxes & selection
+   35. BULK ACTIONS — checkboxes & selection
    ========================================================================== */
 
 .table-head {
@@ -2558,9 +2780,7 @@ textarea { resize: vertical; min-height: 60px; }
 }
 .checkbox-btn:hover { color: var(--accent); }
 
-.row--selected {
-  background: var(--accent-soft) !important;
-}
+.row--selected { background: var(--accent-soft) !important; }
 .row--selected:hover {
   background: var(--accent-soft) !important;
   filter: brightness(.98);
@@ -2609,11 +2829,7 @@ textarea { resize: vertical; min-height: 60px; }
   font-size: 13px;
 }
 .import-result details { margin-top: 10px; }
-.import-result summary {
-  cursor: pointer;
-  font-weight: 600;
-  padding: 4px 0;
-}
+.import-result summary { cursor: pointer; font-weight: 600; padding: 4px 0; }
 .import-result ul {
   margin: 8px 0 0 20px;
   font-size: 12px;
@@ -2643,14 +2859,10 @@ textarea { resize: vertical; min-height: 60px; }
   font-weight: 600;
   color: var(--accent-text);
 }
-.bulk-bar__actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
+.bulk-bar__actions { display: flex; gap: 8px; align-items: center; }
 
 /* ==========================================================================
-   ENROLLMENT
+   36. ENROLLMENT
    ========================================================================== */
 
 .enroll-grid {
@@ -2680,14 +2892,8 @@ textarea { resize: vertical; min-height: 60px; }
   place-items: center;
   flex-shrink: 0;
 }
-.enroll-card__head h3 {
-  font-size: 15px;
-  margin: 0 0 2px;
-}
-.enroll-card__head p {
-  font-size: 12px;
-  margin: 0;
-}
+.enroll-card__head h3 { font-size: 15px; margin: 0 0 2px; }
+.enroll-card__head p { font-size: 12px; margin: 0; }
 .enroll-card__hint {
   font-size: 12px;
   line-height: 1.6;
@@ -2700,11 +2906,7 @@ textarea { resize: vertical; min-height: 60px; }
   font-size: 11px;
   font-family: 'Courier New', monospace;
 }
-.enroll-card__actions {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
+.enroll-card__actions { display: flex; gap: 10px; flex-wrap: wrap; }
 .enroll-card__actions--end {
   justify-content: flex-end;
   margin-top: 8px;
@@ -2723,15 +2925,58 @@ textarea { resize: vertical; min-height: 60px; }
 }
 .enroll-section-title:first-of-type { margin-top: 0; }
 
-/* ==========================================================================
-   ADMIN CLASSES
-   ========================================================================== */
-
-.class-list {
+/* Teacher type picker */
+.teacher-type-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.teacher-type-tile {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  border-radius: 12px;
+  cursor: pointer;
+  font: inherit;
+  color: var(--text);
+  text-align: left;
+  transition: all .15s;
 }
+.teacher-type-tile:hover { border-color: var(--accent-ring); }
+.teacher-type-tile--active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+.teacher-type-tile svg { color: var(--accent); }
+.teacher-type-tile strong { font-size: 14px; }
+.teacher-type-tile .muted { font-size: 12px; line-height: 1.4; }
+
+/* Assignments editor (subject teachers) */
+.assignments-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.assignment-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+.assignment-row input, .assignment-row select { margin-top: 0; }
+.assignment-row .btn { padding: 8px 10px; }
+
+/* ==========================================================================
+   37. ADMIN CLASSES
+   ========================================================================== */
+
+.class-list { display: flex; flex-direction: column; gap: 12px; }
 .class-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -2794,10 +3039,7 @@ textarea { resize: vertical; min-height: 60px; }
   gap: 6px;
 }
 .class-card__meta svg { color: var(--muted); }
-.class-card__chevron {
-  color: var(--muted);
-  flex-shrink: 0;
-}
+.class-card__chevron { color: var(--muted); flex-shrink: 0; }
 .class-card__body {
   padding: 20px;
   border-top: 1px solid var(--border);
@@ -2806,10 +3048,7 @@ textarea { resize: vertical; min-height: 60px; }
   flex-direction: column;
   gap: 20px;
 }
-.class-card__body--flat {
-  padding: 16px;
-  gap: 12px;
-}
+.class-card__body--flat { padding: 16px; gap: 12px; }
 
 .class-teacher {
   background: var(--surface);
@@ -2880,10 +3119,7 @@ textarea { resize: vertical; min-height: 60px; }
   gap: 2px;
   min-width: 0;
 }
-.class-teacher-compact__info strong {
-  font-size: 13px;
-  color: var(--text);
-}
+.class-teacher-compact__info strong { font-size: 13px; color: var(--text); }
 
 .class-roster {
   background: var(--surface);
@@ -2904,19 +3140,11 @@ textarea { resize: vertical; min-height: 60px; }
   font-size: 13px;
 }
 
-/* Class Overview — inline subject chips */
-.class-subject-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-.class-subject-list .chip {
-  font-size: 11px;
-  padding: 3px 10px;
-}
+.class-subject-list { display: flex; flex-wrap: wrap; gap: 4px; }
+.class-subject-list .chip { font-size: 11px; padding: 3px 10px; }
 
 /* ==========================================================================
-   STUDENT FEES
+   38. STUDENT FEES
    ========================================================================== */
 
 .fee-progress {
@@ -2960,11 +3188,8 @@ textarea { resize: vertical; min-height: 60px; }
   letter-spacing: .4px;
   margin-bottom: 4px;
 }
-.pay-summary__value {
-  font-size: 26px;
-  color: var(--text);
-  font-weight: 700;
-}
+.pay-summary__value { font-size: 26px; color: var(--text); font-weight: 700; }
+
 .pay-quick {
   display: flex;
   align-items: center;
@@ -3055,117 +3280,26 @@ textarea { resize: vertical; min-height: 60px; }
 }
 
 /* ==========================================================================
-   RESPONSIVE
+   39. ADMIN FEES
    ========================================================================== */
 
-@media (max-width: 1000px) {
-  .enroll-grid { grid-template-columns: 1fr; }
-}
-
-@media (max-width: 1024px) {
-  .login-split { grid-template-columns: 1fr; }
-  .login-hero {
-    padding: 40px 24px;
-    min-height: 380px;
-    align-items: flex-start;
-  }
-  .login-hero__content { max-width: 100%; }
-  .login-hero__tagline h2 { font-size: 26px; }
-  .login-hero__features { display: none; }
-  .login-hero__stats {
-    grid-template-columns: repeat(4, 1fr);
-    padding: 14px 0;
-  }
-  .login-hero__stat strong { font-size: 18px; }
-  .login-form-panel { padding: 32px 20px 40px; }
-  .login-form-panel__logo-mobile { display: grid; }
-}
-
-@media (max-width: 900px) {
-  .grid-2 { grid-template-columns: 1fr; }
-}
-
-@media (max-width: 768px) {
-  .sidebar {
-    position: fixed;
-    left: 0;
-    top: 0;
-    transform: translateX(-100%);
-    transition: transform .25s ease;
-    z-index: 40;
-    box-shadow: var(--shadow-lg);
-  }
-  .sidebar--open { transform: translateX(0); }
-  .overlay { display: block; }
-  .menu-btn { display: inline-flex; }
-  .layout__content { padding: 16px; }
-  .topbar { padding: 12px 16px; }
-}
-
-@media (max-width: 640px) {
-  .login-hero {
-    min-height: 280px;
-    padding: 28px 20px;
-  }
-  .login-hero__tagline h2 { font-size: 22px; }
-  .login-hero__tagline p  { font-size: 13px; }
-  .login-hero__stats {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-    padding: 12px 0;
-  }
-  .login-hero__footer { display: none; }
-  .login-form-panel { padding: 28px 20px 36px; }
-  .login-form-panel__head h2 { font-size: 22px; }
-  .login-trust { gap: 12px; }
-
-  .class-card__meta { flex-direction: column; gap: 4px; }
-  .class-teacher__contacts { margin-left: 0; width: 100%; }
-
-  .receipt-preview { padding: 16px; }
-  .receipt-preview__meta,
-  .receipt-preview__student { grid-template-columns: 1fr; }
-}
-
-@media (max-width: 600px) {
-  .user-menu__name,
-  .topbar__date { display: none; }
-  .modal { padding: 16px; }
-  .card { padding: 16px; }
-}
-
-@media (max-width: 500px) {
-  .profile-form__actions { flex-direction: column-reverse; }
-  .profile-form__actions .btn { width: 100%; }
-  .login-demo__btns { flex-direction: column; }
-}
-
-/* ==========================================================================
-   PRINT
-   ========================================================================== */
-
-@media print {
-  .sidebar,
-  .topbar,
-  .page-header__actions,
-  .no-print { display: none !important; }
-  .layout__content { padding: 0; }
-  body { background: #fff; }
-  .card { box-shadow: none; border: 1px solid #ddd; }
-  .report-head { background: #f4f6fb !important; color: #000 !important; }
-  .report-head__avatar { background: #e2e8f0; color: #000; }
-}
-
-/* ==========================================================================
-   ADMIN FEES — batch cards
-   ========================================================================== */
-
-.fee-batch {
+.fee-card__head {
   display: flex;
-  flex-direction: column;
-  gap: 14px;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.fee-card__head h3 { margin-bottom: 4px; }
+.fee-card__head small { font-size: 11px; color: var(--muted); }
+.fee-card__actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  flex-wrap: wrap;
 }
 
+.fee-batch { display: flex; flex-direction: column; gap: 14px; }
 .fee-batch__head {
   display: flex;
   justify-content: space-between;
@@ -3173,7 +3307,6 @@ textarea { resize: vertical; min-height: 60px; }
   gap: 16px;
   flex-wrap: wrap;
 }
-
 .fee-batch__title {
   display: flex;
   align-items: center;
@@ -3181,15 +3314,8 @@ textarea { resize: vertical; min-height: 60px; }
   flex-wrap: wrap;
   margin-bottom: 4px;
 }
-.fee-batch__title h3 {
-  margin: 0;
-  font-size: 16px;
-  color: var(--text);
-}
-
-.fee-batch__ref {
-  font-size: 12px;
-}
+.fee-batch__title h3 { margin: 0; font-size: 16px; color: var(--text); }
+.fee-batch__ref { font-size: 12px; }
 .fee-batch__ref code {
   background: var(--surface-3);
   padding: 2px 6px;
@@ -3197,12 +3323,7 @@ textarea { resize: vertical; min-height: 60px; }
   font-size: 11px;
   font-family: 'Courier New', monospace;
 }
-
-.fee-batch__amounts {
-  display: flex;
-  gap: 20px;
-  flex-shrink: 0;
-}
+.fee-batch__amounts { display: flex; gap: 20px; flex-shrink: 0; }
 .fee-batch__amounts > div {
   display: flex;
   flex-direction: column;
@@ -3214,17 +3335,8 @@ textarea { resize: vertical; min-height: 60px; }
   text-transform: uppercase;
   letter-spacing: .4px;
 }
-.fee-batch__amounts strong {
-  font-size: 16px;
-  color: var(--text);
-}
-
-.fee-batch__items {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
+.fee-batch__amounts strong { font-size: 16px; color: var(--text); }
+.fee-batch__items { display: flex; flex-wrap: wrap; gap: 6px; }
 .fee-batch__actions {
   display: flex;
   gap: 8px;
@@ -3234,29 +3346,21 @@ textarea { resize: vertical; min-height: 60px; }
   flex-wrap: wrap;
 }
 
-/* ==========================================================================
-   FEE PUBLISH MODAL — items editor + preview
-   ========================================================================== */
-
+/* Fee publish modal */
 .fee-items-editor {
   display: flex;
   flex-direction: column;
   gap: 10px;
   margin-bottom: 20px;
 }
-
 .fee-item-row {
   display: grid;
   grid-template-columns: 1fr 180px auto;
   gap: 10px;
   align-items: center;
 }
-.fee-item-row input {
-  margin-top: 0;
-}
-.fee-item-row .btn {
-  padding: 8px 10px;
-}
+.fee-item-row input { margin-top: 0; }
+.fee-item-row .btn { padding: 8px 10px; }
 
 .fee-preview-panel {
   padding: 16px;
@@ -3265,31 +3369,21 @@ textarea { resize: vertical; min-height: 60px; }
   border-radius: 12px;
   margin-bottom: 20px;
 }
-
 .fee-preview-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 12px;
   margin-bottom: 12px;
 }
-.fee-preview-stats > div {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
+.fee-preview-stats > div { display: flex; flex-direction: column; gap: 2px; }
 .fee-preview-stats span {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: .4px;
 }
-.fee-preview-stats strong {
-  font-size: 18px;
-  color: var(--text);
-}
+.fee-preview-stats strong { font-size: 18px; color: var(--text); }
 
-.fee-preview-list {
-  margin-top: 12px;
-}
+.fee-preview-list { margin-top: 12px; }
 .fee-preview-list summary {
   display: inline-flex;
   align-items: center;
@@ -3300,9 +3394,7 @@ textarea { resize: vertical; min-height: 60px; }
   color: var(--accent);
   padding: 6px 0;
 }
-.fee-preview-list summary svg {
-  color: var(--accent);
-}
+.fee-preview-list summary svg { color: var(--accent); }
 .fee-preview-list ul {
   margin: 10px 0 0 20px;
   font-size: 12px;
@@ -3315,21 +3407,8 @@ textarea { resize: vertical; min-height: 60px; }
   font-family: 'Courier New', monospace;
 }
 
-@media (max-width: 640px) {
-  .fee-item-row {
-    grid-template-columns: 1fr;
-  }
-  .fee-batch__amounts {
-    width: 100%;
-    justify-content: space-between;
-  }
-  .fee-batch__amounts > div {
-    text-align: left;
-  }
-}
-
 /* ==========================================================================
-   GLOBAL SEARCH
+   40. GLOBAL SEARCH
    ========================================================================== */
 
 .global-search { position: relative; }
@@ -3376,10 +3455,7 @@ textarea { resize: vertical; min-height: 60px; }
 }
 .global-search__clear:hover { color: var(--red); }
 
-.global-search__results {
-  max-height: 400px;
-  overflow-y: auto;
-}
+.global-search__results { max-height: 400px; overflow-y: auto; }
 .global-search__empty {
   padding: 20px;
   text-align: center;
@@ -3425,20 +3501,13 @@ textarea { resize: vertical; min-height: 60px; }
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.global-search__item-text small {
-  font-size: 11px;
-  color: var(--muted);
-}
+.global-search__item-text small { font-size: 11px; color: var(--muted); }
 
 /* ==========================================================================
-   ANNOUNCEMENTS PAGE
+   41. ANNOUNCEMENTS PAGE
    ========================================================================== */
 
-.announcement-list {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
+.announcement-list { display: flex; flex-direction: column; gap: 14px; }
 
 .announcement-card {
   display: flex;
@@ -3446,7 +3515,6 @@ textarea { resize: vertical; min-height: 60px; }
   gap: 10px;
   margin-bottom: 0;
 }
-
 .announcement-card__head {
   display: flex;
   justify-content: space-between;
@@ -3454,18 +3522,13 @@ textarea { resize: vertical; min-height: 60px; }
   gap: 12px;
   flex-wrap: wrap;
 }
-
 .announcement-card__title {
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
 }
-.announcement-card__title h3 {
-  margin: 0;
-  font-size: 16px;
-}
-
+.announcement-card__title h3 { margin: 0; font-size: 16px; }
 .announcement-card__body {
   font-size: 14px;
   color: var(--text-2);
@@ -3477,7 +3540,6 @@ textarea { resize: vertical; min-height: 60px; }
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-
 .announcement-card__actions {
   display: flex;
   gap: 8px;
@@ -3487,51 +3549,7 @@ textarea { resize: vertical; min-height: 60px; }
 }
 
 /* ==========================================================================
-   PROFILE PHOTO UPLOADER
-   ========================================================================== */
-
-.photo-uploader {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  flex-wrap: wrap;
-}
-
-.photo-uploader__preview {
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  color: #fff;
-  display: grid;
-  place-items: center;
-  font-weight: 700;
-  font-size: 40px;
-  overflow: hidden;
-  flex-shrink: 0;
-  box-shadow: 0 6px 18px var(--accent-ring);
-}
-.photo-uploader__preview img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.photo-uploader__info {
-  flex: 1;
-  min-width: 200px;
-}
-
-/* Avatar in topbar / sidebar can show photos */
-.avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 50%;
-}
-
-/* ==========================================================================
-   RESULTS — session / term filter
+   42. RESULTS FILTER
    ========================================================================== */
 
 .results-filter {
@@ -3555,14 +3573,8 @@ textarea { resize: vertical; min-height: 60px; }
 .results-filter__item label svg { color: var(--muted); }
 .results-filter__item select { margin-top: 0; }
 
-@media (max-width: 640px) {
-  .results-filter { flex-direction: column; align-items: stretch; }
-  .photo-uploader { justify-content: center; text-align: center; }
-  .photo-uploader__info { text-align: center; }
-}
-
 /* ==========================================================================
-   ATTENDANCE — Teacher
+   43. ATTENDANCE — Teacher
    ========================================================================== */
 
 .attendance-toolbar {
@@ -3577,13 +3589,9 @@ textarea { resize: vertical; min-height: 60px; }
   width: auto;
   padding: 8px 12px;
 }
-.attendance-toolbar__spacer {
-  flex: 1;
-}
+.attendance-toolbar__spacer { flex: 1; }
 
-.attendance-list {
-  padding: 0;
-}
+.attendance-list { padding: 0; }
 .attendance-row {
   display: flex;
   align-items: center;
@@ -3601,16 +3609,9 @@ textarea { resize: vertical; min-height: 60px; }
   min-width: 180px;
   flex: 1;
 }
-.attendance-row__info strong {
-  font-size: 14px;
-  color: var(--text);
-}
+.attendance-row__info strong { font-size: 14px; color: var(--text); }
+.attendance-row__buttons { display: flex; gap: 6px; flex-wrap: wrap; }
 
-.attendance-row__buttons {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
 .attendance-btn {
   display: inline-flex;
   align-items: center;
@@ -3627,7 +3628,6 @@ textarea { resize: vertical; min-height: 60px; }
   transition: all .12s;
 }
 .attendance-btn:hover { background: var(--surface-3); }
-
 .attendance-btn--present { background: var(--green); color: #fff; border-color: var(--green); }
 .attendance-btn--absent  { background: var(--red);   color: #fff; border-color: var(--red); }
 .attendance-btn--late    { background: var(--amber); color: #fff; border-color: var(--amber); }
@@ -3644,11 +3644,10 @@ textarea { resize: vertical; min-height: 60px; }
 .status-bg-excused { background: rgba(37, 99, 235, .05); }
 
 /* ==========================================================================
-   TIMETABLE — teacher editor
+   44. TIMETABLE
    ========================================================================== */
 
 .timetable-editor { display: flex; flex-direction: column; gap: 14px; }
-
 .timetable-day { display: flex; flex-direction: column; gap: 12px; }
 .timetable-day h3 {
   font-size: 14px;
@@ -3657,7 +3656,6 @@ textarea { resize: vertical; min-height: 60px; }
   color: var(--accent);
   margin-bottom: 4px;
 }
-
 .timetable-slot-edit {
   display: grid;
   grid-template-columns: 80px 1fr 110px 110px auto;
@@ -3676,17 +3674,10 @@ textarea { resize: vertical; min-height: 60px; }
   color: var(--muted);
 }
 .timetable-slot-edit input,
-.timetable-slot-edit select {
-  margin-top: 4px;
-}
-
-/* ==========================================================================
-   TIMETABLE — student viewer
-   ========================================================================== */
+.timetable-slot-edit select { margin-top: 4px; }
 
 .timetable-view { display: flex; flex-direction: column; gap: 14px; }
 .timetable-slots { display: flex; flex-direction: column; gap: 8px; }
-
 .timetable-slot {
   display: grid;
   grid-template-columns: 160px 1fr auto;
@@ -3711,10 +3702,7 @@ textarea { resize: vertical; min-height: 60px; }
   gap: 2px;
   min-width: 0;
 }
-.timetable-slot__subject strong {
-  font-size: 14px;
-  color: var(--text);
-}
+.timetable-slot__subject strong { font-size: 14px; color: var(--text); }
 .timetable-slot__subject .muted {
   display: inline-flex;
   align-items: center;
@@ -3734,21 +3722,17 @@ textarea { resize: vertical; min-height: 60px; }
 }
 
 /* ==========================================================================
-   CALENDAR
+   45. CALENDAR
    ========================================================================== */
 
 .calendar-wrap { padding: 16px; }
-
 .calendar-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 16px;
 }
-.calendar-head h3 {
-  font-size: 18px;
-  margin: 0;
-}
+.calendar-head h3 { font-size: 18px; margin: 0; }
 
 .calendar-grid {
   display: grid;
@@ -3756,7 +3740,6 @@ textarea { resize: vertical; min-height: 60px; }
   gap: 6px;
   margin-bottom: 12px;
 }
-
 .calendar-dow {
   text-align: center;
   font-size: 11px;
@@ -3766,7 +3749,6 @@ textarea { resize: vertical; min-height: 60px; }
   padding: 6px 0;
   font-weight: 600;
 }
-
 .calendar-cell {
   aspect-ratio: 1;
   background: var(--surface);
@@ -3786,11 +3768,7 @@ textarea { resize: vertical; min-height: 60px; }
   border-color: var(--accent);
   background: var(--accent-soft);
 }
-.calendar-cell--empty {
-  background: transparent;
-  border: none;
-  cursor: default;
-}
+.calendar-cell--empty { background: transparent; border: none; cursor: default; }
 .calendar-cell--today {
   border-color: var(--accent);
   box-shadow: 0 0 0 2px var(--accent-ring);
@@ -3802,39 +3780,17 @@ textarea { resize: vertical; min-height: 60px; }
 }
 .calendar-cell--selected .calendar-cell__num { color: #fff; }
 
-.calendar-cell__num {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text);
-}
-.calendar-cell__dots {
-  display: flex;
-  gap: 3px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-.calendar-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  display: inline-block;
-}
-.calendar-cell__more {
-  font-size: 10px;
-  color: var(--muted);
-  font-weight: 700;
-}
+.calendar-cell__num { font-size: 14px; font-weight: 600; color: var(--text); }
+.calendar-cell__dots { display: flex; gap: 3px; align-items: center; flex-wrap: wrap; }
+.calendar-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+.calendar-cell__more { font-size: 10px; color: var(--muted); font-weight: 700; }
 
 .calendar-day-panel {
   margin-top: 20px;
   padding-top: 18px;
   border-top: 1px solid var(--border);
 }
-.calendar-day-panel h4 {
-  font-size: 14px;
-  margin-bottom: 12px;
-  color: var(--text);
-}
+.calendar-day-panel h4 { font-size: 14px; margin-bottom: 12px; color: var(--text); }
 
 .calendar-event {
   display: flex;
@@ -3851,47 +3807,10 @@ textarea { resize: vertical; min-height: 60px; }
   flex-shrink: 0;
 }
 .calendar-event__body { flex: 1; min-width: 0; }
-.calendar-event__body strong {
-  font-size: 14px;
-  color: var(--text);
-}
-
-@media (max-width: 768px) {
-  .timetable-slot-edit {
-    grid-template-columns: 1fr 1fr;
-  }
-  .timetable-slot {
-    grid-template-columns: 1fr;
-    gap: 6px;
-  }
-  .attendance-row__buttons {
-    width: 100%;
-  }
-  .calendar-cell { aspect-ratio: auto; min-height: 60px; padding: 6px; }
-  .calendar-cell__num { font-size: 12px; }
-}
+.calendar-event__body strong { font-size: 14px; color: var(--text); }
 
 /* ==========================================================================
-   PARENT ROLE ACCENT (warm amber)
-   ========================================================================== */
-
-[data-role="parent"] {
-  --accent:      #d97706;
-  --accent-2:    #b45309;
-  --accent-soft: #fffbeb;
-  --accent-text: #92400e;
-  --accent-ring: rgba(217, 119, 6, .2);
-}
-[data-theme="dark"][data-role="parent"] {
-  --accent:      #fbbf24;
-  --accent-2:    #fcd34d;
-  --accent-soft: #451a03;
-  --accent-text: #fde68a;
-  --accent-ring: rgba(251, 191, 36, .25);
-}
-
-/* ==========================================================================
-   PRINT PAGES (Report Card · ID Card)
+   46. PRINT PAGES (Report Card · ID Card · sticky toolbar)
    ========================================================================== */
 
 .print-page {
@@ -3900,34 +3819,72 @@ textarea { resize: vertical; min-height: 60px; }
   padding: 20px;
 }
 
+/* ---- Sticky print toolbar ---- */
 .print-toolbar {
+  position: sticky;
+  top: 12px;
+  z-index: 30;
+
   max-width: 900px;
   margin: 0 auto 20px;
+
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
-  background: var(--surface);
+
+  background: rgba(255, 255, 255, .88);
+  backdrop-filter: saturate(180%) blur(10px);
+  -webkit-backdrop-filter: saturate(180%) blur(10px);
+
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 12px 16px;
-  box-shadow: var(--shadow-sm);
+  padding: 10px 14px;
+
+  box-shadow:
+    0 4px 14px rgba(15, 23, 42, .08),
+    0 1px 0 rgba(255, 255, 255, .6) inset;
+
+  transition: box-shadow .2s ease, transform .2s ease;
+}
+[data-theme="dark"] .print-toolbar {
+  background: rgba(16, 26, 47, .88);
+  box-shadow:
+    0 4px 18px rgba(0, 0, 0, .45),
+    0 1px 0 rgba(255, 255, 255, .04) inset;
+}
+.print-toolbar:hover {
+  box-shadow:
+    0 6px 20px rgba(15, 23, 42, .12),
+    0 1px 0 rgba(255, 255, 255, .6) inset;
+}
+[data-theme="dark"] .print-toolbar:hover {
+  box-shadow:
+    0 6px 22px rgba(0, 0, 0, .55),
+    0 1px 0 rgba(255, 255, 255, .04) inset;
 }
 .print-toolbar__center {
   display: flex;
   gap: 10px;
+  align-items: center;
   flex: 1;
   justify-content: center;
+  flex-wrap: wrap;
+  min-width: 0;
 }
 .print-toolbar__center select {
   margin-top: 0;
+  min-width: 150px;
   width: auto;
-  min-width: 160px;
 }
 .print-toolbar__right {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
 }
+.print-toolbar__right .btn { white-space: nowrap; }
 
 /* ---------- Report Card ---------- */
 .report-card {
@@ -3940,7 +3897,6 @@ textarea { resize: vertical; min-height: 60px; }
   color: #0b1220;
   font-size: 13px;
 }
-
 .report-card__header {
   display: flex;
   justify-content: space-between;
@@ -3956,30 +3912,17 @@ textarea { resize: vertical; min-height: 60px; }
   letter-spacing: .5px;
   margin-bottom: 6px;
 }
-.report-card__header p {
-  font-size: 12px;
-  color: #475569;
-  margin: 2px 0;
-}
-.report-card__header em {
-  font-size: 11px;
-  color: #64748b;
-}
+.report-card__header p { font-size: 12px; color: #475569; margin: 2px 0; }
+.report-card__header em { font-size: 11px; color: #64748b; }
 
-.report-card__title {
-  text-align: right;
-}
+.report-card__title { text-align: right; }
 .report-card__title h2 {
   font-size: 16px;
   letter-spacing: 1.5px;
   color: #0b1220;
   margin-bottom: 4px;
 }
-.report-card__title p {
-  font-size: 13px;
-  color: #475569;
-  margin: 0;
-}
+.report-card__title p { font-size: 13px; color: #475569; margin: 0; }
 
 .report-card__student {
   display: grid;
@@ -4029,7 +3972,12 @@ textarea { resize: vertical; min-height: 60px; }
   font-size: 13px;
 }
 .report-card__summary > div { display: flex; flex-direction: column; gap: 4px; }
-.report-card__summary span { color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: .4px; }
+.report-card__summary span {
+  color: #64748b;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+}
 .report-card__summary strong { font-size: 16px; color: #0b1220; }
 
 .report-card__footer {
@@ -4064,7 +4012,6 @@ textarea { resize: vertical; min-height: 60px; }
   color: #64748b;
   margin: 0;
 }
-
 .report-card__meta {
   text-align: center;
   font-size: 10px;
@@ -4079,7 +4026,6 @@ textarea { resize: vertical; min-height: 60px; }
   justify-content: center;
   justify-items: center;
 }
-
 .id-card {
   width: 340px;
   height: 215px;
@@ -4094,7 +4040,6 @@ textarea { resize: vertical; min-height: 60px; }
   position: relative;
   overflow: hidden;
 }
-
 .id-card__head {
   display: flex;
   align-items: center;
@@ -4114,22 +4059,10 @@ textarea { resize: vertical; min-height: 60px; }
   font-size: 12px;
   letter-spacing: .5px;
 }
-.id-card__school strong {
-  display: block;
-  font-size: 13px;
-  line-height: 1.2;
-}
-.id-card__school span {
-  font-size: 10px;
-  opacity: .8;
-}
+.id-card__school strong { display: block; font-size: 13px; line-height: 1.2; }
+.id-card__school span { font-size: 10px; opacity: .8; }
 
-.id-card__body {
-  display: flex;
-  gap: 14px;
-  flex: 1;
-  align-items: center;
-}
+.id-card__body { display: flex; gap: 14px; flex: 1; align-items: center; }
 .id-card__photo {
   width: 72px;
   height: 72px;
@@ -4142,15 +4075,8 @@ textarea { resize: vertical; min-height: 60px; }
   font-weight: 700;
   flex-shrink: 0;
 }
-.id-card__photo img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.id-card__info {
-  flex: 1;
-  min-width: 0;
-}
+.id-card__photo img { width: 100%; height: 100%; object-fit: cover; }
+.id-card__info { flex: 1; min-width: 0; }
 .id-card__info h3 {
   font-size: 14px;
   margin-bottom: 6px;
@@ -4178,28 +4104,7 @@ textarea { resize: vertical; min-height: 60px; }
 }
 
 /* ==========================================================================
-   PRINT — hide chrome, expand content
-   ========================================================================== */
-
-@media print {
-  .print-page { padding: 0; background: #fff; }
-  .no-print { display: none !important; }
-  .report-card {
-    box-shadow: none;
-    border-radius: 0;
-    padding: 0;
-    max-width: 100%;
-  }
-  .id-sheet { gap: 20px; }
-  .id-card {
-    box-shadow: none;
-    border: 1px solid #0b1220;
-  }
-  .report-card__table .grade { background: transparent !important; color: #0b1220 !important; border: 1px solid #94a3b8; }
-}
-
-/* ==========================================================================
-   MESSAGES
+   47. MESSAGES
    ========================================================================== */
 
 .messages-layout {
@@ -4220,7 +4125,6 @@ textarea { resize: vertical; min-height: 60px; }
   flex-direction: column;
   background: var(--surface-2);
 }
-
 .messages-sidebar__search {
   display: flex;
   align-items: center;
@@ -4237,11 +4141,7 @@ textarea { resize: vertical; min-height: 60px; }
   font-size: 13px;
 }
 .messages-sidebar__search input:focus { box-shadow: none; }
-
-.messages-sidebar__list {
-  flex: 1;
-  overflow-y: auto;
-}
+.messages-sidebar__list { flex: 1; overflow-y: auto; }
 
 .messages-conv {
   display: flex;
@@ -4310,7 +4210,6 @@ textarea { resize: vertical; min-height: 60px; }
   background: var(--surface);
   min-width: 0;
 }
-
 .messages-chat__empty {
   flex: 1;
   display: flex;
@@ -4331,10 +4230,7 @@ textarea { resize: vertical; min-height: 60px; }
   border-bottom: 1px solid var(--border);
   background: var(--surface);
 }
-.messages-chat__head strong {
-  font-size: 14px;
-  color: var(--text);
-}
+.messages-chat__head strong { font-size: 14px; color: var(--text); }
 
 .messages-chat__body {
   flex: 1;
@@ -4354,7 +4250,6 @@ textarea { resize: vertical; min-height: 60px; }
   align-self: flex-start;
 }
 .msg--mine { align-self: flex-end; }
-
 .msg__bubble {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -4386,10 +4281,7 @@ textarea { resize: vertical; min-height: 60px; }
   border-top: 1px solid var(--border);
   background: var(--surface);
 }
-.messages-chat__input input {
-  flex: 1;
-  margin-top: 0;
-}
+.messages-chat__input input { flex: 1; margin-top: 0; }
 .messages-chat__input .btn { padding: 10px 14px; }
 
 .messages-contacts {
@@ -4413,11 +4305,7 @@ textarea { resize: vertical; min-height: 60px; }
   transition: background .12s;
 }
 .messages-contact:hover { background: var(--surface-3); }
-.messages-contact strong {
-  display: block;
-  font-size: 13px;
-  color: var(--text);
-}
+.messages-contact strong { display: block; font-size: 13px; color: var(--text); }
 .messages-contact .muted {
   display: inline-flex;
   align-items: center;
@@ -4425,116 +4313,8 @@ textarea { resize: vertical; min-height: 60px; }
   text-transform: capitalize;
 }
 
-@media (max-width: 768px) {
-  .messages-layout {
-    grid-template-columns: 1fr;
-    height: auto;
-  }
-  .messages-sidebar { border-right: none; border-bottom: 1px solid var(--border); max-height: 260px; }
-  .messages-chat { min-height: 400px; }
-}
-
 /* ==========================================================================
-   DISCUSSION
-   ========================================================================== */
-
-.discussion {
-  margin-top: 22px;
-  padding-top: 20px;
-  border-top: 1px solid var(--border);
-}
-
-.discussion__title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: .4px;
-  color: var(--muted);
-  margin-bottom: 14px;
-}
-
-.discussion__list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  max-height: 380px;
-  overflow-y: auto;
-  margin-bottom: 14px;
-}
-
-.discuss-comment {
-  display: flex;
-  gap: 10px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--border);
-}
-.discuss-comment:last-child { border-bottom: none; }
-.discuss-comment--reply {
-  margin-left: 42px;
-  border-left: 2px solid var(--accent-ring);
-  padding-left: 12px;
-}
-
-.discuss-comment__body { flex: 1; min-width: 0; }
-.discuss-comment__head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
-  flex-wrap: wrap;
-}
-.discuss-comment__head strong { font-size: 13px; color: var(--text); }
-.discuss-comment__body p {
-  font-size: 13px;
-  color: var(--text-2);
-  line-height: 1.5;
-  white-space: pre-wrap;
-}
-.discuss-comment__actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 6px;
-}
-.btn-link {
-  background: none;
-  border: none;
-  color: var(--muted);
-  cursor: pointer;
-  font: inherit;
-  font-size: 11px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 0;
-}
-.btn-link:hover { color: var(--accent); }
-.btn-link--danger:hover { color: var(--red); }
-
-.discussion__form {
-  padding-top: 12px;
-  border-top: 1px dashed var(--border);
-}
-.discussion__replying {
-  font-size: 12px;
-  color: var(--muted);
-  margin-bottom: 8px;
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-.discussion__replying strong { color: var(--accent); }
-
-.discussion__row {
-  display: flex;
-  gap: 8px;
-}
-.discussion__row input { margin-top: 0; flex: 1; }
-.discussion__row .btn { padding: 10px 14px; }
-
-/* ==========================================================================
-   ANALYTICS
+   48. ANALYTICS
    ========================================================================== */
 
 .analytics-row {
@@ -4553,14 +4333,8 @@ textarea { resize: vertical; min-height: 60px; }
   gap: 10px;
   min-width: 0;
 }
-.analytics-row__label strong {
-  font-size: 13px;
-  color: var(--text);
-}
-.analytics-row__label .muted {
-  font-size: 11px;
-  display: block;
-}
+.analytics-row__label strong { font-size: 13px; color: var(--text); }
+.analytics-row__label .muted { font-size: 11px; display: block; }
 
 .analytics-row__rank {
   width: 30px;
@@ -4586,7 +4360,6 @@ textarea { resize: vertical; min-height: 60px; }
   border-radius: 6px;
   transition: width .4s ease;
 }
-
 .analytics-row__value {
   font-size: 13px;
   font-weight: 700;
@@ -4594,65 +4367,8 @@ textarea { resize: vertical; min-height: 60px; }
   text-align: right;
 }
 
-@media (max-width: 640px) {
-  .analytics-row {
-    grid-template-columns: 1fr 60px;
-  }
-  .analytics-bar {
-    grid-column: 1 / -1;
-  }
-  .analytics-row__value {
-    text-align: right;
-  }
-}
-
 /* ==========================================================================
-   AUTH SIMPLE PAGES (Forgot / Reset Password)
-   ========================================================================== */
-
-.auth-simple {
-  min-height: 100vh;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-  background: var(--bg);
-}
-.auth-simple__card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 32px;
-  width: min(420px, 100%);
-  box-shadow: var(--shadow-lg);
-}
-.auth-simple__card > .btn--ghost {
-  margin-bottom: 20px;
-}
-.auth-simple__card h1 {
-  font-size: 22px;
-  margin-bottom: 6px;
-  color: var(--text);
-}
-.auth-simple__card .muted {
-  font-size: 13px;
-  margin-bottom: 20px;
-}
-.auth-simple__card form {
-  margin-top: 16px;
-}
-.auth-simple__footer {
-  margin-top: 20px;
-  text-align: center;
-  font-size: 12px;
-  color: var(--muted);
-}
-.auth-simple__footer a {
-  color: var(--accent);
-  text-decoration: none;
-}
-
-/* ==========================================================================
-   SMS META ROW
+   49. SMS META ROW
    ========================================================================== */
 
 .sms-meta {
@@ -4664,185 +4380,55 @@ textarea { resize: vertical; min-height: 60px; }
   margin-top: 6px;
   margin-bottom: 4px;
 }
-.sms-meta .btn-link {
-  font-size: 12px;
-  color: var(--accent);
-}
+.sms-meta .btn-link { font-size: 12px; color: var(--accent); }
 
 /* ==========================================================================
-   TEACHER TYPE PICKER (enroll teachers)
+   50. RESPONSIVE
    ========================================================================== */
-.teacher-type-toggle {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-.teacher-type-tile {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 14px 16px;
-  border: 2px solid var(--border);
-  background: var(--surface);
-  border-radius: 12px;
-  cursor: pointer;
-  font: inherit;
-  color: var(--text);
-  text-align: left;
-  transition: all .15s;
-}
-.teacher-type-tile:hover { border-color: var(--accent-ring); }
-.teacher-type-tile--active {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  box-shadow: 0 0 0 3px var(--accent-ring);
-}
-.teacher-type-tile svg { color: var(--accent); }
-.teacher-type-tile strong { font-size: 14px; }
-.teacher-type-tile .muted { font-size: 12px; line-height: 1.4; }
 
-/* ==========================================================================
-   ASSIGNMENTS EDITOR (enroll teachers — subject teachers)
-   ========================================================================== */
-.assignments-editor {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-.assignment-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr auto;
-  gap: 10px;
-  align-items: center;
-}
-.assignment-row input, .assignment-row select { margin-top: 0; }
-.assignment-row .btn { padding: 8px 10px; }
-
-@media (max-width: 640px) {
-  .teacher-type-toggle { grid-template-columns: 1fr; }
-  .assignment-row { grid-template-columns: 1fr; }
-}
-
-/* ==========================================================================
-   PAGE HEADER (fixes floating print/export buttons)
-   ========================================================================== */
-.page-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 22px;
-  flex-wrap: wrap;
-}
-.page-header > div:first-child {
-  min-width: 0;
-  flex: 1 1 260px;
-}
-.page-header h2 {
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.3px;
-  color: var(--text);
-  line-height: 1.2;
-  margin-bottom: 4px;
-}
-.page-header p {
-  font-size: 13px;
-  color: var(--muted);
-  line-height: 1.5;
-}
-.page-header__actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  flex-shrink: 0;
-}
-.page-header__actions .btn {
-  white-space: nowrap;
-}
-
-/* Mobile: stack the title above the buttons */
-@media (max-width: 640px) {
-  .page-header {
-    align-items: stretch;
-    gap: 12px;
+@media (max-width: 1024px) {
+  .login-split { grid-template-columns: 1fr; }
+  .login-hero {
+    padding: 40px 24px;
+    min-height: 380px;
+    align-items: flex-start;
   }
-  .page-header h2 { font-size: 19px; }
-  .page-header__actions {
-    width: 100%;
+  .login-hero__content { max-width: 100%; }
+  .login-hero__tagline h2 { font-size: 26px; }
+  .login-hero__features { display: none; }
+  .login-hero__stats {
+    grid-template-columns: repeat(4, 1fr);
+    padding: 14px 0;
   }
-  .page-header__actions .btn {
-    flex: 1 1 auto;
-  }
+  .login-hero__stat strong { font-size: 18px; }
+  .login-form-panel { padding: 32px 20px 40px; }
+  .login-form-panel__logo-mobile { display: grid; }
 }
 
-/* ==========================================================================
-   PRINT TOOLBAR (sticky action bar for report cards + ID cards)
-   ========================================================================== */
-.print-toolbar {
-  position: sticky;
-  top: 12px;
-  z-index: 30;
-
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-
-  background: rgba(255, 255, 255, .88);
-  backdrop-filter: saturate(180%) blur(10px);
-  -webkit-backdrop-filter: saturate(180%) blur(10px);
-
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 10px 14px;
-  margin-bottom: 20px;
-  box-shadow:
-    0 4px 14px rgba(15, 23, 42, .08),
-    0 1px 0 rgba(255, 255, 255, .6) inset;
-
-  transition: box-shadow .2s ease, transform .2s ease;
+@media (max-width: 1000px) {
+  .enroll-grid { grid-template-columns: 1fr; }
 }
 
-[data-theme="dark"] .print-toolbar {
-  background: rgba(16, 26, 47, .88);
-  box-shadow:
-    0 4px 18px rgba(0, 0, 0, .45),
-    0 1px 0 rgba(255, 255, 255, .04) inset;
+@media (max-width: 900px) {
+  .grid-2 { grid-template-columns: 1fr; }
 }
 
-/* Give the toolbar a nicer centered layout */
-.print-toolbar__center {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  flex: 1;
-  justify-content: center;
-  flex-wrap: wrap;
-  min-width: 0;
-}
-.print-toolbar__center select {
-  margin-top: 0;
-  min-width: 150px;
-  width: auto;
-}
-
-.print-toolbar__right {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  flex-shrink: 0;
-}
-.print-toolbar__right .btn {
-  white-space: nowrap;
-}
-
-/* Mobile: stack nicely */
 @media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    transform: translateX(-100%);
+    transition: transform .25s ease;
+    z-index: 40;
+    box-shadow: var(--shadow-lg);
+  }
+  .sidebar--open { transform: translateX(0); }
+  .overlay { display: block; }
+  .menu-btn { display: inline-flex; }
+  .layout__content { padding: 16px; }
+  .topbar { padding: 12px 16px; }
+
   .print-toolbar {
     top: 8px;
     padding: 10px;
@@ -4853,193 +4439,127 @@ textarea { resize: vertical; min-height: 60px; }
     justify-content: stretch;
     margin-top: 4px;
   }
-  .print-toolbar__center select {
-    flex: 1;
-  }
+  .print-toolbar__center select { flex: 1; }
   .print-toolbar__right {
     flex: 1;
     justify-content: flex-end;
   }
+
+  .timetable-slot-edit { grid-template-columns: 1fr 1fr; }
+  .timetable-slot { grid-template-columns: 1fr; gap: 6px; }
+  .attendance-row__buttons { width: 100%; }
+  .calendar-cell { aspect-ratio: auto; min-height: 60px; padding: 6px; }
+  .calendar-cell__num { font-size: 12px; }
+
+  .messages-layout { grid-template-columns: 1fr; height: auto; }
+  .messages-sidebar {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    max-height: 260px;
+  }
+  .messages-chat { min-height: 400px; }
 }
 
-/* Sticky hover shadow (nice feedback while scrolling) */
-.print-toolbar:hover {
-  box-shadow:
-    0 6px 20px rgba(15, 23, 42, .12),
-    0 1px 0 rgba(255, 255, 255, .6) inset;
-}
-[data-theme="dark"] .print-toolbar:hover {
-  box-shadow:
-    0 6px 22px rgba(0, 0, 0, .55),
-    0 1px 0 rgba(255, 255, 255, .04) inset;
+@media (max-width: 640px) {
+  .login-hero {
+    min-height: 280px;
+    padding: 28px 20px;
+  }
+  .login-hero__tagline h2 { font-size: 22px; }
+  .login-hero__tagline p  { font-size: 13px; }
+  .login-hero__stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    padding: 12px 0;
+  }
+  .login-hero__footer { display: none; }
+  .login-form-panel { padding: 28px 20px 36px; }
+  .login-form-panel__head h2 { font-size: 22px; }
+  .login-trust { gap: 12px; }
+
+  .class-card__meta { flex-direction: column; gap: 4px; }
+  .class-teacher__contacts { margin-left: 0; width: 100%; }
+
+  .receipt-preview { padding: 16px; }
+  .receipt-preview__meta,
+  .receipt-preview__student { grid-template-columns: 1fr; }
+
+  .page-header {
+    align-items: stretch;
+    gap: 12px;
+  }
+  .page-header h2 { font-size: 19px; }
+  .page-header__actions { width: 100%; }
+  .page-header__actions .btn { flex: 1 1 auto; }
+
+  .teacher-type-toggle { grid-template-columns: 1fr; }
+  .assignment-row { grid-template-columns: 1fr; }
+
+  .fee-item-row { grid-template-columns: 1fr; }
+  .fee-batch__amounts { width: 100%; justify-content: space-between; }
+  .fee-batch__amounts > div { text-align: left; }
+
+  .results-filter { flex-direction: column; align-items: stretch; }
+  .photo-uploader { justify-content: center; text-align: center; }
+  .photo-uploader__info { text-align: center; }
+
+  .analytics-row { grid-template-columns: 1fr 60px; }
+  .analytics-bar { grid-column: 1 / -1; }
 }
 
-/* ==========================================================================
-   LOGIN — form field improvements
-   ========================================================================== */
-
-/* Password field with eye toggle */
-.login-password-wrap {
-  position: relative;
-}
-.login-password-wrap input {
-  padding-right: 44px !important;
-}
-.login-password-toggle {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  color: var(--muted);
-  padding: 6px;
-  border-radius: 8px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: background .15s, color .15s;
-}
-.login-password-toggle:hover {
-  background: var(--surface-3);
-  color: var(--text-2);
+@media (max-width: 600px) {
+  .user-menu__name,
+  .topbar__date { display: none; }
+  .modal { padding: 16px; }
+  .card { padding: 16px; }
 }
 
-/* Row: password field + forgot link */
-.login-form__row {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-top: 6px;
-  margin-bottom: 6px;
-}
-.login-form__forgot {
-  font-size: 12px;
-  color: var(--accent);
-  font-weight: 500;
-  text-decoration: none;
-}
-.login-form__forgot:hover {
-  text-decoration: underline;
-  color: var(--accent-2);
-}
-
-/* Compact 2x2 demo grid */
-.login-demo__btns--grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-.login-demo__btns--grid button {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  cursor: pointer;
-  font: inherit;
-  color: var(--text-2);
-  text-align: left;
-  transition: all .15s;
-  min-width: 0;
-}
-.login-demo__btns--grid button:hover {
-  background: var(--accent-soft);
-  border-color: var(--accent-ring);
-  transform: translateY(-1px);
-}
-.login-demo__btns--grid button svg {
-  color: var(--accent);
-  flex-shrink: 0;
-}
-.login-demo__btns--grid button > div {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-  overflow: hidden;
-}
-.login-demo__btns--grid button strong {
-  font-size: 12.5px;
-  color: var(--text);
-  font-weight: 600;
-}
-.login-demo__btns--grid button span {
-  font-size: 10.5px;
-  color: var(--muted);
-  font-family: 'Courier New', monospace;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+@media (max-width: 500px) {
+  .profile-form__actions { flex-direction: column-reverse; }
+  .profile-form__actions .btn { width: 100%; }
 }
 
 @media (max-width: 420px) {
-  .login-demo__btns--grid {
-    grid-template-columns: 1fr;
+  .login-demo__btns--grid { grid-template-columns: 1fr; }
+}
+
+/* ==========================================================================
+   51. PRINT (merged from two blocks)
+   ========================================================================== */
+
+@media print {
+  /* Hide chrome */
+  .sidebar,
+  .topbar,
+  .page-header__actions,
+  .print-toolbar,
+  .no-print { display: none !important; }
+
+  /* Layout reset */
+  body { background: #fff; }
+  .layout__content { padding: 0; }
+  .card { box-shadow: none; border: 1px solid #ddd; }
+
+  /* Report head */
+  .report-head { background: #f4f6fb !important; color: #000 !important; }
+  .report-head__avatar { background: #e2e8f0; color: #000; }
+
+  /* Print pages */
+  .print-page { padding: 0; background: #fff; }
+  .report-card {
+    box-shadow: none;
+    border-radius: 0;
+    padding: 0;
+    max-width: 100%;
   }
-}
-
-/* Nicer error alert on login */
-.login-form-panel .alert {
-  border-radius: 12px;
-  animation: shakeIn .28s ease-out;
-}
-@keyframes shakeIn {
-  0%   { transform: translateX(0); }
-  25%  { transform: translateX(-4px); }
-  50%  { transform: translateX(4px); }
-  75%  { transform: translateX(-2px); }
-  100% { transform: translateX(0); }
-}
-
-/* ==========================================================================
-   BACK LINK (used above PageHeader on detail views)
-   ========================================================================== */
-.back-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: transparent;
-  border: none;
-  color: var(--muted);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 500;
-  padding: 4px 0;
-  margin-bottom: 10px;
-  cursor: pointer;
-  transition: color .15s, transform .15s;
-}
-.back-link:hover {
-  color: var(--accent);
-  transform: translateX(-2px);
-}
-.back-link svg { flex-shrink: 0; }
-
-/* ==========================================================================
-   ADMIN RESULTS — detail-view action buttons
-   Groups buttons nicely even if PageHeader wraps them
-   ========================================================================== */
-.page-header__actions .btn + .btn {
-  margin-left: 0;
-}
-
-/* Print Report / ID Card buttons — give them a subtle group look */
-.action-group {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-}
-.action-group .btn {
-  border-radius: 8px;
-}
-[data-theme="dark"] .action-group {
-  background: var(--surface);
+  .id-sheet { gap: 20px; }
+  .id-card {
+    box-shadow: none;
+    border: 1px solid #0b1220;
+  }
+  .report-card__table .grade {
+    background: transparent !important;
+    color: #0b1220 !important;
+    border: 1px solid #94a3b8;
+  }
 }
