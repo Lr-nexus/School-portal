@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  FiPrinter, FiArrowLeft, FiAlertCircle, FiDownload,
+  FiPrinter, FiArrowLeft, FiAlertCircle,
+  FiDownload, FiLoader,
 } from 'react-icons/fi';
 import { api } from '../../api/api';
+import { downloadElementAsPdf } from '../../utils/pdfHelpers';
 
 const BASE_URL =
   (process.env.REACT_APP_BACKEND_URL ||
@@ -17,6 +19,8 @@ export default function StudentIDCard() {
 
   const [data, setData] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const sheetRef = useRef(null);
 
   useEffect(() => {
     api(`/reports/id-card/${studentId}`)
@@ -24,11 +28,10 @@ export default function StudentIDCard() {
       .catch((e) => setErrorMsg(e.message));
   }, [studentId]);
 
-  /* ---------- Keyboard shortcut: Ctrl/Cmd + P ---------- */
+  /* Ctrl/Cmd + P */
   useEffect(() => {
     const handler = (e) => {
-      const isPrintCombo =
-        (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p';
+      const isPrintCombo = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p';
       if (isPrintCombo) {
         e.preventDefault();
         window.print();
@@ -90,6 +93,21 @@ export default function StudentIDCard() {
     URL.revokeObjectURL(url);
   };
 
+  /* ⭐ Download PDF */
+  const downloadPdf = async () => {
+    if (!sheetRef.current || pdfBusy) return;
+    setPdfBusy(true);
+    try {
+      const filename = `id-card-${data.student.admissionNo}.pdf`.replace(/\s+/g, '-');
+      await downloadElementAsPdf(sheetRef.current, filename);
+    } catch (err) {
+      console.error('PDF download failed:', err);
+      alert('Could not generate the PDF. Please try again.');
+    } finally {
+      setPdfBusy(false);
+    }
+  };
+
   const idCardJSX = (
     <div className="id-card">
       <div className="id-card__head">
@@ -137,7 +155,6 @@ export default function StudentIDCard() {
 
   return (
     <div className="print-page">
-      {/* Toolbar — hidden when printing */}
       <div className="print-toolbar no-print">
         <button className="btn btn--ghost" onClick={() => navigate(-1)}>
           <FiArrowLeft size={16} /> Back
@@ -154,16 +171,28 @@ export default function StudentIDCard() {
             <FiDownload size={16} /> .txt
           </button>
           <button
-            className="btn btn--primary"
+            className="btn btn--ghost"
             onClick={printCards}
             title="Print or Save as PDF (Ctrl/Cmd + P)"
           >
-            <FiPrinter size={16} /> Print / Save as PDF
+            <FiPrinter size={16} /> Print
+          </button>
+          <button
+            className="btn btn--primary"
+            onClick={downloadPdf}
+            disabled={pdfBusy}
+            title="Download as PDF — one click"
+          >
+            {pdfBusy
+              ? <><FiLoader size={16} className="spin" /> Preparing…</>
+              : <><FiDownload size={16} /> Download PDF</>}
           </button>
         </div>
       </div>
 
-      <div className="id-sheet">
+      {/* Captured for PDF */}
+      <div className="id-sheet" ref={sheetRef}>
+        {idCardJSX}
         {idCardJSX}
       </div>
     </div>

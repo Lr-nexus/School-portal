@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FiBarChart2, FiCalendar, FiAlertCircle,
-  FiPrinter, FiCreditCard,
+  FiPrinter, FiCreditCard, FiDownload,
 } from 'react-icons/fi';
 import { api } from '../../api/api';
 import PageHeader from '../../components/PageHeader';
@@ -58,6 +58,15 @@ export default function StudentResults() {
   const hasAnyHistory = data.sessions.length > 0;
   const studentId = data.studentId;
 
+  const downloadPdf = () => {
+    navigate(
+      `/print/report-card/${studentId}` +
+        `?session=${encodeURIComponent(session)}` +
+        `&term=${encodeURIComponent(term)}` +
+        `&autoDownloadPdf=1`
+    );
+  };
+
   return (
     <div>
       <PageHeader
@@ -78,16 +87,24 @@ export default function StudentResults() {
               <FiCreditCard size={16} /> My ID Card
             </button>
             <button
-              className="btn btn--primary"
+              className="btn btn--ghost"
               onClick={() =>
                 navigate(
                   `/print/report-card/${studentId}?session=${encodeURIComponent(session)}&term=${encodeURIComponent(term)}`
                 )
               }
               disabled={!hasResults}
-              title="Open your printable report card"
+              title="Open the printable report card"
             >
               <FiPrinter size={16} /> Print Report Card
+            </button>
+            <button
+              className="btn btn--primary"
+              onClick={downloadPdf}
+              disabled={!hasResults}
+              title="Download your report card as PDF"
+            >
+              <FiDownload size={16} /> Download PDF
             </button>
           </>
         )}
@@ -114,7 +131,6 @@ export default function StudentResults() {
               </select>
             </label>
           </div>
-
           <div className="results-filter__item">
             <label>
               <FiCalendar size={14} /> Term

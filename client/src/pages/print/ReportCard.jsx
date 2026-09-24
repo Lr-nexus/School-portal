@@ -1,13 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   FiPrinter, FiArrowLeft, FiAlertCircle,
-  FiDownload, FiFileText,
+  FiDownload, FiFileText, FiLoader,
 } from 'react-icons/fi';
 import { api } from '../../api/api';
+import { downloadElementAsPdf } from '../../utils/pdfHelpers';
 
 /* --------------------------------------------------------------
-   Local CSV helpers
+   CSV helpers
 -------------------------------------------------------------- */
 function escapeCSV(val) {
   const s = String(val ?? '');
@@ -21,20 +22,15 @@ function buildReportCardCSV(data) {
   const rows = [];
   const push = (...cols) => rows.push(cols.map(escapeCSV).join(','));
 
-  /* Header block */
   push(data.school.name.toUpperCase());
   push('Address:', data.school.address);
   push('Phone:', data.school.phone, 'Email:', data.school.email);
   push('Motto:', data.school.motto);
   push('');
-
-  /* Session info */
   push('Session', data.session || '');
   push('Term',    data.term || '');
   push('Issued',  data.issuedAt || '');
   push('');
-
-  /* Student */
   push('STUDENT DETAILS');
   push('Name',          data.student.name);
   push('Admission No',  data.student.admissionNo);
@@ -43,16 +39,12 @@ function buildReportCardCSV(data) {
   push('Gender',        data.student.gender || '—');
   push('Form Teacher',  data.formTeacher || '—');
   push('');
-
-  /* Subject table */
   push('SUBJECT RESULTS');
   push('Subject', 'CA (30)', 'Exam (70)', 'Total', 'Grade', 'Remark');
   data.subjects.forEach((s) => {
     push(s.subject, s.ca, s.exam, s.total, s.grade, s.remark);
   });
   push('');
-
-  /* Summary */
   push('SUMMARY');
   push('Average',           `${data.average}%`);
   push('Overall Grade',     data.overallGrade);
@@ -60,15 +52,10 @@ function buildReportCardCSV(data) {
     data.position ? `${data.position} of ${data.classSize}` : '—');
   push('Attendance',        `${data.attendanceRate}%`);
   push('');
-
-  /* Remark */
   push('FORM TEACHER REMARK');
   push(data.overallRemark || '');
   push('');
-
-  /* Footer */
   push('Computer-generated document — ' + data.school.name);
-
   return rows.join('\n');
 }
 
@@ -96,6 +83,14 @@ export default function ReportCard() {
   const [errorMsg, setErrorMsg] = useState('');
   const [session, setSession] = useState(searchParams.get('session') || '');
   const [term, setTerm] = useState(searchParams.get('term') || '');
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [autoTriggered, setAutoTriggered] = useState(false);
+
+  const cardRef = useRef(null);
+  const autoDownloadFired = useRef(false);
+
+  /* ⭐ Read the auto-download flag */
+  const autoDownloadPdf = searchParams.get('autoDownloadPdf') === '1';
 
   const load = async (s, t) => {
     try {
@@ -116,13 +111,10 @@ export default function ReportCard() {
 
   useEffect(() => { load(); }, [studentId]);
 
-  /* --------------------------------------------------------------
-     Keyboard shortcut: Ctrl/Cmd + P → print
-     -------------------------------------------------------------- */
+  /* Ctrl/Cmd + P shortcut */
   useEffect(() => {
     const handler = (e) => {
-      const isPrintCombo =
-        (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p';
+      const isPrintCombo = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p';
       if (isPrintCombo) {
         e.preventDefault();
         window.print();
@@ -131,6 +123,27 @@ export default function ReportCard() {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, []);
+
+  /* --------------------------------------------------------------
+     ⭐ Auto-download PDF when ?autoDownloadPdf=1 is present.
+     Waits for data + DOM, then fires the download once.
+     -------------------------------------------------------------- */
+  useEffect(() => {
+    if (!autoDownloadPdf) return;
+    if (autoDownloadFired.current) return;
+    if (!data || !cardRef.current) return;
+
+    autoDownloadFired.current = true;
+    setAutoTriggered(true);
+
+    // Small delay so the user briefly sees the report card before the download
+    const t = setTimeout(() => {
+      downloadPdf(true);
+    }, 500);
+
+    return () => clearTimeout(t);
+    // eslint-disable-next-line
+  }, [autoDownloadPdf, data]);
 
   if (errorMsg) {
     return (
@@ -149,7 +162,7 @@ export default function ReportCard() {
     return <div className="print-page"><div className="loader">Loading…</div></div>;
   }
 
-  /* -------------------- TEXT EXPORT -------------------- */
+  /* -------------------- Exports -------------------- */
   const buildText = () => {
     const lines = [
       '==============================================',
@@ -201,11 +214,38 @@ export default function ReportCard() {
     downloadCSVFile(csv, filename);
   };
 
+  /* ⭐ Download PDF — accepts silent=true when auto-triggered */
+  const downloadPdf = async (silent = false) => {
+    if (!cardRef.current || pdfBusy) return;
+    setPdfBusy(true);
+    try {
+      const filename =
+        `report-card-${data.student.admissionNo}-${data.session}-${data.term}.pdf`
+          .replace(/\s+/g, '-');
+      await downloadElementAsPdf(cardRef.current, filename);
+    } catch (err) {
+      console.error('PDF download failed:', err);
+      if (!silent) alert('Could not generate the PDF. Please try again.');
+    } finally {
+      setPdfBusy(false);
+    }
+  };
+
   const printNow = () => window.print();
 
   return (
     <div className="print-page">
-      {/* Toolbar — hidden when printing */}
+      {/* Auto-download banner */}
+      {autoTriggered && (
+        <div
+          className="alert alert--info no-print"
+          style={{ maxWidth: 900, margin: '0 auto 16px' }}
+        >
+          <FiDownload size={16} />
+          Generating your PDF… it will download in a moment. You can also use the buttons below.
+        </div>
+      )}
+
       <div className="print-toolbar no-print">
         <button className="btn btn--ghost" onClick={() => navigate(-1)}>
           <FiArrowLeft size={16} /> Back
@@ -237,22 +277,31 @@ export default function ReportCard() {
           <button
             className="btn btn--ghost"
             onClick={downloadCsv}
-            title="Download as CSV (opens in Excel / Sheets)"
+            title="Download as CSV"
           >
             <FiDownload size={16} /> .csv
           </button>
           <button
-            className="btn btn--primary"
+            className="btn btn--ghost"
             onClick={printNow}
             title="Print or Save as PDF (Ctrl/Cmd + P)"
           >
-            <FiPrinter size={16} /> Print / Save as PDF
+            <FiPrinter size={16} /> Print
+          </button>
+          <button
+            className="btn btn--primary"
+            onClick={() => downloadPdf(false)}
+            disabled={pdfBusy}
+            title="Download as PDF — one click"
+          >
+            {pdfBusy
+              ? <><FiLoader size={16} className="spin" /> Preparing…</>
+              : <><FiDownload size={16} /> Download PDF</>}
           </button>
         </div>
       </div>
 
-      {/* The actual report card */}
-      <div className="report-card">
+      <div className="report-card" ref={cardRef}>
         <div className="report-card__header">
           <div>
             <h1>{data.school.name}</h1>
@@ -308,9 +357,7 @@ export default function ReportCard() {
           <div><span>Overall Grade:</span> <strong>{data.overallGrade}</strong></div>
           <div>
             <span>Position in Class:</span>{' '}
-            <strong>
-              {data.position ? `${data.position} of ${data.classSize}` : '—'}
-            </strong>
+            <strong>{data.position ? `${data.position} of ${data.classSize}` : '—'}</strong>
           </div>
           <div><span>Attendance:</span> <strong>{data.attendanceRate}%</strong></div>
         </div>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   FiBarChart2, FiCalendar, FiPrinter, FiAlertCircle,
-  FiCreditCard,
+  FiCreditCard, FiDownload,
 } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../api/api';
@@ -23,7 +23,9 @@ export default function ParentResults() {
       const qs = new URLSearchParams();
       if (s) qs.append('session', s);
       if (t) qs.append('term', t);
-      const res = await api('/parents/me/child/results' + (qs.toString() ? '?' + qs.toString() : ''));
+      const res = await api(
+        '/parents/me/child/results' + (qs.toString() ? '?' + qs.toString() : '')
+      );
       setData(res);
       setSession(res.current.session);
       setTerm(res.current.term);
@@ -41,7 +43,9 @@ export default function ParentResults() {
     return (
       <div>
         <PageHeader title="Child Results" />
-        <div className="alert alert--error"><FiAlertCircle size={16} /> {errorMsg}</div>
+        <div className="alert alert--error">
+          <FiAlertCircle size={16} /> {errorMsg}
+        </div>
       </div>
     );
   }
@@ -49,6 +53,16 @@ export default function ParentResults() {
 
   const hasResults = data.subjects.length > 0;
   const childId = data.child.id;
+
+  /* Opens the report card page and triggers auto-download */
+  const downloadPdf = () => {
+    navigate(
+      `/print/report-card/${childId}` +
+        `?session=${encodeURIComponent(session)}` +
+        `&term=${encodeURIComponent(term)}` +
+        `&autoDownloadPdf=1`
+    );
+  };
 
   return (
     <div>
@@ -64,32 +78,46 @@ export default function ParentResults() {
           <FiCreditCard size={16} /> ID Card
         </button>
         <button
-          className="btn btn--primary"
+          className="btn btn--ghost"
           onClick={() =>
             navigate(
               `/print/report-card/${childId}?session=${encodeURIComponent(session)}&term=${encodeURIComponent(term)}`
             )
           }
           disabled={!hasResults}
-          title="Open your child's printable report card"
+          title="Open the report card for printing"
         >
           <FiPrinter size={16} /> Print Report Card
+        </button>
+        <button
+          className="btn btn--primary"
+          onClick={downloadPdf}
+          disabled={!hasResults}
+          title="Download your child's report card as PDF"
+        >
+          <FiDownload size={16} /> Download PDF
         </button>
       </PageHeader>
 
       {data.sessions.length > 0 && (
         <div className="card results-filter">
           <div className="results-filter__item">
-            <label><FiCalendar size={14} /> Session
+            <label>
+              <FiCalendar size={14} /> Session
               <select value={session} onChange={(e) => load(e.target.value, term)}>
-                {data.sessions.map((s) => <option key={s} value={s}>{s}</option>)}
+                {data.sessions.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
               </select>
             </label>
           </div>
           <div className="results-filter__item">
-            <label><FiCalendar size={14} /> Term
+            <label>
+              <FiCalendar size={14} /> Term
               <select value={term} onChange={(e) => load(session, e.target.value)}>
-                {data.terms.map((t) => <option key={t} value={t}>{t}</option>)}
+                {data.terms.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
               </select>
             </label>
           </div>
