@@ -49,7 +49,7 @@ router.get('/me', async (req, res) => {
   const a = rows[0];
   res.json({
     id: a.id, name: a.name, title: a.title, email: a.email,
-    phone: a.phone, office: a.office, joined: a.joined
+    phone: a.phone, office: a.office, joined: a.joined, photo: a.photo
   });
 });
 
@@ -70,7 +70,7 @@ router.patch('/me', async (req, res) => {
     await pool.execute(`UPDATE admins SET ${updates.join(', ')} WHERE user_id = ?`, values);
   }
 
-  // ⭐ Sync the shared users table
+  // Sync the shared users table
   const userUpdates = [], userValues = [];
   if (req.body.name !== undefined)  { userUpdates.push('name = ?');  userValues.push(req.body.name); }
   if (req.body.email !== undefined) { userUpdates.push('email = ?'); userValues.push(String(req.body.email).toLowerCase()); }
@@ -85,7 +85,7 @@ router.patch('/me', async (req, res) => {
     message: 'Profile updated',
     admin: {
       id: a.id, name: a.name, title: a.title, email: a.email,
-      phone: a.phone, office: a.office, joined: a.joined
+      phone: a.phone, office: a.office, joined: a.joined, photo: a.photo
     }
   });
 });
@@ -520,7 +520,6 @@ router.delete('/parents/:id', async (req, res) => {
     }
     const parent = rows[0];
 
-    // Unlink from student
     await conn.execute(
       'UPDATE students SET parent_id = NULL WHERE parent_id = ?',
       [parent.id]
@@ -552,6 +551,7 @@ router.get('/students', async (req, res) => {
     className: s.class_name, gender: s.gender, dob: s.dob,
     guardianName: s.guardian_name, guardianPhone: s.guardian_phone,
     address: s.address, email: s.email, house: s.house,
+    photo: s.photo || null,
   })));
 });
 
@@ -876,6 +876,112 @@ router.get('/students/:id/results', async (req, res) => {
 });
 
 /* ==================================================================
+   ⭐ NEW: RESULTS — ADMIN ENTRY / UPDATE / DELETE
+================================================================== */
+
+/* Create or update a single subject result */
+router.post('/students/:id/results', async (req, res) => {
+  const { session, term, subject, ca, exam } = req.body;
+
+  if (!session || !term || !subject) {
+    return res.status(400).json({ message: 'session, term and subject are required' });
+  }
+
+  const caNum = Math.max(0, Math.min(30, Number(ca) || 0));
+  const examNum = Math.max(0, Math.min(70, Number(exam) || 0));
+
+  const [studentRows] = await pool.execute(
+    'SELECT id FROM students WHERE id = ?',
+    [req.params.id]
+  );
+  if (!studentRows.length) {
+    return res.status(404).json({ message: 'Student not found' });
+  }
+
+  const [existing] = await pool.execute(
+    `SELECT id FROM results
+     WHERE student_id = ? AND session = ? AND term = ? AND subject = ?`,
+    [req.params.id, session, term, subject]
+  );
+
+  if (existing.length) {
+    await pool.execute(
+      'UPDATE results SET ca = ?, exam = ? WHERE id = ?',
+      [caNum, examNum, existing[0].id]
+    );
+  } else {
+    await pool.execute(
+      `INSERT INTO results (student_id, session, term, subject, ca, exam)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [req.params.id, session, term, subject, caNum, examNum]
+    );
+  }
+
+  res.json({
+    message: existing.length ? 'Result updated' : 'Result saved',
+    total: caNum + examNum,
+  });
+});
+
+/* Bulk save an entire class's results for one subject */
+router.post('/results/bulk', async (req, res) => {
+  const { session, term, subject, entries } = req.body;
+
+  if (!session || !term || !subject || !Array.isArray(entries)) {
+    return res.status(400).json({
+      message: 'session, term, subject and entries are required',
+    });
+  }
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    for (const e of entries) {
+      const caNum = Math.max(0, Math.min(30, Number(e.ca) || 0));
+      const examNum = Math.max(0, Math.min(70, Number(e.exam) || 0));
+
+      const [existing] = await conn.execute(
+        `SELECT id FROM results
+         WHERE student_id = ? AND session = ? AND term = ? AND subject = ?`,
+        [e.studentId, session, term, subject]
+      );
+
+      if (existing.length) {
+        await conn.execute(
+          'UPDATE results SET ca = ?, exam = ? WHERE id = ?',
+          [caNum, examNum, existing[0].id]
+        );
+      } else {
+        await conn.execute(
+          `INSERT INTO results (student_id, session, term, subject, ca, exam)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [e.studentId, session, term, subject, caNum, examNum]
+        );
+      }
+    }
+
+    await conn.commit();
+    res.json({ message: `Saved results for ${entries.length} student(s)` });
+  } catch (err) {
+    await conn.rollback();
+    console.error('Bulk results failed:', err);
+    res.status(500).json({ message: err.message || 'Failed to save results' });
+  } finally {
+    conn.release();
+  }
+});
+
+/* Delete one result */
+router.delete('/students/:id/results/:resultId', async (req, res) => {
+  await pool.execute(
+    'DELETE FROM results WHERE id = ? AND student_id = ?',
+    [req.params.resultId, req.params.id]
+  );
+  res.json({ message: 'Result deleted' });
+});
+
+/* ==================================================================
    TEACHERS — LIST
 ================================================================== */
 router.get('/teachers', async (req, res) => {
@@ -886,6 +992,7 @@ router.get('/teachers', async (req, res) => {
     subjects: JSON.parse(t.subjects || '[]'),
     formClass: t.form_class, qualification: t.qualification,
     address: t.address, joined: t.joined,
+    photo: t.photo || null,
   })));
 });
 

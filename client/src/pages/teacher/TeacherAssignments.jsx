@@ -229,10 +229,10 @@ export default function TeacherAssignments() {
             )}
 
             <h4 className="modal__section-title">
-              Submissions ({active.submissions.length})
+              Submissions ({active.submissions?.length || 0})
             </h4>
 
-            {active.submissions.map((s) => (
+            {active.submissions?.map((s) => (
               <SubmissionRow
                 key={s.id}
                 submission={s}
@@ -242,9 +242,12 @@ export default function TeacherAssignments() {
               />
             ))}
 
-            {!active.submissions.length && (
+            {!active.submissions?.length && (
               <p className="muted">No submissions yet.</p>
             )}
+
+            {/* ✅ Discussion panel lives once, at assignment level */}
+            <DiscussionPanel assignmentId={active.id} />
 
             <div className="modal__actions">
               <button className="btn btn--ghost" onClick={close}>Close</button>
@@ -281,7 +284,7 @@ function SubmissionRow({ submission, totalMarks, onGrade, onDownload }) {
   return (
     <div className="submission">
       <div className="submission__head">
-        <div className="avatar avatar--sm">{submission.studentName.charAt(0)}</div>
+        <div className="avatar avatar--sm">{(submission.studentName || '?').charAt(0)}</div>
         <div>
           <strong>{submission.studentName}</strong>
           <div className="muted" style={{ fontSize: 12 }}>
@@ -328,7 +331,6 @@ function SubmissionRow({ submission, totalMarks, onGrade, onDownload }) {
             : <><FiCheckCircle size={14} /> {busy ? 'Saving…' : (submission.score === null ? 'Grade' : 'Update')}</>}
         </button>
       </form>
-      <DiscussionPanel assignmentId={active.id} />
 
       {err && <p className="muted" style={{ color: 'var(--red)', fontSize: 12 }}>{err}</p>}
     </div>
