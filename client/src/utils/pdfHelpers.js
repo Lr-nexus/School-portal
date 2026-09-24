@@ -13,15 +13,14 @@ const A4_PORTRAIT = {
     scrollX: 0,
     scrollY: 0,
     windowWidth: 900,
+    logging: false,
   },
   jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
 };
 
 /**
  * Convert a DOM element to a PDF and trigger a download.
- * @param {HTMLElement} element  The element to render (e.g. `.report-card`)
- * @param {string} filename      Download filename (will be sanitized)
- * @param {Object} [extra]       Extra options (e.g. pagebreak rules)
+ * The element MUST be visible in the DOM (not display:none, not off-screen).
  */
 export async function downloadElementAsPdf(element, filename, extra = {}) {
   if (!element) throw new Error('Nothing to export');
@@ -31,9 +30,7 @@ export async function downloadElementAsPdf(element, filename, extra = {}) {
     try { await document.fonts.ready; } catch { /* ignore */ }
   }
 
-  // Dynamic import → the library only loads when needed
   const html2pdf = (await import('html2pdf.js')).default;
-
   const safeName = (filename || 'document').replace(/[^\w.-]+/g, '-');
 
   await html2pdf()
@@ -43,39 +40,51 @@ export async function downloadElementAsPdf(element, filename, extra = {}) {
 }
 
 /**
- * Convert a batch of HTML strings (one page each) to a single PDF.
- * Used for "Print/Download whole class".
+ * Batch PDF — one HTML page per report card.
  *
- * @param {string[]} pagesHtml   Array of HTML strings, each becomes one page
+ * IMPORTANT: html2canvas cannot capture off-screen elements.
+ * We therefore place the container ON-SCREEN at the top-left, but
+ * behind the currently-open modal (z-index 100), so the user never
+ * sees it while it renders.
+ *
+ * @param {string[]} pagesHtml   Array of HTML strings, each is one PDF page
  * @param {string}   filename
- * @param {string}   cssText     Optional scoped CSS injected while rendering
+ * @param {string}   cssText     CSS injected while rendering
  */
 export async function downloadBatchAsPdf(pagesHtml, filename, cssText = '') {
-  // 1. Temporarily inject the scoped styles
+  // 1. Inject the scoped CSS so the cards get their layout
   const styleEl = document.createElement('style');
   styleEl.id = '__h2p_style';
   styleEl.textContent = cssText;
   document.head.appendChild(styleEl);
 
-  // 2. Build an off-screen container
+  // 2. Build a container that is VISIBLE to html2canvas.
+  //    - position: fixed at top-left (0,0)
+  //    - z-index: 1 → behind the modal-backdrop (z-index 100)
+  //    - pointer-events: none → doesn't block interaction
   const container = document.createElement('div');
   container.id = '__h2p_container';
   container.style.position = 'fixed';
   container.style.top = '0';
-  container.style.left = '-10000px';
+  container.style.left = '0';
   container.style.width = '820px';
   container.style.background = '#ffffff';
+  container.style.color = '#0b1220';
+  container.style.zIndex = '1';
+  container.style.pointerEvents = 'none';
+  container.style.fontFamily =
+    "'Segoe UI', system-ui, -apple-system, sans-serif";
   container.innerHTML = pagesHtml.join('');
   document.body.appendChild(container);
 
   try {
-    // 3. Wait for fonts + a tick
+    // 3. Wait for fonts + one render tick
     if (document.fonts?.ready) {
       try { await document.fonts.ready; } catch { /* ignore */ }
     }
-    await new Promise((r) => setTimeout(r, 120));
+    await new Promise((r) => setTimeout(r, 250));
 
-    // 4. Render
+    // 4. Render — let the injected CSS drive page breaks
     const html2pdf = (await import('html2pdf.js')).default;
     const safeName = (filename || 'document').replace(/[^\w.-]+/g, '-');
 
@@ -83,8 +92,10 @@ export async function downloadBatchAsPdf(pagesHtml, filename, cssText = '') {
       .set({
         ...A4_PORTRAIT,
         filename: safeName,
-        // Each direct child becomes its own page
-        pagebreak: { mode: ['css', 'legacy'], after: '.pdf-page' },
+        // The injected CSS has `page-break-after: always` on .report-card,
+        // so no extra `after: '...'` selector is needed. Adding one here
+        // was causing blank pages.
+        pagebreak: { mode: ['css'] },
       })
       .from(container)
       .save();
