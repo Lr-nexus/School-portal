@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
-import { FiBarChart2, FiCalendar, FiPrinter, FiAlertCircle } from 'react-icons/fi';
+import {
+  FiBarChart2, FiCalendar, FiPrinter, FiAlertCircle,
+  FiCreditCard,
+} from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../api/api';
 import PageHeader from '../../components/PageHeader';
@@ -45,6 +48,7 @@ export default function ParentResults() {
   if (!data) return <Loader />;
 
   const hasResults = data.subjects.length > 0;
+  const childId = data.child.id;
 
   return (
     <div>
@@ -53,9 +57,21 @@ export default function ParentResults() {
         subtitle={`${data.child.className} · ${data.current.session || ''} · ${data.current.term || ''}`}
       >
         <button
+          className="btn btn--ghost"
+          onClick={() => navigate(`/print/id-card/${childId}`)}
+          title="Open your child's printable ID card"
+        >
+          <FiCreditCard size={16} /> ID Card
+        </button>
+        <button
           className="btn btn--primary"
-          onClick={() => navigate(`/print/report-card/${data.child.id}?session=${session}&term=${encodeURIComponent(term)}`)}
+          onClick={() =>
+            navigate(
+              `/print/report-card/${childId}?session=${encodeURIComponent(session)}&term=${encodeURIComponent(term)}`
+            )
+          }
           disabled={!hasResults}
+          title="Open your child's printable report card"
         >
           <FiPrinter size={16} /> Print Report Card
         </button>

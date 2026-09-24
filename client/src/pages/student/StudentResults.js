@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react';
-import { FiBarChart2, FiCalendar, FiAlertCircle } from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
+import {
+  FiBarChart2, FiCalendar, FiAlertCircle,
+  FiPrinter, FiCreditCard,
+} from 'react-icons/fi';
 import { api } from '../../api/api';
 import PageHeader from '../../components/PageHeader';
 import StatCard from '../../components/StatCard';
@@ -11,6 +15,7 @@ export default function StudentResults() {
   const [errorMsg, setErrorMsg] = useState('');
   const [session, setSession] = useState('');
   const [term, setTerm] = useState('');
+  const navigate = useNavigate();
 
   const load = async (overrideSession, overrideTerm) => {
     setLoading(true);
@@ -51,6 +56,7 @@ export default function StudentResults() {
 
   const hasResults = data.subjects.length > 0;
   const hasAnyHistory = data.sessions.length > 0;
+  const studentId = data.studentId;
 
   return (
     <div>
@@ -61,7 +67,31 @@ export default function StudentResults() {
             ? `${data.current.session || ''} · ${data.current.term || ''}`
             : 'No results available yet'
         }
-      />
+      >
+        {studentId && (
+          <>
+            <button
+              className="btn btn--ghost"
+              onClick={() => navigate(`/print/id-card/${studentId}`)}
+              title="Open your printable ID card"
+            >
+              <FiCreditCard size={16} /> My ID Card
+            </button>
+            <button
+              className="btn btn--primary"
+              onClick={() =>
+                navigate(
+                  `/print/report-card/${studentId}?session=${encodeURIComponent(session)}&term=${encodeURIComponent(term)}`
+                )
+              }
+              disabled={!hasResults}
+              title="Open your printable report card"
+            >
+              <FiPrinter size={16} /> Print Report Card
+            </button>
+          </>
+        )}
+      </PageHeader>
 
       {errorMsg && (
         <div className="alert alert--error">

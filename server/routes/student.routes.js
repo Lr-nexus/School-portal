@@ -97,16 +97,18 @@ router.get('/me/classes', async (req, res) => {
 });
 
 /* ---------- RESULTS (with session / term filter) ---------- */
+/* ---------- RESULTS (with session / term filter) ---------- */
 router.get('/me/results', async (req, res) => {
   const [studentRows] = await pool.execute(
-    'SELECT id FROM students WHERE user_id = ?',
+    'SELECT id, name, class_name FROM students WHERE user_id = ?',
     [req.user.id]
   );
   if (!studentRows.length) {
     return res.json({
+      studentId: null,
       sessions: [], terms: [],
       current: { session: '', term: '' },
-      subjects: [], average: 0, overallGrade: 'F'
+      subjects: [], average: 0, overallGrade: 'F',
     });
   }
   const studentId = studentRows[0].id;
@@ -146,6 +148,11 @@ router.get('/me/results', async (req, res) => {
     : 0;
 
   res.json({
+    // ⭐ NEW: identity for print URLs
+    studentId,
+    studentName: studentRows[0].name,
+    studentClass: studentRows[0].class_name,
+    // existing fields
     sessions: [...new Set(combos.map((c) => c.session))],
     terms: ['First Term', 'Second Term', 'Third Term'],
     current: { session: session || '', term: term || '' },

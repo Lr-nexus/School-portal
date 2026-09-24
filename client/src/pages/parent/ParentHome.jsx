@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   FiUser, FiBarChart2, FiCreditCard, FiCheckSquare,
-  FiCalendar, FiMail, FiPhone, FiAlertCircle
+  FiCalendar, FiMail, FiPhone, FiAlertCircle, FiPrinter,
 } from 'react-icons/fi';
 import { api } from '../../api/api';
 import PageHeader from '../../components/PageHeader';
@@ -12,6 +12,7 @@ import Loader from '../../components/Loader';
 export default function ParentHome() {
   const [data, setData] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     api('/parents/me')
@@ -30,12 +31,10 @@ export default function ParentHome() {
   if (!data) return <Loader />;
 
   const { parent, child, attendance, results, fees } = data;
-
   const formatNaira = (n) => '₦' + Number(n || 0).toLocaleString('en-NG');
 
   return (
     <div>
-      {/* Welcome banner */}
       <div className="welcome-banner">
         <div className="welcome-banner__left">
           <h2>Welcome, {parent.name}</h2>
@@ -93,10 +92,26 @@ export default function ParentHome() {
             <div className="card">
               <h3>Quick Actions</h3>
               <div className="quick-actions">
-                <Link to="/parent/fees"         className="quick-action"><FiCreditCard /> Pay Fees</Link>
-                <Link to="/parent/results"      className="quick-action"><FiBarChart2 /> View Results</Link>
-                <Link to="/parent/attendance"   className="quick-action"><FiCheckSquare /> View Attendance</Link>
-                <Link to="/parent/timetable"    className="quick-action"><FiCalendar /> View Timetable</Link>
+                <Link to="/parent/fees"       className="quick-action"><FiCreditCard /> Pay Fees</Link>
+                <Link to="/parent/results"    className="quick-action"><FiBarChart2 /> View Results</Link>
+                <Link to="/parent/attendance" className="quick-action"><FiCheckSquare /> View Attendance</Link>
+                <Link to="/parent/timetable"  className="quick-action"><FiCalendar /> View Timetable</Link>
+
+                {/* ⭐ NEW: print shortcuts */}
+                <button
+                  type="button"
+                  className="quick-action"
+                  onClick={() => navigate(`/print/id-card/${child.id}`)}
+                >
+                  <FiCreditCard /> Child's ID Card
+                </button>
+                <button
+                  type="button"
+                  className="quick-action"
+                  onClick={() => navigate(`/print/report-card/${child.id}`)}
+                >
+                  <FiPrinter /> Print Report Card
+                </button>
               </div>
             </div>
 

@@ -4994,3 +4994,52 @@ textarea { resize: vertical; min-height: 60px; }
   75%  { transform: translateX(-2px); }
   100% { transform: translateX(0); }
 }
+
+/* ==========================================================================
+   BACK LINK (used above PageHeader on detail views)
+   ========================================================================== */
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 4px 0;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: color .15s, transform .15s;
+}
+.back-link:hover {
+  color: var(--accent);
+  transform: translateX(-2px);
+}
+.back-link svg { flex-shrink: 0; }
+
+/* ==========================================================================
+   ADMIN RESULTS — detail-view action buttons
+   Groups buttons nicely even if PageHeader wraps them
+   ========================================================================== */
+.page-header__actions .btn + .btn {
+  margin-left: 0;
+}
+
+/* Print Report / ID Card buttons — give them a subtle group look */
+.action-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.action-group .btn {
+  border-radius: 8px;
+}
+[data-theme="dark"] .action-group {
+  background: var(--surface);
+}

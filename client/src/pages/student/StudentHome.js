@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { FiCreditCard, FiBarChart2, FiEdit3, FiBook } from 'react-icons/fi';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  FiCreditCard, FiBarChart2, FiEdit3, FiBook,
+  FiPrinter,
+} from 'react-icons/fi';
 import { api } from '../../api/api';
 import { useAuth } from '../../context/AuthContext';
 import StatCard from '../../components/StatCard';
@@ -8,6 +11,7 @@ import Loader from '../../components/Loader';
 
 export default function StudentHome() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [results, setResults] = useState(null);
   const [fees, setFees] = useState([]);
@@ -18,7 +22,7 @@ export default function StudentHome() {
       api('/students/me'),
       api('/students/me/results'),
       api('/students/me/fees'),
-      api('/students/me/announcements')
+      api('/students/me/announcements'),
     ])
       .then(([p, r, f, a]) => {
         setProfile(p); setResults(r); setFees(f); setAnnouncements(a);
@@ -41,10 +45,10 @@ export default function StudentHome() {
       </div>
 
       <div className="stats-grid">
-        <StatCard label="Average Score"     value={`${results?.average ?? 0}%`} hint={`Grade ${results?.overallGrade ?? '-'}`} color="#2563eb" />
-        <StatCard label="Subjects"          value={results?.subjects.length ?? 0} hint="This term" color="#7c3aed" />
-        <StatCard label="Outstanding Fees"  value={`₦${outstanding.toLocaleString()}`} hint={outstanding > 0 ? 'Payment due' : 'All cleared'} color={outstanding > 0 ? '#dc2626' : '#16a34a'} />
-        <StatCard label="Class"             value={profile.className} hint={profile.house} color="#0891b2" />
+        <StatCard label="Average Score"    value={`${results?.average ?? 0}%`} hint={`Grade ${results?.overallGrade ?? '-'}`} color="#2563eb" />
+        <StatCard label="Subjects"         value={results?.subjects.length ?? 0} hint="This term" color="#7c3aed" />
+        <StatCard label="Outstanding Fees" value={`₦${outstanding.toLocaleString()}`} hint={outstanding > 0 ? 'Payment due' : 'All cleared'} color={outstanding > 0 ? '#dc2626' : '#16a34a'} />
+        <StatCard label="Class"            value={profile.className} hint={profile.house} color="#0891b2" />
       </div>
 
       <div className="grid-2">
@@ -55,6 +59,22 @@ export default function StudentHome() {
             <Link to="/student/results" className="quick-action"><FiBarChart2 /> Check Results</Link>
             <Link to="/student/lms"     className="quick-action"><FiEdit3 />     Take a Quiz</Link>
             <Link to="/student/classes" className="quick-action"><FiBook />      View Timetable</Link>
+
+            {/* ⭐ NEW: print shortcuts */}
+            <button
+              type="button"
+              className="quick-action"
+              onClick={() => navigate(`/print/id-card/${profile.id}`)}
+            >
+              <FiCreditCard /> My ID Card
+            </button>
+            <button
+              type="button"
+              className="quick-action"
+              onClick={() => navigate(`/print/report-card/${profile.id}`)}
+            >
+              <FiPrinter /> Print My Report Card
+            </button>
           </div>
         </div>
 
