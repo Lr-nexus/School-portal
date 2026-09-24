@@ -33,5 +33,8 @@
       "last 1 firefox version"
     ]
   },
-  "proxy": "https://nexus-nexus-1876.vercel.app"
+  "proxy": "https://nexus-nexus-1876.vercel.app",
+  "devDependencies": {
+    "eslint-plugin-react-hooks": "^7.1.1"
+  }
 }

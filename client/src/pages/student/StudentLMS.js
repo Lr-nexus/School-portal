@@ -62,31 +62,26 @@ export default function StudentLMS() {
     }
   };
 
-  /* Keep a stable ref to the latest submitQuiz */
+  /* Keep a stable ref to the latest submitQuiz so timers/effects can call it */
   submitRef.current = submitQuiz;
 
-  /* Tick down every second */
+  /* Tick down every second while a quiz is open and not yet submitted */
   useEffect(() => {
     if (!active || result) return;
     const id = setInterval(() => {
       setTimeLeft((t) => (t === null ? t : Math.max(0, t - 1)));
     }, 1000);
     return () => clearInterval(id);
-  }, [active?.id, result]);
+  }, [active, result]);
 
-  /* Auto-submit when time hits 0 */
+  /* Auto-submit when time hits 0.
+     All dependencies included → no eslint-disable needed. */
   useEffect(() => {
-    if (
-      timeLeft === 0 &&
-      active &&
-      !result &&
-      !autoSubmittedRef.current
-    ) {
+    if (timeLeft === 0 && active && !result && !autoSubmittedRef.current) {
       autoSubmittedRef.current = true;
       submitRef.current?.();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeLeft]);
+  }, [timeLeft, active, result]);
 
   /* Keep answersRef in sync */
   const handleAnswer = (qId, optIdx) => {
@@ -193,6 +188,7 @@ export default function StudentLMS() {
       percent >= 55 ? 'C' :
       percent >= 45 ? 'D' :
       percent >= 40 ? 'E' : 'F';
+
     return (
       <div>
         <PageHeader title="Quiz Result" />
