@@ -1,8 +1,92 @@
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
-import { FiPrinter, FiArrowLeft, FiAlertCircle, FiDownload } from 'react-icons/fi';
+import {
+  FiPrinter, FiArrowLeft, FiAlertCircle,
+  FiDownload, FiFileText,
+} from 'react-icons/fi';
 import { api } from '../../api/api';
 
+/* --------------------------------------------------------------
+   Local CSV helpers
+-------------------------------------------------------------- */
+function escapeCSV(val) {
+  const s = String(val ?? '');
+  if (s.includes(',') || s.includes('"') || s.includes('\n') || s.includes(';')) {
+    return `"${s.replace(/"/g, '""')}"`;
+  }
+  return s;
+}
+
+function buildReportCardCSV(data) {
+  const rows = [];
+  const push = (...cols) => rows.push(cols.map(escapeCSV).join(','));
+
+  /* Header block */
+  push(data.school.name.toUpperCase());
+  push('Address:', data.school.address);
+  push('Phone:', data.school.phone, 'Email:', data.school.email);
+  push('Motto:', data.school.motto);
+  push('');
+
+  /* Session info */
+  push('Session', data.session || '');
+  push('Term',    data.term || '');
+  push('Issued',  data.issuedAt || '');
+  push('');
+
+  /* Student */
+  push('STUDENT DETAILS');
+  push('Name',          data.student.name);
+  push('Admission No',  data.student.admissionNo);
+  push('Class',         data.student.className);
+  push('House',         data.student.house || '—');
+  push('Gender',        data.student.gender || '—');
+  push('Form Teacher',  data.formTeacher || '—');
+  push('');
+
+  /* Subject table */
+  push('SUBJECT RESULTS');
+  push('Subject', 'CA (30)', 'Exam (70)', 'Total', 'Grade', 'Remark');
+  data.subjects.forEach((s) => {
+    push(s.subject, s.ca, s.exam, s.total, s.grade, s.remark);
+  });
+  push('');
+
+  /* Summary */
+  push('SUMMARY');
+  push('Average',           `${data.average}%`);
+  push('Overall Grade',     data.overallGrade);
+  push('Position in Class',
+    data.position ? `${data.position} of ${data.classSize}` : '—');
+  push('Attendance',        `${data.attendanceRate}%`);
+  push('');
+
+  /* Remark */
+  push('FORM TEACHER REMARK');
+  push(data.overallRemark || '');
+  push('');
+
+  /* Footer */
+  push('Computer-generated document — ' + data.school.name);
+
+  return rows.join('\n');
+}
+
+function downloadCSVFile(content, filename) {
+  const blob = new Blob(['\uFEFF' + content], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 500);
+}
+
+/* ==================================================================
+   Component
+   ================================================================== */
 export default function ReportCard() {
   const { studentId } = useParams();
   const [searchParams] = useSearchParams();
@@ -18,7 +102,10 @@ export default function ReportCard() {
       const qs = new URLSearchParams();
       if (s) qs.append('session', s);
       if (t) qs.append('term', t);
-      const res = await api(`/reports/report-card/${studentId}` + (qs.toString() ? '?' + qs.toString() : ''));
+      const res = await api(
+        `/reports/report-card/${studentId}` +
+          (qs.toString() ? '?' + qs.toString() : '')
+      );
       setData(res);
       setSession(res.session);
       setTerm(res.term);
@@ -29,10 +116,28 @@ export default function ReportCard() {
 
   useEffect(() => { load(); }, [studentId]);
 
+  /* --------------------------------------------------------------
+     Keyboard shortcut: Ctrl/Cmd + P → print
+     -------------------------------------------------------------- */
+  useEffect(() => {
+    const handler = (e) => {
+      const isPrintCombo =
+        (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p';
+      if (isPrintCombo) {
+        e.preventDefault();
+        window.print();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
   if (errorMsg) {
     return (
       <div className="print-page print-page--error">
-        <div className="alert alert--error"><FiAlertCircle size={16} /> {errorMsg}</div>
+        <div className="alert alert--error">
+          <FiAlertCircle size={16} /> {errorMsg}
+        </div>
         <button className="btn btn--ghost" onClick={() => navigate(-1)}>
           <FiArrowLeft size={14} /> Back
         </button>
@@ -44,6 +149,7 @@ export default function ReportCard() {
     return <div className="print-page"><div className="loader">Loading…</div></div>;
   }
 
+  /* -------------------- TEXT EXPORT -------------------- */
   const buildText = () => {
     const lines = [
       '==============================================',
@@ -77,7 +183,7 @@ export default function ReportCard() {
     return lines.join('\n');
   };
 
-  const download = () => {
+  const downloadTxt = () => {
     const blob = new Blob([buildText()], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -86,6 +192,16 @@ export default function ReportCard() {
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  const downloadCsv = () => {
+    const csv = buildReportCardCSV(data);
+    const filename =
+      `report-card-${data.student.admissionNo}-${data.session}-${data.term}.csv`
+        .replace(/\s+/g, '-');
+    downloadCSVFile(csv, filename);
+  };
+
+  const printNow = () => window.print();
 
   return (
     <div className="print-page">
@@ -98,19 +214,38 @@ export default function ReportCard() {
         <div className="print-toolbar__center">
           {data.sessions.length > 0 && (
             <select value={session} onChange={(e) => load(e.target.value, term)}>
-              {data.sessions.map((s) => <option key={s} value={s}>{s}</option>)}
+              {data.sessions.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
             </select>
           )}
           <select value={term} onChange={(e) => load(session, e.target.value)}>
-            {data.terms.map((t) => <option key={t} value={t}>{t}</option>)}
+            {data.terms.map((t) => (
+              <option key={t} value={t}>{t}</option>
+            ))}
           </select>
         </div>
 
         <div className="print-toolbar__right">
-          <button className="btn btn--ghost" onClick={download}>
-            <FiDownload size={16} /> Download .txt
+          <button
+            className="btn btn--ghost"
+            onClick={downloadTxt}
+            title="Download as plain text"
+          >
+            <FiFileText size={16} /> .txt
           </button>
-          <button className="btn btn--primary" onClick={() => window.print()}>
+          <button
+            className="btn btn--ghost"
+            onClick={downloadCsv}
+            title="Download as CSV (opens in Excel / Sheets)"
+          >
+            <FiDownload size={16} /> .csv
+          </button>
+          <button
+            className="btn btn--primary"
+            onClick={printNow}
+            title="Print or Save as PDF (Ctrl/Cmd + P)"
+          >
             <FiPrinter size={16} /> Print / Save as PDF
           </button>
         </div>
@@ -118,7 +253,6 @@ export default function ReportCard() {
 
       {/* The actual report card */}
       <div className="report-card">
-        {/* Header */}
         <div className="report-card__header">
           <div>
             <h1>{data.school.name}</h1>
@@ -132,29 +266,15 @@ export default function ReportCard() {
           </div>
         </div>
 
-        {/* Student meta */}
         <div className="report-card__student">
-          <div>
-            <span>Name:</span> <strong>{data.student.name}</strong>
-          </div>
-          <div>
-            <span>Admission No:</span> <strong>{data.student.admissionNo}</strong>
-          </div>
-          <div>
-            <span>Class:</span> <strong>{data.student.className}</strong>
-          </div>
-          <div>
-            <span>House:</span> <strong>{data.student.house || '—'}</strong>
-          </div>
-          <div>
-            <span>Gender:</span> <strong>{data.student.gender || '—'}</strong>
-          </div>
-          <div>
-            <span>Form Teacher:</span> <strong>{data.formTeacher}</strong>
-          </div>
+          <div><span>Name:</span> <strong>{data.student.name}</strong></div>
+          <div><span>Admission No:</span> <strong>{data.student.admissionNo}</strong></div>
+          <div><span>Class:</span> <strong>{data.student.className}</strong></div>
+          <div><span>House:</span> <strong>{data.student.house || '—'}</strong></div>
+          <div><span>Gender:</span> <strong>{data.student.gender || '—'}</strong></div>
+          <div><span>Form Teacher:</span> <strong>{data.formTeacher}</strong></div>
         </div>
 
-        {/* Subject table */}
         <table className="report-card__table">
           <thead>
             <tr>
@@ -183,18 +303,18 @@ export default function ReportCard() {
           </tbody>
         </table>
 
-        {/* Summary row */}
         <div className="report-card__summary">
           <div><span>Average:</span> <strong>{data.average}%</strong></div>
           <div><span>Overall Grade:</span> <strong>{data.overallGrade}</strong></div>
           <div>
             <span>Position in Class:</span>{' '}
-            <strong>{data.position ? `${data.position} of ${data.classSize}` : '—'}</strong>
+            <strong>
+              {data.position ? `${data.position} of ${data.classSize}` : '—'}
+            </strong>
           </div>
           <div><span>Attendance:</span> <strong>{data.attendanceRate}%</strong></div>
         </div>
 
-        {/* Remark + signature */}
         <div className="report-card__footer">
           <div className="report-card__remark">
             <span>Form Teacher's Remark:</span>

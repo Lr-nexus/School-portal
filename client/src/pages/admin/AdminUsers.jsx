@@ -521,7 +521,7 @@ export default function AdminUsers() {
           onClick={() => setShowExport(true)}
           title="Download or print login credentials"
         >
-          <FiDownload size={16} /> Export / Print Credentials
+          <FiDownload size={16} /> Credentials
         </button>
       </PageHeader>
 
