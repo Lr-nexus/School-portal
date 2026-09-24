@@ -2,20 +2,27 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   FiUsers, FiUserCheck, FiTrash2, FiX, FiAlertTriangle,
   FiSearch, FiCheckSquare, FiSquare, FiMinusSquare,
-  FiChevronDown, FiChevronUp, FiMail, FiLayers
+  FiChevronDown, FiChevronUp, FiMail, FiLayers,
+  FiPlus, FiSettings, FiCheck,
 } from 'react-icons/fi';
 import { api } from '../../api/api';
 import PageHeader from '../../components/PageHeader';
 import StatCard from '../../components/StatCard';
 import Loader from '../../components/Loader';
 
+const SUBJECTS = [
+  'Mathematics', 'English Language', 'Basic Science',
+  'Social Studies', 'Computer Studies', 'Further Mathematics',
+  'Biology', 'Literature',
+];
+
 export default function AdminUsers() {
   const [teachers, setTeachers] = useState([]);
   const [students, setStudents] = useState([]);
-  const [classes, setClasses] = useState([]);      // ← NEW: source of truth for classes
+  const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
-  const [tab, setTab] = useState('teachers'); // 'teachers' | 'students'
+  const [tab, setTab] = useState('teachers');
 
   const [teacherSearch, setTeacherSearch] = useState('');
   const [studentSearch, setStudentSearch] = useState('');
@@ -23,16 +30,17 @@ export default function AdminUsers() {
   const [selected, setSelected] = useState([]);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [manageTeacher, setManageTeacher] = useState(null);
 
   const [expanded, setExpanded] = useState({});
 
-  /* ---------- fetch all three datasets ---------- */
+  /* ---------- load ---------- */
   const load = async () => {
     try {
       const [t, s, c] = await Promise.all([
         api('/admin/teachers'),
         api('/admin/students'),
-        api('/admin/classes')                      // ← pulls classes with teacher info
+        api('/admin/classes'),
       ]);
       setTeachers(t);
       setStudents(s);
@@ -46,7 +54,7 @@ export default function AdminUsers() {
 
   useEffect(() => { load(); }, []);
 
-  /* ---------- teachers filtering ---------- */
+  /* ---------- filtering ---------- */
   const filteredTeachers = useMemo(() => {
     const q = teacherSearch.trim().toLowerCase();
     if (!q) return teachers;
@@ -54,13 +62,12 @@ export default function AdminUsers() {
       (t) =>
         t.name.toLowerCase().includes(q) ||
         t.email.toLowerCase().includes(q) ||
-        t.staffNo.toLowerCase().includes(q) ||
+        (t.staffNo || '').toLowerCase().includes(q) ||
         (t.formClass || '').toLowerCase().includes(q) ||
         t.subjects.join(' ').toLowerCase().includes(q)
     );
   }, [teachers, teacherSearch]);
 
-  /* ---------- students filtering ---------- */
   const filteredStudents = useMemo(() => {
     const q = studentSearch.trim().toLowerCase();
     if (!q) return students;
@@ -73,19 +80,13 @@ export default function AdminUsers() {
     );
   }, [students, studentSearch]);
 
-  /* ---------- group students by class (using classes as source) ---------- */
+  /* ---------- group students by class ---------- */
   const studentsByClass = useMemo(() => {
     const hasSearch = studentSearch.trim().length > 0;
     const map = {};
 
-    // Seed with every known class so empty classes still appear
-    if (!hasSearch) {
-      classes.forEach((c) => {
-        map[c.name] = [];
-      });
-    }
+    if (!hasSearch) classes.forEach((c) => { map[c.name] = []; });
 
-    // Fill in students
     filteredStudents.forEach((s) => {
       const cls = s.className || 'Unassigned';
       if (!map[cls]) map[cls] = [];
@@ -95,7 +96,6 @@ export default function AdminUsers() {
     return Object.entries(map)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([className, list]) => {
-        // Prefer teacher from the classes endpoint, fall back to teacher.formClass
         const classRow = classes.find((c) => c.name === className);
         const teacher =
           classRow?.teacher ||
@@ -155,7 +155,7 @@ export default function AdminUsers() {
           : '/admin/students/bulk-delete';
         const res = await api(path, {
           method: 'POST',
-          body: JSON.stringify({ ids })
+          body: JSON.stringify({ ids }),
         });
         setMessage(res.message);
         clearSelection();
@@ -205,12 +205,9 @@ export default function AdminUsers() {
         </button>
       </div>
 
-      {/* Bulk delete bar */}
       {selected.length > 0 && (
         <div className="bulk-bar">
-          <span className="bulk-bar__count">
-            {selected.length} selected
-          </span>
+          <span className="bulk-bar__count">{selected.length} selected</span>
           <div className="bulk-bar__actions">
             <button className="btn btn--ghost btn--sm" onClick={clearSelection}>
               Clear
@@ -255,15 +252,16 @@ export default function AdminUsers() {
                 <th>#</th>
                 <th>Name</th>
                 <th>Staff No</th>
-                <th>Email</th>
-                <th>Subjects</th>
+                <th>Type</th>
                 <th>Form Class</th>
+                <th>Assignments</th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredTeachers.map((t, i) => {
                 const isChecked = selected.includes(t.id);
+                const isClassTeacher = t.teacherType === 'class_teacher';
                 return (
                   <tr key={t.id} className={isChecked ? 'row--selected' : ''}>
                     <td>
@@ -272,18 +270,40 @@ export default function AdminUsers() {
                       </button>
                     </td>
                     <td>{i + 1}</td>
-                    <td>{t.name}</td>
+                    <td>
+                      <div><strong>{t.name}</strong></div>
+                      <div className="muted" style={{ fontSize: 12 }}>{t.email}</div>
+                    </td>
                     <td>{t.staffNo}</td>
-                    <td>{t.email}</td>
-                    <td>{t.subjects.join(', ') || '—'}</td>
-                    <td>{t.formClass}</td>
+                    <td>
+                      {isClassTeacher ? (
+                        <span className="pill pill--partial">Class</span>
+                      ) : (
+                        <span className="pill">Subject</span>
+                      )}
+                    </td>
+                    <td>{t.formClass || <span className="muted">—</span>}</td>
+                    <td>
+                      {t.assignments?.length
+                        ? `${t.assignments.length} target${t.assignments.length === 1 ? '' : 's'}`
+                        : <span className="muted">None</span>}
+                    </td>
                     <td style={{ textAlign: 'right' }}>
-                      <button
-                        className="btn btn--danger btn--sm"
-                        onClick={() => setConfirmDelete({ mode: 'single', items: [t] })}
-                      >
-                        <FiTrash2 size={14} /> Remove
-                      </button>
+                      <div style={{ display: 'inline-flex', gap: 6 }}>
+                        <button
+                          className="btn btn--ghost btn--sm"
+                          onClick={() => setManageTeacher(t)}
+                          title="Manage class / subject assignments"
+                        >
+                          <FiSettings size={14} /> Manage
+                        </button>
+                        <button
+                          className="btn btn--danger btn--sm"
+                          onClick={() => setConfirmDelete({ mode: 'single', items: [t] })}
+                        >
+                          <FiTrash2 size={14} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -508,8 +528,7 @@ export default function AdminUsers() {
             ) : (
               <>
                 <p style={{ marginBottom: 8 }}>
-                  Permanently remove{' '}
-                  <strong>{confirmDelete.items.length}</strong>{' '}
+                  Permanently remove <strong>{confirmDelete.items.length}</strong>{' '}
                   {isTeachersTab ? 'teachers' : 'students'}?
                 </p>
                 <div className="confirm-list">
@@ -530,8 +549,8 @@ export default function AdminUsers() {
             >
               {isTeachersTab
                 ? "Their login, notes, assignments, quizzes and class sessions will be deleted. Classes they managed stay in the system with no teacher."
-                : "Each student's login, results, fees, submissions, and comments will be deleted."}
-              {' '}This cannot be undone.
+                : "Each student's login, results, fees, submissions, and comments will be deleted."}{' '}
+              This cannot be undone.
             </p>
 
             <div className="modal__actions">
@@ -558,6 +577,214 @@ export default function AdminUsers() {
           </div>
         </div>
       )}
+
+      {/* ---------- MANAGE ASSIGNMENTS MODAL ---------- */}
+      {manageTeacher && (
+        <ManageAssignmentsModal
+          teacher={manageTeacher}
+          classes={classes}
+          onClose={() => setManageTeacher(null)}
+          onSaved={async (msg) => {
+            setMessage(msg || 'Assignments updated');
+            setManageTeacher(null);
+            await load();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ==================================================================
+   MANAGE ASSIGNMENTS MODAL
+   ================================================================== */
+function ManageAssignmentsModal({ teacher, classes, onClose, onSaved }) {
+  const [teacherType, setTeacherType] = useState(
+    teacher.teacherType || 'class_teacher'
+  );
+  const [formClass, setFormClass] = useState(teacher.formClass || '');
+  const [assignments, setAssignments] = useState(
+    teacher.assignments?.length
+      ? teacher.assignments.map((a) => ({ ...a }))
+      : [{ className: '', subject: 'Mathematics' }]
+  );
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState('');
+
+  const addAssignment = () =>
+    setAssignments((prev) => [...prev, { className: '', subject: 'Mathematics' }]);
+
+  const updateAssignment = (i, patch) =>
+    setAssignments((prev) => {
+      const next = [...prev];
+      next[i] = { ...next[i], ...patch };
+      return next;
+    });
+
+  const removeAssignment = (i) => {
+    if (assignments.length === 1) return;
+    setAssignments((prev) => prev.filter((_, idx) => idx !== i));
+  };
+
+  const save = async () => {
+    setErr('');
+    if (teacherType === 'class_teacher' && !formClass.trim()) {
+      return setErr('Class teachers must have a form class');
+    }
+    const cleaned = assignments
+      .filter((a) => a.className?.trim() && a.subject?.trim())
+      .map((a) => ({ className: a.className.trim(), subject: a.subject.trim() }));
+
+    if (teacherType === 'subject_teacher' && cleaned.length === 0) {
+      return setErr('Add at least one class + subject pair for a subject teacher');
+    }
+
+    setSaving(true);
+    try {
+      await api(`/admin/teachers/${teacher.id}/assignments`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          teacherType,
+          formClass: teacherType === 'class_teacher' ? formClass.trim() : null,
+          assignments: cleaned,
+        }),
+      });
+      await onSaved(`Assignments updated for ${teacher.name}`);
+    } catch (ex) {
+      setErr(ex.message || 'Failed to save');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const isClassTeacher = teacherType === 'class_teacher';
+
+  return (
+    <div className="modal-backdrop" onClick={() => !saving && onClose()}>
+      <div className="modal modal--wide" onClick={(e) => e.stopPropagation()}>
+        <div className="modal__head">
+          <div>
+            <h3><FiSettings size={18} /> Manage Assignments</h3>
+            <p className="muted">
+              {teacher.name} · {teacher.staffNo}
+            </p>
+          </div>
+          <button className="btn btn--ghost" onClick={onClose} disabled={saving}>
+            <FiX size={16} />
+          </button>
+        </div>
+
+        {err && (
+          <div className="alert alert--error">
+            <FiAlertTriangle size={16} /> {err}
+          </div>
+        )}
+
+        {/* ---------- TYPE TOGGLE ---------- */}
+        <h4 className="enroll-section-title">Teacher Type</h4>
+        <div className="teacher-type-toggle">
+          <button
+            type="button"
+            className={`teacher-type-tile ${isClassTeacher ? 'teacher-type-tile--active' : ''}`}
+            onClick={() => setTeacherType('class_teacher')}
+            disabled={saving}
+          >
+            <FiUserCheck size={20} />
+            <strong>Class Teacher</strong>
+            <span className="muted">Owns one form class — any subject inside it</span>
+          </button>
+          <button
+            type="button"
+            className={`teacher-type-tile ${!isClassTeacher ? 'teacher-type-tile--active' : ''}`}
+            onClick={() => setTeacherType('subject_teacher')}
+            disabled={saving}
+          >
+            <FiLayers size={20} />
+            <strong>Subject Teacher</strong>
+            <span className="muted">Teaches specific subjects across multiple classes</span>
+          </button>
+        </div>
+
+        {/* ---------- FORM CLASS for class teachers ---------- */}
+        {isClassTeacher && (
+          <>
+            <h4 className="enroll-section-title">Form Class</h4>
+            <label style={{ marginBottom: 20 }}>
+              Class they own
+              <input
+                value={formClass}
+                onChange={(e) => setFormClass(e.target.value)}
+                placeholder="JSS 2A"
+                disabled={saving}
+                list="classes-list"
+              />
+              <datalist id="classes-list">
+                {classes.map((c) => (
+                  <option key={c.id} value={c.name} />
+                ))}
+              </datalist>
+            </label>
+            <p className="muted" style={{ fontSize: 12, marginTop: -10, marginBottom: 16 }}>
+              Class teachers can post any subject inside their own form class.
+              Their <code>teacher_assignments</code> list below is optional —
+              used to display the subjects they teach.
+            </p>
+          </>
+        )}
+
+        {/* ---------- ASSIGNMENTS EDITOR ---------- */}
+        <h4 className="enroll-section-title">
+          <FiLayers size={12} style={{ marginRight: 6 }} />
+          {isClassTeacher ? 'Subjects taught (optional)' : 'Class + Subject assignments'}
+        </h4>
+
+        <div className="assignments-editor">
+          {assignments.map((a, i) => (
+            <div className="assignment-row" key={i}>
+              <input
+                placeholder="Class name (e.g. JSS 1A)"
+                value={a.className}
+                onChange={(e) => updateAssignment(i, { className: e.target.value })}
+                disabled={saving}
+                list="classes-list"
+              />
+              <select
+                value={a.subject}
+                onChange={(e) => updateAssignment(i, { subject: e.target.value })}
+                disabled={saving}
+              >
+                {SUBJECTS.map((s) => <option key={s}>{s}</option>)}
+              </select>
+              <button
+                type="button"
+                className="btn btn--ghost btn--sm"
+                onClick={() => removeAssignment(i)}
+                disabled={assignments.length === 1 || saving}
+                title="Remove"
+              >
+                <FiX size={14} />
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            className="btn btn--ghost"
+            onClick={addAssignment}
+            disabled={saving}
+          >
+            <FiPlus size={14} /> Add another
+          </button>
+        </div>
+
+        <div className="modal__actions">
+          <button className="btn btn--ghost" onClick={onClose} disabled={saving}>
+            Cancel
+          </button>
+          <button className="btn btn--primary" onClick={save} disabled={saving}>
+            <FiCheck size={16} /> {saving ? 'Saving…' : 'Save Changes'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

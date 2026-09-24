@@ -1,8 +1,8 @@
 /* ------------------------------------------------------------------
-   Upgrade script — adds missing columns to EXISTING tables.
-   Does NOT drop anything. Safe to run against production.
+   Upgrade script — adds missing columns, tables, keys, enums.
+   Safe to run repeatedly. Never drops data.
 
-   Run with:   node scripts/upgrade.js
+   Run:   node scripts/upgrade.js
    ------------------------------------------------------------------ */
 
 require('dotenv').config();
@@ -18,7 +18,6 @@ async function columnExists(conn, table, column) {
   );
   return rows.length > 0;
 }
-
 async function tableExists(conn, table) {
   const [rows] = await conn.query(
     `SELECT table_name FROM information_schema.tables
@@ -27,63 +26,57 @@ async function tableExists(conn, table) {
   );
   return rows.length > 0;
 }
-
 async function addColumn(conn, table, column, definition) {
   if (!(await tableExists(conn, table))) {
-    console.log(`   ⏭  ${table} (table missing — will be created by migrate.js)`);
-    return false;
+    console.log(`   ⏭  ${table} (table missing)`); return;
   }
   if (await columnExists(conn, table, column)) {
-    console.log(`   ⏭  ${table}.${column} (already exists)`);
-    return false;
+    console.log(`   ⏭  ${table}.${column} (exists)`); return;
   }
   try {
     await conn.query(`ALTER TABLE \`${table}\` ADD COLUMN ${column} ${definition}`);
     console.log(`   ✓  ${table}.${column} added`);
-    return true;
   } catch (err) {
     console.log(`   ✗  ${table}.${column} failed: ${err.message}`);
-    return false;
   }
 }
-
 async function modifyEnum(conn, table, column, values) {
-  if (!(await tableExists(conn, table))) return false;
+  if (!(await tableExists(conn, table))) return;
   const list = values.map((v) => `'${v}'`).join(',');
   try {
-    await conn.query(
-      `ALTER TABLE \`${table}\` MODIFY COLUMN \`${column}\` ENUM(${list}) NOT NULL`
-    );
-    console.log(`   ✓  ${table}.${column} enum → [${values.join(', ')}]`);
-    return true;
+    await conn.query(`ALTER TABLE \`${table}\` MODIFY COLUMN \`${column}\` ENUM(${list}) NOT NULL`);
+    console.log(`   ✓  ${table}.${column} → [${values.join(', ')}]`);
   } catch (err) {
     console.log(`   ✗  ${table}.${column} enum failed: ${err.message}`);
-    return false;
   }
 }
-
 async function addUniqueKey(conn, table, keyName, columns) {
-  if (!(await tableExists(conn, table))) return false;
+  if (!(await tableExists(conn, table))) return;
   try {
     const [rows] = await conn.query(
       `SELECT index_name FROM information_schema.statistics
        WHERE table_schema = ? AND table_name = ? AND index_name = ?`,
       [dbName, table, keyName]
     );
-    if (rows.length) {
-      console.log(`   ⏭  ${table}.${keyName} (index exists)`);
-      return false;
-    }
+    if (rows.length) { console.log(`   ⏭  ${table}.${keyName} (exists)`); return; }
     await conn.query(
       `ALTER TABLE \`${table}\` ADD UNIQUE KEY \`${keyName}\` (${columns
-        .map((c) => `\`${c}\``)
-        .join(', ')})`
+        .map((c) => `\`${c}\``).join(', ')})`
     );
-    console.log(`   ✓  ${table}.${keyName} index added`);
-    return true;
+    console.log(`   ✓  ${table}.${keyName} added`);
   } catch (err) {
     console.log(`   ⚠️  ${table}.${keyName} skipped: ${err.message}`);
-    return false;
+  }
+}
+async function createTableIfMissing(conn, table, sql) {
+  if (await tableExists(conn, table)) {
+    console.log(`   ⏭  ${table} (exists)`); return;
+  }
+  try {
+    await conn.query(sql);
+    console.log(`   ✓  ${table} created`);
+  } catch (err) {
+    console.log(`   ✗  ${table} failed: ${err.message}`);
   }
 }
 
@@ -108,69 +101,42 @@ async function upgrade() {
     });
     console.log('   ✓ Connected\n');
 
-    /* ===================== COLUMNS ===================== */
-
-    console.log('─── Adding missing columns ───────────────');
-
-    // students
+    console.log('─── Columns ────────────────────────────');
     await addColumn(conn, 'students', 'parent_id', 'int(11) DEFAULT NULL');
     await addColumn(conn, 'students', 'photo', 'varchar(500) DEFAULT NULL');
-
-    // teachers
     await addColumn(conn, 'teachers', 'photo', 'varchar(500) DEFAULT NULL');
-
-    // admins
     await addColumn(conn, 'admins', 'photo', 'varchar(500) DEFAULT NULL');
-
-    // parents (make sure all needed columns exist)
     await addColumn(conn, 'parents', 'photo', 'varchar(500) DEFAULT NULL');
-
-    // announcements
     await addColumn(conn, 'announcements', 'category', "varchar(50) DEFAULT 'General'");
-
-    // class_sessions
     await addColumn(conn, 'class_sessions', 'teacher_name', 'varchar(255) DEFAULT NULL');
+    await addColumn(conn, 'teachers', 'teacher_type',
+      "enum('class_teacher','subject_teacher') NOT NULL DEFAULT 'class_teacher'");
 
-    // results — add unique key so duplicates are prevented
-    await addUniqueKey(
-      conn,
-      'results',
-      'student_session_term_subject',
-      ['student_id', 'session', 'term', 'subject']
-    );
-
-    // attendance — unique on (student_id, date)
+    console.log('\n─── Unique keys ────────────────────────');
+    await addUniqueKey(conn, 'results', 'student_session_term_subject',
+      ['student_id', 'session', 'term', 'subject']);
     await addUniqueKey(conn, 'attendance', 'student_date', ['student_id', 'date']);
-
-    // assignment_submissions — unique on (assignment_id, student_id)
-    await addUniqueKey(
-      conn,
-      'assignment_submissions',
-      'assign_student',
-      ['assignment_id', 'student_id']
-    );
-
-    // quiz_submissions — unique on (quiz_id, student_id)
-    await addUniqueKey(
-      conn,
-      'quiz_submissions',
-      'quiz_student',
-      ['quiz_id', 'student_id']
-    );
-
-    // conversations — unique on (user1_id, user2_id)
+    await addUniqueKey(conn, 'assignment_submissions', 'assign_student',
+      ['assignment_id', 'student_id']);
+    await addUniqueKey(conn, 'quiz_submissions', 'quiz_student',
+      ['quiz_id', 'student_id']);
     await addUniqueKey(conn, 'conversations', 'pair', ['user1_id', 'user2_id']);
 
-    /* ===================== ENUMS ===================== */
+    console.log('\n─── Enums ──────────────────────────────');
+    await modifyEnum(conn, 'users', 'role', ['student', 'teacher', 'admin', 'parent']);
 
-    console.log('\n─── Fixing enum values ───────────────────');
-
-    await modifyEnum(conn, 'users', 'role', [
-      'student',
-      'teacher',
-      'admin',
-      'parent',
-    ]);
+    console.log('\n─── New tables ─────────────────────────');
+    await createTableIfMissing(conn, 'teacher_assignments', `
+      CREATE TABLE \`teacher_assignments\` (
+        \`id\` int(11) NOT NULL AUTO_INCREMENT,
+        \`teacher_id\` int(11) NOT NULL,
+        \`class_name\` varchar(50) NOT NULL,
+        \`subject\` varchar(100) NOT NULL,
+        PRIMARY KEY (\`id\`),
+        UNIQUE KEY \`teacher_class_subject\` (\`teacher_id\`,\`class_name\`,\`subject\`),
+        FOREIGN KEY (\`teacher_id\`) REFERENCES \`teachers\`(\`id\`) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
 
     console.log('\n✅ Upgrade complete\n');
   } catch (err) {

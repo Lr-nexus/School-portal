@@ -23,27 +23,22 @@ const pool = mysql.createPool({
   ssl: { rejectUnauthorized: false },
 });
 
-/* Non-blocking startup ping. If the DB is down we log a warning but
-   DO NOT crash — Render will still serve /health and return a proper
-   503 on DB routes instead of killing the whole service. */
-(async () => {
-  try {
-    const conn = await pool.getConnection();
-    await conn.ping();
-    conn.release();
-    console.log('✅ MySQL pool ready');
-  } catch (err) {
-    console.error('⚠️  MySQL connection FAILED:', err.message);
-    if (err.code === 'ECONNREFUSED') {
-      console.error('   → Database server not reachable from Render.');
-    } else if (err.code === 'ER_BAD_DB_ERROR') {
-      console.error('   → Database does not exist.');
-    } else if (err.code === 'ER_ACCESS_DENIED_ERROR') {
-      console.error('   → Wrong DB credentials.');
-    } else if (err.code === 'ER_USER_LIMIT_REACHED') {
-      console.error('   → Hit max_user_connections.');
-    }
-  }
-})();
+/* A one-time informational ping. It runs AFTER the caller has had a
+   chance to register its own work, and it never crashes the process. */
+setTimeout(() => {
+  pool.getConnection()
+    .then((conn) => {
+      conn.ping()
+        .then(() => console.log('✅ MySQL pool ready'))
+        .catch(() => {})
+        .finally(() => conn.release());
+    })
+    .catch((err) => {
+      console.error('⚠️  MySQL connection FAILED:', err.message);
+      if (err.code === 'ECONNREFUSED')       console.error('   → DB server not reachable.');
+      else if (err.code === 'ER_BAD_DB_ERROR') console.error('   → Database does not exist.');
+      else if (err.code === 'ER_ACCESS_DENIED_ERROR') console.error('   → Wrong DB credentials.');
+    });
+}, 500);
 
 module.exports = pool;

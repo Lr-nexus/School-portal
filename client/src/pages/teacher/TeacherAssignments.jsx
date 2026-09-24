@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   FiPlus, FiClipboard, FiTrash2, FiEye, FiX,
-  FiCheckCircle, FiDownload, FiCheck, FiAlertCircle, FiUsers
+  FiCheckCircle, FiDownload, FiCheck, FiAlertCircle,
 } from 'react-icons/fi';
 import { api } from '../../api/api';
 import { useTeacherProfile } from '../../hooks/useTeacherProfile';
@@ -13,21 +13,14 @@ const BASE_URL =
   (process.env.REACT_APP_API_URL || 'https://school-portal-1-xaio.onrender.com/api')
     .replace(/\/api\/?$/, '');
 
-const SUBJECTS = [
-  'Mathematics', 'English Language', 'Basic Science',
-  'Social Studies', 'Computer Studies'
-];
-
 const emptyForm = {
-  title: '',
-  subject: 'Mathematics',
-  description: '',
-  dueDate: '',
-  totalMarks: 10
+  title: '', subject: '', className: '',
+  description: '', dueDate: '', totalMarks: 10,
 };
 
 export default function TeacherAssignments() {
-  const { className, loading: profileLoading } = useTeacherProfile();
+  const { profile, targets, teacherType, loading: profileLoading } = useTeacherProfile();
+
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
@@ -44,26 +37,36 @@ export default function TeacherAssignments() {
   useEffect(() => { load(); }, []);
 
   const close = () => setActive(null);
-  const closeForm = () => {
-    setForm(emptyForm);
-    setShowForm(false);
-  };
+  const closeForm = () => { setForm(emptyForm); setShowForm(false); };
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
+  const openForm = () => {
+    // Default pick: first teaching target
+    const first = targets[0];
+    setForm({
+      ...emptyForm,
+      className: first?.className || '',
+      subject: first?.subject || '',
+    });
+    setShowForm(true);
+  };
+
   const submit = async (e) => {
     e.preventDefault();
-    if (!className) return setMessage('You have no class assigned');
+    if (!targets.length) return setMessage('You have no teaching assignments');
+    if (!form.className || !form.subject) {
+      return setMessage('Pick a class and subject');
+    }
 
     try {
       await api('/assignments', {
         method: 'POST',
-        body: JSON.stringify({ ...form, className })
+        body: JSON.stringify(form),
       });
       setMessage('Assignment posted successfully');
-      setForm(emptyForm);
-      setShowForm(false);
+      closeForm();
       await load();
     } catch (err) {
       setMessage(err.message);
@@ -90,7 +93,7 @@ export default function TeacherAssignments() {
   const grade = async (studentId, score, feedback) => {
     await api(`/assignments/${active.id}/grade/${studentId}`, {
       method: 'POST',
-      body: JSON.stringify({ score, feedback })
+      body: JSON.stringify({ score, feedback }),
     });
     await openAssignment(active.id);
     await load();
@@ -105,18 +108,24 @@ export default function TeacherAssignments() {
 
   if (loading || profileLoading) return <Loader />;
 
-  const noClass = !className;
+  const noTargets = !targets.length;
 
   return (
     <div>
       <PageHeader
         title="Assignments"
-        subtitle={noClass ? 'No class assigned' : `Posting to ${className}`}
+        subtitle={
+          noTargets
+            ? 'No teaching assignments yet'
+            : teacherType === 'class_teacher'
+              ? `Class teacher of ${profile?.formClass || ''}`
+              : `Subject teacher · ${targets.length} assignment${targets.length === 1 ? '' : 's'}`
+        }
       >
         <button
           className="btn btn--primary"
-          onClick={() => (showForm ? closeForm() : setShowForm(true))}
-          disabled={noClass}
+          onClick={() => (showForm ? closeForm() : openForm())}
+          disabled={noTargets}
         >
           {showForm
             ? <><FiX size={16} /> Cancel</>
@@ -126,54 +135,57 @@ export default function TeacherAssignments() {
 
       {message && <div className="alert alert--info">{message}</div>}
 
-      {noClass && (
+      {noTargets && (
         <div className="alert alert--error">
           <FiAlertCircle size={16} />
-          You have no class assigned. Ask the admin to assign you a form class before posting assignments.
+          You have no teaching assignments. Ask the admin to assign you a class / subject.
         </div>
       )}
 
-      {showForm && !noClass && (
+      {showForm && !noTargets && (
         <div className="card">
           <h3><FiClipboard size={16} /> Create Assignment</h3>
           <form className="form-grid" onSubmit={submit}>
             <label className="form-grid__full">Title *
               <input name="title" value={form.title} onChange={handleChange} required />
             </label>
-            <label>Subject
-              <select name="subject" value={form.subject} onChange={handleChange}>
-                {SUBJECTS.map((s) => <option key={s}>{s}</option>)}
+
+            <label>Class + Subject *
+              <select
+                value={`${form.className}||${form.subject}`}
+                onChange={(e) => {
+                  const [className, subject] = e.target.value.split('||');
+                  setForm({ ...form, className, subject });
+                }}
+                required
+              >
+                <option value="">— Pick a target —</option>
+                {targets.map((t, i) => (
+                  <option key={i} value={`${t.className}||${t.subject}`}>
+                    {t.className} · {t.subject}
+                  </option>
+                ))}
               </select>
             </label>
-
-            <div className="form-field-readonly">
-              <span className="form-field-readonly__label">Class</span>
-              <div className="form-field-readonly__value">
-                <FiUsers size={14} />
-                {className}
-              </div>
-            </div>
 
             <label>Due Date
               <input type="date" name="dueDate" value={form.dueDate} onChange={handleChange} />
             </label>
+
             <label>Total Marks
               <input
-                type="number"
-                name="totalMarks"
-                min="1"
-                value={form.totalMarks}
-                onChange={handleChange}
+                type="number" name="totalMarks" min="1"
+                value={form.totalMarks} onChange={handleChange}
               />
             </label>
+
             <label className="form-grid__full">Instructions
               <textarea
-                rows="3"
-                name="description"
-                value={form.description}
-                onChange={handleChange}
+                rows="3" name="description"
+                value={form.description} onChange={handleChange}
               />
             </label>
+
             <div className="form-grid__full form-grid__actions">
               <button type="button" className="btn btn--ghost" onClick={closeForm}>
                 Cancel
@@ -215,8 +227,8 @@ export default function TeacherAssignments() {
               <div>
                 <h3>{active.title}</h3>
                 <p className="muted">
-                  {active.subject} · {active.className} · Due {active.dueDate} ·{' '}
-                  {active.totalMarks} marks
+                  {active.subject} · {active.class_name} · Due {active.due_date} ·{' '}
+                  {active.total_marks} marks
                 </p>
               </div>
               <button className="btn btn--ghost" onClick={close} title="Close">
@@ -236,7 +248,7 @@ export default function TeacherAssignments() {
               <SubmissionRow
                 key={s.id}
                 submission={s}
-                totalMarks={active.totalMarks}
+                totalMarks={active.total_marks}
                 onGrade={grade}
                 onDownload={downloadFile}
               />
@@ -246,7 +258,6 @@ export default function TeacherAssignments() {
               <p className="muted">No submissions yet.</p>
             )}
 
-            {/* ✅ Discussion panel lives once, at assignment level */}
             <DiscussionPanel assignmentId={active.id} />
 
             <div className="modal__actions">
@@ -268,10 +279,9 @@ function SubmissionRow({ submission, totalMarks, onGrade, onDownload }) {
 
   const submit = async (e) => {
     e.preventDefault();
-    setBusy(true);
-    setErr('');
+    setBusy(true); setErr('');
     try {
-      await onGrade(submission.studentId, score, feedback);
+      await onGrade(submission.student_id, score, feedback);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (ex) {
@@ -284,11 +294,11 @@ function SubmissionRow({ submission, totalMarks, onGrade, onDownload }) {
   return (
     <div className="submission">
       <div className="submission__head">
-        <div className="avatar avatar--sm">{(submission.studentName || '?').charAt(0)}</div>
+        <div className="avatar avatar--sm">S</div>
         <div>
-          <strong>{submission.studentName}</strong>
+          <strong>Student #{submission.student_id}</strong>
           <div className="muted" style={{ fontSize: 12 }}>
-            Submitted {new Date(submission.submittedAt).toLocaleString()}
+            Submitted {new Date(submission.submitted_at).toLocaleString()}
           </div>
         </div>
         {submission.score !== null && submission.score !== undefined && (
@@ -300,21 +310,19 @@ function SubmissionRow({ submission, totalMarks, onGrade, onDownload }) {
 
       {submission.text && <p className="submission__text">{submission.text}</p>}
 
-      {submission.fileUrl && (
+      {submission.file_url && (
         <button
           type="button"
           className="btn btn--ghost"
-          onClick={() => onDownload(submission.fileUrl, submission.originalName)}
+          onClick={() => onDownload(submission.file_url, submission.original_name)}
         >
-          <FiDownload size={14} /> {submission.originalName}
+          <FiDownload size={14} /> {submission.original_name}
         </button>
       )}
 
       <form className="submission__grade" onSubmit={submit}>
         <input
-          type="number"
-          min="0"
-          max={totalMarks}
+          type="number" min="0" max={totalMarks}
           placeholder={`Score / ${totalMarks}`}
           value={score}
           onChange={(e) => setScore(e.target.value)}

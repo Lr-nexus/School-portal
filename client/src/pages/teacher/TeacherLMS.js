@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   FiPlus, FiEdit3, FiClipboard, FiUpload, FiDownload,
-  FiX, FiAlertCircle, FiCheck, FiUsers, FiFileText
+  FiX, FiAlertCircle, FiCheck, FiFileText,
 } from 'react-icons/fi';
 import { api } from '../../api/api';
 import { useTeacherProfile } from '../../hooks/useTeacherProfile';
@@ -10,34 +10,18 @@ import Loader from '../../components/Loader';
 
 const SUBJECTS = [
   'Mathematics', 'English Language', 'Basic Science',
-  'Social Studies', 'Computer Studies'
+  'Social Studies', 'Computer Studies',
 ];
 
 const emptyQuestion = { question: '', options: ['', '', '', ''], answer: 0 };
 
-/* ------------------------------------------------------------------
-   PARSER — paste format:
-     Q: What is 2+2?
-     A) 3
-     B) 4
-     C) 5
-     D) 6
-     Answer: B
-
-     (blank line between questions)
------------------------------------------------------------------- */
 function parsePastedText(text) {
-  const blocks = text
-    .split(/\n\s*\n/)
-    .map((b) => b.trim())
-    .filter(Boolean);
-
+  const blocks = text.split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean);
   const questions = [];
   const errors = [];
 
   blocks.forEach((block, idx) => {
     const lines = block.split('\n').map((l) => l.trim()).filter(Boolean);
-
     let question = '';
     const options = [];
     let answerIdx = -1;
@@ -51,11 +35,8 @@ function parsePastedText(text) {
         const v = ansMatch[1].toUpperCase();
         if (['A', 'B', 'C', 'D'].includes(v)) answerIdx = 'ABCD'.indexOf(v);
         else if (/^[1-4]$/.test(v)) answerIdx = Number(v) - 1;
-      } else if (optMatch) {
-        options.push(optMatch[2].trim());
-      } else if (qMatch && !question) {
-        question = qMatch[1].trim();
-      }
+      } else if (optMatch) options.push(optMatch[2].trim());
+      else if (qMatch && !question) question = qMatch[1].trim();
     }
 
     if (!question || options.length < 2) {
@@ -66,14 +47,11 @@ function parsePastedText(text) {
       errors.push(`Question ${idx + 1}: missing or invalid "Answer:" line`);
       return;
     }
-
     while (options.length < 4) options.push(`Option ${options.length + 1}`);
 
     questions.push({
-      id: questions.length + 1,
-      question,
-      options: options.slice(0, 4),
-      answer: answerIdx,
+      id: questions.length + 1, question,
+      options: options.slice(0, 4), answer: answerIdx,
     });
   });
 
@@ -94,39 +72,77 @@ C) 56
 D) 64
 Answer: C`;
 
-/* ==================================================================
-   MAIN COMPONENT
-   ================================================================== */
 export default function TeacherLMS() {
-  const { className, loading: profileLoading } = useTeacherProfile();
+  const { profile, targets, teacherType, loading: profileLoading } = useTeacherProfile();
 
   const [quizzes, setQuizzes] = useState([]);
   const [message, setMessage] = useState('');
   const [tab, setTab] = useState('manual');
 
-  const load = () => api('/lms/my-quizzes').then(setQuizzes);
+  // Shared target (which class+subject this quiz is for)
+  const [target, setTarget] = useState({ className: '', subject: '' });
 
   useEffect(() => {
-    load().catch((e) => setMessage(e.message));
-  }, []);
+    if (!target.className && targets.length) {
+      setTarget({
+        className: targets[0].className,
+        subject: targets[0].subject,
+      });
+    }
+  }, [targets, target.className]);
+
+  const load = () => api('/lms/my-quizzes').then(setQuizzes);
+
+  useEffect(() => { load().catch((e) => setMessage(e.message)); }, []);
 
   if (profileLoading) return <Loader />;
 
-  const noClass = !className;
+  const noTargets = !targets.length;
 
   return (
     <div>
       <PageHeader
         title="Tests & Quizzes"
-        subtitle={noClass ? 'No class assigned' : `Posting to ${className}`}
+        subtitle={
+          noTargets
+            ? 'No teaching assignments'
+            : teacherType === 'class_teacher'
+              ? `Class teacher of ${profile?.formClass}`
+              : 'Subject teacher'
+        }
       />
 
       {message && <div className="alert alert--info">{message}</div>}
 
-      {noClass && (
+      {noTargets && (
         <div className="alert alert--error">
           <FiAlertCircle size={16} />
-          You have no class assigned. Ask the admin to assign you a form class before creating quizzes.
+          You have no teaching assignments. Ask the admin to assign you a class / subject.
+        </div>
+      )}
+
+      {/* ------- Shared target picker ------- */}
+      {!noTargets && (
+        <div className="card">
+          <h3><FiClipboard size={16} /> Quiz target</h3>
+          <div className="form-grid">
+            <label>Class + Subject
+              <select
+                value={`${target.className}||${target.subject}`}
+                onChange={(e) => {
+                  const [className, subject] = e.target.value.split('||');
+                  setTarget({ className, subject });
+                }}
+              >
+                <option value="">— Pick a target —</option>
+                {targets.map((t, i) => (
+                  <option key={i} value={`${t.className}||${t.subject}`}>
+                    {t.className} · {t.subject}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
         </div>
       )}
 
@@ -155,18 +171,15 @@ export default function TeacherLMS() {
       </div>
 
       {tab === 'manual' && (
-        <ManualTab noClass={noClass} setMessage={setMessage} onCreated={load} />
+        <ManualTab target={target} noTargets={noTargets} setMessage={setMessage} onCreated={load} />
       )}
-
       {tab === 'paste' && (
-        <PasteTab noClass={noClass} setMessage={setMessage} onCreated={load} />
+        <PasteTab target={target} noTargets={noTargets} setMessage={setMessage} onCreated={load} />
       )}
-
       {tab === 'bulk' && (
-        <BulkTab noClass={noClass} setMessage={setMessage} onCreated={load} />
+        <BulkTab target={target} noTargets={noTargets} setMessage={setMessage} onCreated={load} />
       )}
 
-      {/* My Quizzes list (shown for all tabs) */}
       <div className="card" style={{ marginTop: 20 }}>
         <h3>My Quizzes ({quizzes.length})</h3>
         <table className="table table--striped">
@@ -179,11 +192,8 @@ export default function TeacherLMS() {
           <tbody>
             {quizzes.map((q) => (
               <tr key={q.id}>
-                <td>{q.title}</td>
-                <td>{q.subject}</td>
-                <td>{q.className}</td>
-                <td>{q.questionCount}</td>
-                <td>{q.dueDate}</td>
+                <td>{q.title}</td><td>{q.subject}</td><td>{q.className}</td>
+                <td>{q.questionCount}</td><td>{q.dueDate}</td>
               </tr>
             ))}
             {!quizzes.length && (
@@ -196,12 +206,10 @@ export default function TeacherLMS() {
   );
 }
 
-/* ==================================================================
-   TAB 1 — MANUAL BUILD
-   ================================================================== */
-function ManualTab({ noClass, setMessage, onCreated }) {
+/* ---------------- Manual ---------------- */
+function ManualTab({ target, noTargets, setMessage, onCreated }) {
   const [form, setForm] = useState({
-    title: '', subject: 'Mathematics', duration: 10, dueDate: '',
+    title: '', duration: 10, dueDate: '',
     questions: [{ ...emptyQuestion, options: ['', '', '', ''] }],
   });
 
@@ -210,36 +218,37 @@ function ManualTab({ noClass, setMessage, onCreated }) {
     qs[i][field] = value;
     setForm({ ...form, questions: qs });
   };
-
   const updateOption = (qi, oi, value) => {
     const qs = [...form.questions];
     qs[qi].options[oi] = value;
     setForm({ ...form, questions: qs });
   };
-
   const addQuestion = () =>
-    setForm({
-      ...form,
-      questions: [...form.questions, { ...emptyQuestion, options: ['', '', '', ''] }],
-    });
-
+    setForm({ ...form, questions: [...form.questions, { ...emptyQuestion, options: ['', '', '', ''] }] });
   const removeQuestion = (i) => {
     if (form.questions.length === 1) return;
-    const qs = form.questions.filter((_, idx) => idx !== i);
-    setForm({ ...form, questions: qs });
+    setForm({ ...form, questions: form.questions.filter((_, idx) => idx !== i) });
   };
 
   const submit = async (e) => {
     e.preventDefault();
-    if (noClass) return setMessage('You have no class assigned');
+    if (noTargets) return setMessage('No teaching assignments');
+    if (!target.className || !target.subject) return setMessage('Pick a class + subject');
+
     try {
-      await api('/lms/quizzes', { method: 'POST', body: JSON.stringify(form) });
-      setMessage('Quiz created successfully');
-      setForm({
-        ...form,
-        title: '',
-        questions: [{ ...emptyQuestion, options: ['', '', '', ''] }],
+      await api('/lms/quizzes', {
+        method: 'POST',
+        body: JSON.stringify({
+          title: form.title,
+          subject: target.subject,
+          className: target.className,
+          duration: form.duration,
+          dueDate: form.dueDate,
+          questions: form.questions,
+        }),
       });
+      setMessage('Quiz created successfully');
+      setForm({ ...form, title: '', questions: [{ ...emptyQuestion, options: ['', '', '', ''] }] });
       await onCreated();
     } catch (err) {
       setMessage(err.message);
@@ -252,37 +261,15 @@ function ManualTab({ noClass, setMessage, onCreated }) {
       <form onSubmit={submit}>
         <div className="form-grid">
           <label>Title *
-            <input
-              value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-              required
-              disabled={noClass}
-            />
-          </label>
-          <label>Subject
-            <select
-              value={form.subject}
-              onChange={(e) => setForm({ ...form, subject: e.target.value })}
-              disabled={noClass}
-            >
-              {SUBJECTS.map((s) => <option key={s}>{s}</option>)}
-            </select>
+            <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required disabled={noTargets} />
           </label>
           <label>Duration (mins)
-            <input
-              type="number"
-              value={form.duration}
-              onChange={(e) => setForm({ ...form, duration: e.target.value })}
-              disabled={noClass}
-            />
+            <input type="number" value={form.duration}
+              onChange={(e) => setForm({ ...form, duration: e.target.value })} disabled={noTargets} />
           </label>
           <label>Due Date
-            <input
-              type="date"
-              value={form.dueDate}
-              onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
-              disabled={noClass}
-            />
+            <input type="date" value={form.dueDate}
+              onChange={(e) => setForm({ ...form, dueDate: e.target.value })} disabled={noTargets} />
           </label>
         </div>
 
@@ -292,46 +279,28 @@ function ManualTab({ noClass, setMessage, onCreated }) {
             <div className="lms-question-head">
               <strong>Question {qi + 1}</strong>
               {form.questions.length > 1 && (
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--sm"
-                  onClick={() => removeQuestion(qi)}
-                >
+                <button type="button" className="btn btn--ghost btn--sm" onClick={() => removeQuestion(qi)}>
                   <FiX size={14} /> Remove
                 </button>
               )}
             </div>
 
-            <label>
-              Question text
-              <input
-                value={q.question}
-                onChange={(e) => updateQuestion(qi, 'question', e.target.value)}
-                required
-                disabled={noClass}
-              />
+            <label>Question text
+              <input value={q.question}
+                onChange={(e) => updateQuestion(qi, 'question', e.target.value)} required disabled={noTargets} />
             </label>
 
             <div className="form-grid">
               {q.options.map((opt, oi) => (
                 <label key={oi}>
                   <span>
-                    <input
-                      type="radio"
-                      name={`answer-${qi}`}
+                    <input type="radio" name={`answer-${qi}`}
                       checked={q.answer === oi}
-                      onChange={() => updateQuestion(qi, 'answer', oi)}
-                      disabled={noClass}
-                    />{' '}
-                    Correct
+                      onChange={() => updateQuestion(qi, 'answer', oi)} disabled={noTargets} />
+                    {' '}Correct
                   </span>
-                  <input
-                    placeholder={`Option ${oi + 1}`}
-                    value={opt}
-                    onChange={(e) => updateOption(qi, oi, e.target.value)}
-                    required
-                    disabled={noClass}
-                  />
+                  <input placeholder={`Option ${oi + 1}`} value={opt}
+                    onChange={(e) => updateOption(qi, oi, e.target.value)} required disabled={noTargets} />
                 </label>
               ))}
             </div>
@@ -339,31 +308,19 @@ function ManualTab({ noClass, setMessage, onCreated }) {
         ))}
 
         <div className="modal__actions">
-          <button
-            type="button"
-            className="btn btn--ghost"
-            onClick={addQuestion}
-            disabled={noClass}
-          >
+          <button type="button" className="btn btn--ghost" onClick={addQuestion} disabled={noTargets}>
             <FiPlus size={16} /> Add Question
           </button>
-          <button className="btn btn--primary" disabled={noClass}>
-            Publish Quiz
-          </button>
+          <button className="btn btn--primary" disabled={noTargets}>Publish Quiz</button>
         </div>
       </form>
     </div>
   );
 }
 
-/* ==================================================================
-   TAB 2 — PASTE QUESTIONS
-   ================================================================== */
-function PasteTab({ noClass, setMessage, onCreated }) {
-  const [form, setForm] = useState({
-    title: '', subject: 'Mathematics', duration: 10, dueDate: '',
-    raw: '',
-  });
+/* ---------------- Paste ---------------- */
+function PasteTab({ target, noTargets, setMessage, onCreated }) {
+  const [form, setForm] = useState({ title: '', duration: 10, dueDate: '', raw: '' });
   const [preview, setPreview] = useState(null);
   const [errors, setErrors] = useState([]);
 
@@ -371,16 +328,13 @@ function PasteTab({ noClass, setMessage, onCreated }) {
     const { questions, errors: errs } = parsePastedText(form.raw);
     setPreview(questions);
     setErrors(errs);
-    if (!questions.length) {
-      setMessage('No valid questions found. Check the format.');
-    } else {
-      setMessage(`Parsed ${questions.length} question(s). ${errs.length} skipped.`);
-    }
+    if (!questions.length) setMessage('No valid questions found. Check the format.');
+    else setMessage(`Parsed ${questions.length} question(s). ${errs.length} skipped.`);
   };
 
   const submit = async (e) => {
     e.preventDefault();
-    if (noClass) return setMessage('You have no class assigned');
+    if (noTargets) return setMessage('No teaching assignments');
     if (!preview || !preview.length) return setMessage('Parse the questions first');
     if (!form.title) return setMessage('Give the quiz a title');
 
@@ -389,36 +343,26 @@ function PasteTab({ noClass, setMessage, onCreated }) {
         method: 'POST',
         body: JSON.stringify({
           title: form.title,
-          subject: form.subject,
+          subject: target.subject,
+          className: target.className,
           duration: form.duration,
           dueDate: form.dueDate,
-          questions: preview.map((q) => ({
-            question: q.question,
-            options: q.options,
-            answer: q.answer,
-          })),
+          questions: preview,
         }),
       });
       setMessage(`Quiz published with ${preview.length} question(s)`);
       setForm({ ...form, title: '', raw: '' });
-      setPreview(null);
-      setErrors([]);
+      setPreview(null); setErrors([]);
       await onCreated();
-    } catch (err) {
-      setMessage(err.message);
-    }
+    } catch (err) { setMessage(err.message); }
   };
-
-  const loadSample = () => setForm({ ...form, raw: SAMPLE_PASTE });
 
   return (
     <div className="card">
       <h3>Paste Questions</h3>
-
       <p className="muted" style={{ fontSize: 13, marginBottom: 12 }}>
-        Use this format — one question per block, separated by blank lines:
+        Format — one question per block, separated by blank lines:
       </p>
-
       <pre className="lms-format-example">{`Q: What is 2 + 2?
 A) 3
 B) 4
@@ -429,61 +373,32 @@ Answer: B`}</pre>
       <form onSubmit={submit}>
         <div className="form-grid">
           <label>Quiz Title *
-            <input
-              value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-              required
-              disabled={noClass}
-            />
-          </label>
-          <label>Subject
-            <select
-              value={form.subject}
-              onChange={(e) => setForm({ ...form, subject: e.target.value })}
-              disabled={noClass}
-            >
-              {SUBJECTS.map((s) => <option key={s}>{s}</option>)}
-            </select>
+            <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required disabled={noTargets} />
           </label>
           <label>Duration (mins)
-            <input
-              type="number"
-              value={form.duration}
-              onChange={(e) => setForm({ ...form, duration: e.target.value })}
-              disabled={noClass}
-            />
+            <input type="number" value={form.duration}
+              onChange={(e) => setForm({ ...form, duration: e.target.value })} disabled={noTargets} />
           </label>
           <label>Due Date
-            <input
-              type="date"
-              value={form.dueDate}
-              onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
-              disabled={noClass}
-            />
+            <input type="date" value={form.dueDate}
+              onChange={(e) => setForm({ ...form, dueDate: e.target.value })} disabled={noTargets} />
           </label>
         </div>
 
         <label>Paste your questions here
-          <textarea
-            rows="12"
-            value={form.raw}
+          <textarea rows="12" value={form.raw}
             onChange={(e) => setForm({ ...form, raw: e.target.value })}
             placeholder="Q: …&#10;A) …&#10;B) …&#10;C) …&#10;D) …&#10;Answer: B"
-            className="lms-paste-textarea"
-            disabled={noClass}
-          />
+            className="lms-paste-textarea" disabled={noTargets} />
         </label>
 
         <div className="enroll-card__actions" style={{ marginBottom: 12 }}>
-          <button type="button" className="btn btn--ghost" onClick={loadSample} disabled={noClass}>
+          <button type="button" className="btn btn--ghost"
+            onClick={() => setForm({ ...form, raw: SAMPLE_PASTE })} disabled={noTargets}>
             <FiFileText size={14} /> Load Sample
           </button>
-          <button
-            type="button"
-            className="btn btn--primary"
-            onClick={handleParse}
-            disabled={!form.raw.trim() || noClass}
-          >
+          <button type="button" className="btn btn--primary"
+            onClick={handleParse} disabled={!form.raw.trim() || noTargets}>
             <FiCheck size={14} /> Parse Questions
           </button>
         </div>
@@ -517,11 +432,8 @@ Answer: B`}</pre>
         )}
 
         <div className="modal__actions">
-          <button
-            type="submit"
-            className="btn btn--primary"
-            disabled={!preview || !preview.length || noClass}
-          >
+          <button type="submit" className="btn btn--primary"
+            disabled={!preview || !preview.length || noTargets}>
             Publish Quiz
           </button>
         </div>
@@ -530,13 +442,9 @@ Answer: B`}</pre>
   );
 }
 
-/* ==================================================================
-   TAB 3 — BULK IMPORT (CSV / Excel)
-   ================================================================== */
-function BulkTab({ noClass, setMessage, onCreated }) {
-  const [form, setForm] = useState({
-    title: '', subject: 'Mathematics', duration: 10, dueDate: '',
-  });
+/* ---------------- Bulk ---------------- */
+function BulkTab({ target, noTargets, setMessage, onCreated }) {
+  const [form, setForm] = useState({ title: '', duration: 10, dueDate: '' });
   const [file, setFile] = useState(null);
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState(null);
@@ -545,8 +453,7 @@ function BulkTab({ noClass, setMessage, onCreated }) {
   const handleFile = (e) => {
     const f = e.target.files[0];
     if (!f) return;
-    setFile(f);
-    setResult(null);
+    setFile(f); setResult(null);
   };
 
   const downloadTemplate = () => {
@@ -559,26 +466,24 @@ function BulkTab({ noClass, setMessage, onCreated }) {
     const blob = new Blob([headers + '\n' + sample + '\n'], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
-    a.download = 'quiz-template.csv';
-    a.click();
+    a.href = url; a.download = 'quiz-template.csv'; a.click();
     URL.revokeObjectURL(url);
   };
 
   const submit = async (e) => {
     e.preventDefault();
-    if (noClass) return setMessage('You have no class assigned');
+    if (noTargets) return setMessage('No teaching assignments');
     if (!file) return setMessage('Choose a file first');
 
     const fd = new FormData();
     fd.append('file', file);
     fd.append('title', form.title);
-    fd.append('subject', form.subject);
+    fd.append('subject', target.subject);
+    fd.append('className', target.className);
     fd.append('duration', form.duration);
     fd.append('dueDate', form.dueDate);
 
-    setImporting(true);
-    setResult(null);
+    setImporting(true); setResult(null);
     try {
       const res = await api('/lms/quizzes/bulk', { method: 'POST', body: fd });
       setResult(res);
@@ -586,85 +491,46 @@ function BulkTab({ noClass, setMessage, onCreated }) {
       setFile(null);
       if (fileRef.current) fileRef.current.value = '';
       await onCreated();
-    } catch (err) {
-      setMessage(err.message);
-    } finally {
-      setImporting(false);
-    }
+    } catch (err) { setMessage(err.message); }
+    finally { setImporting(false); }
   };
 
   return (
     <div className="card">
       <h3>Bulk Import from Spreadsheet</h3>
-
       <p className="muted" style={{ fontSize: 13, marginBottom: 12 }}>
-        Upload a <strong>.csv</strong>, <strong>.xlsx</strong>, or <strong>.xls</strong> file with columns:
+        Upload a <strong>.csv</strong>, <strong>.xlsx</strong> or <strong>.xls</strong> file with columns:
         <br />
         <code>question, option1, option2, option3, option4, correct</code>
-        <br />
-        The <code>correct</code> column takes <strong>A</strong>/<strong>B</strong>/<strong>C</strong>/<strong>D</strong> (or 1–4).
       </p>
 
       <form onSubmit={submit}>
         <div className="form-grid">
           <label>Quiz Title *
-            <input
-              value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-              required
-              disabled={noClass}
-            />
-          </label>
-          <label>Subject
-            <select
-              value={form.subject}
-              onChange={(e) => setForm({ ...form, subject: e.target.value })}
-              disabled={noClass}
-            >
-              {SUBJECTS.map((s) => <option key={s}>{s}</option>)}
-            </select>
+            <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required disabled={noTargets} />
           </label>
           <label>Duration (mins)
-            <input
-              type="number"
-              value={form.duration}
-              onChange={(e) => setForm({ ...form, duration: e.target.value })}
-              disabled={noClass}
-            />
+            <input type="number" value={form.duration}
+              onChange={(e) => setForm({ ...form, duration: e.target.value })} disabled={noTargets} />
           </label>
           <label>Due Date
-            <input
-              type="date"
-              value={form.dueDate}
-              onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
-              disabled={noClass}
-            />
+            <input type="date" value={form.dueDate}
+              onChange={(e) => setForm({ ...form, dueDate: e.target.value })} disabled={noTargets} />
           </label>
         </div>
 
-        <input
-          ref={fileRef}
-          type="file"
-          accept=".xlsx,.xls,.csv"
-          onChange={handleFile}
-          className="file-drop"
-          disabled={noClass}
-        />
+        <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv"
+          onChange={handleFile} className="file-drop" disabled={noTargets} />
 
         {file && (
-          <div className="bulk-file-chip">
-            <FiFileText size={14} /> {file.name}
-          </div>
+          <div className="bulk-file-chip"><FiFileText size={14} /> {file.name}</div>
         )}
 
         <div className="enroll-card__actions" style={{ marginTop: 12 }}>
           <button type="button" className="btn btn--ghost" onClick={downloadTemplate}>
             <FiDownload size={14} /> Template
           </button>
-          <button
-            className="btn btn--primary"
-            disabled={!file || importing || noClass}
-          >
+          <button className="btn btn--primary" disabled={!file || importing || noTargets}>
             <FiUpload size={14} /> {importing ? 'Importing…' : 'Upload & Create Quiz'}
           </button>
         </div>

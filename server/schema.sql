@@ -1,4 +1,4 @@
--- School Portal Database Schema (complete)
+-- School Portal Database Schema
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -54,8 +54,22 @@ CREATE TABLE `teachers` (
   `address` text,
   `joined` date DEFAULT NULL,
   `photo` varchar(500) DEFAULT NULL,
+  `teacher_type` enum('class_teacher','subject_teacher') NOT NULL DEFAULT 'class_teacher',
   PRIMARY KEY (`id`),
   FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- teacher_assignments (which class+subject a teacher can post to)
+-- ============================================================
+CREATE TABLE `teacher_assignments` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `teacher_id` int(11) NOT NULL,
+  `class_name` varchar(50) NOT NULL,
+  `subject` varchar(100) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `teacher_class_subject` (`teacher_id`,`class_name`,`subject`),
+  FOREIGN KEY (`teacher_id`) REFERENCES `teachers`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================
@@ -283,7 +297,7 @@ CREATE TABLE `discussion_comments` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================
--- class_sessions (live classroom)
+-- class_sessions
 -- ============================================================
 CREATE TABLE `class_sessions` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -333,7 +347,7 @@ CREATE TABLE `notifications` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================
--- messages + conversations
+-- conversations + messages
 -- ============================================================
 CREATE TABLE `conversations` (
   `id` int(11) NOT NULL AUTO_INCREMENT,

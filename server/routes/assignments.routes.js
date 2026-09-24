@@ -5,6 +5,7 @@ const multer = require('multer');
 const pool = require('../db');
 const { protect, allow } = require('../middleware/auth');
 const { notify, notifyClassStudents } = require('../utils/notify');
+const { getTeacherContext, canTeach } = require('../utils/teacherContext');
 
 router.use(protect);
 
@@ -17,7 +18,7 @@ const storage = multer.diskStorage({
     const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
     const safe = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
     cb(null, `${unique}-${safe}`);
-  }
+  },
 });
 
 const upload = multer({
@@ -28,44 +29,33 @@ const upload = multer({
       'application/pdf',
       'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'image/png', 'image/jpeg', 'application/zip'
+      'image/png', 'image/jpeg', 'application/zip',
     ];
     if (allowed.includes(file.mimetype)) return cb(null, true);
     cb(new Error('Unsupported file type'));
-  }
+  },
 });
 
-async function getTeacher(userId) {
-  const [rows] = await pool.execute(
-    'SELECT id, name, form_class FROM teachers WHERE user_id = ?',
-    [userId]
-  );
-  if (!rows.length) return null;
-  return rows[0];
-}
-
-/* GET /api/assignments */
+/* ---------- LIST ---------- */
 router.get('/', async (req, res) => {
   let query = 'SELECT * FROM assignments';
   const params = [];
 
   if (req.user.role === 'student') {
     const [studentRows] = await pool.execute(
-      'SELECT class_name FROM students WHERE user_id = ?',
-      [req.user.id]
+      'SELECT class_name FROM students WHERE user_id = ?', [req.user.id]
     );
     if (!studentRows.length) return res.json([]);
     query += ' WHERE class_name = ?';
     params.push(studentRows[0].class_name);
   } else if (req.user.role === 'teacher') {
-    const teacher = await getTeacher(req.user.id);
-    if (!teacher) return res.json([]);
+    const ctx = await getTeacherContext(req.user.id);
+    if (!ctx) return res.json([]);
     query += ' WHERE teacher_id = ?';
-    params.push(teacher.id);
+    params.push(ctx.teacherId);
   }
 
   query += ' ORDER BY created_at DESC';
-
   const [assignments] = await pool.execute(query, params);
 
   const enriched = await Promise.all(assignments.map(async (a) => {
@@ -73,13 +63,9 @@ router.get('/', async (req, res) => {
       'SELECT COUNT(*) as submissionCount FROM assignment_submissions WHERE assignment_id = ?',
       [a.id]
     );
-
     let mySubmission = null;
     if (req.user.role === 'student') {
-      const [sRows] = await pool.execute(
-        'SELECT id FROM students WHERE user_id = ?',
-        [req.user.id]
-      );
+      const [sRows] = await pool.execute('SELECT id FROM students WHERE user_id = ?', [req.user.id]);
       if (sRows.length) {
         const [subs] = await pool.execute(
           'SELECT * FROM assignment_submissions WHERE assignment_id = ? AND student_id = ?',
@@ -88,7 +74,6 @@ router.get('/', async (req, res) => {
         if (subs.length) mySubmission = subs[0];
       }
     }
-
     return {
       id: a.id, teacherId: a.teacher_id, title: a.title,
       subject: a.subject, className: a.class_name, description: a.description,
@@ -100,7 +85,7 @@ router.get('/', async (req, res) => {
   res.json(enriched);
 });
 
-/* GET /api/assignments/:id */
+/* ---------- GET ONE ---------- */
 router.get('/:id', async (req, res) => {
   const [rows] = await pool.execute('SELECT * FROM assignments WHERE id = ?', [req.params.id]);
   if (!rows.length) return res.status(404).json({ message: 'Assignment not found' });
@@ -108,8 +93,7 @@ router.get('/:id', async (req, res) => {
 
   if (req.user.role === 'student') {
     const [sRows] = await pool.execute(
-      'SELECT id, class_name FROM students WHERE user_id = ?',
-      [req.user.id]
+      'SELECT id, class_name FROM students WHERE user_id = ?', [req.user.id]
     );
     if (!sRows.length || sRows[0].class_name !== a.class_name) {
       return res.status(403).json({ message: 'Not your class' });
@@ -122,44 +106,43 @@ router.get('/:id', async (req, res) => {
   }
 
   const [subs] = await pool.execute(
-    'SELECT * FROM assignment_submissions WHERE assignment_id = ?',
-    [a.id]
+    'SELECT * FROM assignment_submissions WHERE assignment_id = ?', [a.id]
   );
   res.json({ ...a, submissions: subs });
 });
 
-/* ============================================================
-   POST /api/assignments — teacher creates
-   ⭐ class_name is FORCED from the teacher's profile.
-   ============================================================ */
+/* ---------- CREATE (class teacher OR subject teacher) ---------- */
 router.post('/', allow('teacher'), async (req, res) => {
-  const { title, subject, description, dueDate, totalMarks } = req.body;
-  if (!title) return res.status(400).json({ message: 'Title is required' });
+  const { title, subject, description, dueDate, totalMarks, className } = req.body;
+  if (!title || !subject || !className) {
+    return res.status(400).json({
+      message: 'title, subject and className are required',
+    });
+  }
 
-  const teacher = await getTeacher(req.user.id);
-  if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
-  if (!teacher.form_class) {
-    return res.status(400).json({ message: 'You have no class assigned. Contact the admin.' });
+  const ctx = await getTeacherContext(req.user.id);
+  if (!ctx) return res.status(404).json({ message: 'Teacher not found' });
+
+  if (!canTeach(ctx, className, subject)) {
+    return res.status(403).json({
+      message: `You are not assigned to teach ${subject} in ${className}`,
+    });
   }
 
   const [result] = await pool.execute(
     `INSERT INTO assignments (teacher_id, title, subject, class_name, description, due_date, total_marks, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`,
     [
-      teacher.id,
-      title,
-      subject || 'General',
-      teacher.form_class, // ⭐ forced
-      description || '',
+      ctx.teacherId, title, subject, className, description || '',
       dueDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       Number(totalMarks) || 10,
     ]
   );
 
-  await notifyClassStudents(teacher.form_class, {
+  await notifyClassStudents(className, {
     type: 'assignment',
     title: 'New assignment',
-    body: `${teacher.name} posted "${title}"`,
+    body: `${ctx.name} posted "${title}"`,
     link: '/student/assignments',
   });
 
@@ -167,14 +150,14 @@ router.post('/', allow('teacher'), async (req, res) => {
   res.status(201).json({ message: 'Assignment created', assignment: rows[0] });
 });
 
-/* DELETE /api/assignments/:id */
+/* ---------- DELETE ---------- */
 router.delete('/:id', allow('teacher'), async (req, res) => {
-  const teacher = await getTeacher(req.user.id);
-  if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
+  const ctx = await getTeacherContext(req.user.id);
+  if (!ctx) return res.status(404).json({ message: 'Teacher not found' });
 
   const [rows] = await pool.execute(
     'SELECT * FROM assignments WHERE id = ? AND teacher_id = ?',
-    [req.params.id, teacher.id]
+    [req.params.id, ctx.teacherId]
   );
   if (!rows.length) return res.status(404).json({ message: 'Assignment not found' });
 
@@ -193,7 +176,7 @@ router.delete('/:id', allow('teacher'), async (req, res) => {
   res.json({ message: 'Assignment deleted' });
 });
 
-/* POST /api/assignments/:id/submit — student submits */
+/* ---------- STUDENT SUBMIT ---------- */
 router.post('/:id/submit', allow('student'), upload.single('file'), async (req, res) => {
   const [rows] = await pool.execute('SELECT * FROM assignments WHERE id = ?', [req.params.id]);
   if (!rows.length) {
@@ -203,8 +186,7 @@ router.post('/:id/submit', allow('student'), upload.single('file'), async (req, 
   const a = rows[0];
 
   const [sRows] = await pool.execute(
-    'SELECT id, name, class_name FROM students WHERE user_id = ?',
-    [req.user.id]
+    'SELECT id, name, class_name FROM students WHERE user_id = ?', [req.user.id]
   );
   if (!sRows.length || sRows[0].class_name !== a.class_name) {
     if (req.file) fs.unlinkSync(req.file.path);
@@ -233,35 +215,24 @@ router.post('/:id/submit', allow('student'), upload.single('file'), async (req, 
        SET text = ?, file_name = ?, original_name = ?, file_url = ?, submitted_at = NOW(),
            score = NULL, feedback = NULL, graded_at = NULL
        WHERE id = ?`,
-      [
-        text,
-        req.file?.filename || null,
-        req.file?.originalname || null,
-        req.file ? `/uploads/${req.file.filename}` : null,
-        existing[0].id,
-      ]
+      [text, req.file?.filename || null, req.file?.originalname || null,
+        req.file ? `/uploads/${req.file.filename}` : null, existing[0].id]
     );
   } else {
     await pool.execute(
-      `INSERT INTO assignment_submissions (assignment_id, student_id, text, file_name, original_name, file_url, submitted_at)
+      `INSERT INTO assignment_submissions
+        (assignment_id, student_id, text, file_name, original_name, file_url, submitted_at)
        VALUES (?, ?, ?, ?, ?, ?, NOW())`,
-      [
-        a.id, student.id, text,
-        req.file?.filename || null,
-        req.file?.originalname || null,
-        req.file ? `/uploads/${req.file.filename}` : null,
-      ]
+      [a.id, student.id, text,
+        req.file?.filename || null, req.file?.originalname || null,
+        req.file ? `/uploads/${req.file.filename}` : null]
     );
   }
 
-  const [tRows] = await pool.execute(
-    'SELECT user_id FROM teachers WHERE id = ?',
-    [a.teacher_id]
-  );
+  const [tRows] = await pool.execute('SELECT user_id FROM teachers WHERE id = ?', [a.teacher_id]);
   if (tRows.length && tRows[0].user_id) {
     await notify({
-      userId: tRows[0].user_id,
-      type: 'submission',
+      userId: tRows[0].user_id, type: 'submission',
       title: 'New assignment submission',
       body: `${student.name} submitted "${a.title}"`,
       link: '/teacher/assignments',
@@ -272,18 +243,17 @@ router.post('/:id/submit', allow('student'), upload.single('file'), async (req, 
     'SELECT * FROM assignment_submissions WHERE assignment_id = ? AND student_id = ?',
     [a.id, student.id]
   );
-
   res.json({ message: 'Submission received', submission: subs[0] });
 });
 
-/* POST /api/assignments/:id/grade/:studentId — teacher grades */
+/* ---------- TEACHER GRADE ---------- */
 router.post('/:id/grade/:studentId', allow('teacher'), async (req, res) => {
-  const teacher = await getTeacher(req.user.id);
-  if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
+  const ctx = await getTeacherContext(req.user.id);
+  if (!ctx) return res.status(404).json({ message: 'Teacher not found' });
 
   const [aRows] = await pool.execute(
     'SELECT * FROM assignments WHERE id = ? AND teacher_id = ?',
-    [req.params.id, teacher.id]
+    [req.params.id, ctx.teacherId]
   );
   if (!aRows.length) return res.status(404).json({ message: 'Assignment not found' });
   const a = aRows[0];
@@ -305,13 +275,11 @@ router.post('/:id/grade/:studentId', allow('teacher'), async (req, res) => {
   );
 
   const [sRows] = await pool.execute(
-    'SELECT user_id, name FROM students WHERE id = ?',
-    [req.params.studentId]
+    'SELECT user_id, name FROM students WHERE id = ?', [req.params.studentId]
   );
   if (sRows.length && sRows[0].user_id) {
     await notify({
-      userId: sRows[0].user_id,
-      type: 'grade',
+      userId: sRows[0].user_id, type: 'grade',
       title: 'Assignment graded',
       body: `"${a.title}" scored ${score}/${a.total_marks}`,
       link: '/student/assignments',
@@ -319,10 +287,8 @@ router.post('/:id/grade/:studentId', allow('teacher'), async (req, res) => {
   }
 
   const [updated] = await pool.execute(
-    'SELECT * FROM assignment_submissions WHERE id = ?',
-    [subRows[0].id]
+    'SELECT * FROM assignment_submissions WHERE id = ?', [subRows[0].id]
   );
-
   res.json({ message: 'Graded', submission: updated[0] });
 });
 
