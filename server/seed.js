@@ -84,6 +84,22 @@ async function seed() {
       studentIds.push(sRes.insertId);
     }
 
+        /* ---------- PARENT (linked to first student) ---------- */
+    const [pU] = await conn.query(
+      `INSERT INTO users (name, email, password, role)
+       VALUES ('Mr. Peter Obi', 'parent@school.com', 'parent123', 'parent')`
+    );
+    const [pRes] = await conn.query(
+      `INSERT INTO parents (user_id, name, email, phone, relationship, address)
+       VALUES (?, 'Mr. Peter Obi', 'parent@school.com',
+               '0803 111 2222', 'Father', '12 Allen Avenue, Ikeja')`,
+      [pU.insertId]
+    );
+    await conn.query(
+      'UPDATE students SET parent_id = ? WHERE id = ?',
+      [pRes.insertId, studentIds[0]]
+    );
+
     /* ---------- RESULTS ---------- */
     const subjects = ['Mathematics', 'English Language', 'Basic Science'];
     const session = '2024/2025';
@@ -129,6 +145,7 @@ async function seed() {
     console.log('   Admin:   admin@school.com / admin123');
     console.log('   Teacher: teacher@school.com / teacher123');
     console.log('   Student: ada@school.com / changeme123');
+    console.log('   Parent:  parent@school.com / parent123');
     console.log('\n   Class JSS 2A has 3 students, results, and one fee batch.\n');
   } catch (err) {
     await conn.rollback();

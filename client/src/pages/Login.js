@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  FiLogIn, FiUser, FiUsers, FiShield,
+  FiLogIn, FiUser, FiUsers, FiShield, FiHeart,
   FiBookOpen, FiVideo, FiFileText, FiClipboard,
   FiAward, FiTrendingUp, FiCheckCircle
 } from 'react-icons/fi';
@@ -23,6 +23,14 @@ const STATS = [
   { value: '25',   label: 'Subjects' },
   { value: '98%',  label: 'Pass Rate' },
 ];
+
+/* ---------- Demo accounts ---------- */
+const DEMO_ACCOUNTS = {
+  student: { email: 'ada@school.com',    password: 'changeme123', label: 'Student' },
+  teacher: { email: 'teacher@school.com', password: 'teacher123',  label: 'Teacher' },
+  admin:   { email: 'admin@school.com',   password: 'admin123',    label: 'Admin'   },
+  parent:  { email: 'parent@school.com',  password: 'parent123',   label: 'Parent'  },
+};
 
 export default function Login() {
   const { login } = useAuth();
@@ -48,13 +56,10 @@ export default function Login() {
   };
 
   const quickFill = (role) => {
-    const map = {
-      student: ['student@school.com', 'student123'],
-      teacher: ['teacher@school.com', 'teacher123'],
-      admin:   ['admin@school.com', 'admin123'],
-    };
-    setEmail(map[role][0]);
-    setPassword(map[role][1]);
+    const a = DEMO_ACCOUNTS[role];
+    if (!a) return;
+    setEmail(a.email);
+    setPassword(a.password);
     setError('');
   };
 
@@ -121,11 +126,7 @@ export default function Login() {
             <p>Sign in to access your school portal</p>
           </div>
 
-          {error && (
-            <div className="alert alert--error">
-              {error}
-            </div>
-          )}
+          {error && <div className="alert alert--error">{error}</div>}
 
           <form onSubmit={handleSubmit} className="login-form">
             <label>
@@ -171,7 +172,7 @@ export default function Login() {
             </div>
           </form>
 
-          {/* Demo accounts */}
+          {/* ---------- Demo accounts ---------- */}
           <div className="login-demo">
             <div className="login-demo__head">
               <span>Try a demo account</span>
@@ -182,7 +183,7 @@ export default function Login() {
                 <FiUser size={15} />
                 <div>
                   <strong>Student</strong>
-                  <span>student@school.com</span>
+                  <span>{DEMO_ACCOUNTS.student.email}</span>
                 </div>
               </button>
 
@@ -190,7 +191,7 @@ export default function Login() {
                 <FiUsers size={15} />
                 <div>
                   <strong>Teacher</strong>
-                  <span>teacher@school.com</span>
+                  <span>{DEMO_ACCOUNTS.teacher.email}</span>
                 </div>
               </button>
 
@@ -198,7 +199,15 @@ export default function Login() {
                 <FiShield size={15} />
                 <div>
                   <strong>Admin</strong>
-                  <span>admin@school.com</span>
+                  <span>{DEMO_ACCOUNTS.admin.email}</span>
+                </div>
+              </button>
+
+              <button type="button" onClick={() => quickFill('parent')}>
+                <FiHeart size={15} />
+                <div>
+                  <strong>Parent</strong>
+                  <span>{DEMO_ACCOUNTS.parent.email}</span>
                 </div>
               </button>
             </div>

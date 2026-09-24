@@ -1410,4 +1410,162 @@ router.post('/announcements', async (req, res) => {
   res.status(201).json({ message: 'Announcement posted', announcement: rows[0] });
 });
 
+/* ==================================================================
+   ⭐ ENROLL STUDENT WITH OPTIONAL PARENT ACCOUNT
+   Body:
+     { name, email, password, className, gender,
+       guardianName, guardianPhone, address,
+       parentEmail?, parentPassword?, parentRelationship? }
+   ================================================================== */
+router.post('/students-with-parent', async (req, res) => {
+  const {
+    name, email, password, className, gender,
+    guardianName, guardianPhone, address,
+    parentEmail, parentPassword, parentRelationship,
+  } = req.body;
+
+  if (!name || !email || !className) {
+    return res.status(400).json({ message: 'Name, email and class are required' });
+  }
+
+  const wantsParent = !!(parentEmail && parentEmail.trim());
+  if (wantsParent && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(parentEmail)) {
+    return res.status(400).json({ message: 'Parent email is invalid' });
+  }
+
+  const conn = await pool.getConnection();
+  try {
+    // Pre-flight duplicate checks
+    const [studentEmailTaken] = await conn.execute(
+      'SELECT id FROM users WHERE email = ?',
+      [email.toLowerCase()]
+    );
+    if (studentEmailTaken.length) {
+      conn.release();
+      return res.status(400).json({ message: 'Student email already exists' });
+    }
+
+    if (wantsParent) {
+      const [parentEmailTaken] = await conn.execute(
+        'SELECT id FROM users WHERE email = ?',
+        [parentEmail.toLowerCase()]
+      );
+      if (parentEmailTaken.length) {
+        conn.release();
+        return res.status(400).json({ message: 'Parent email already exists' });
+      }
+    }
+
+    await conn.beginTransaction();
+
+    /* ---------- 1. Student user ---------- */
+    const studentPwd = (password && password.trim()) || 'changeme123';
+    const [sU] = await conn.execute(
+      'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
+      [name, email.toLowerCase(), studentPwd, 'student']
+    );
+    const studentUserId = sU.insertId;
+
+    /* ---------- 2. Ensure class exists ---------- */
+    const [classRows] = await conn.execute(
+      'SELECT id FROM classes WHERE name = ?',
+      [className]
+    );
+    if (!classRows.length) {
+      await conn.execute(
+        'INSERT INTO classes (name, subjects, schedule) VALUES (?, ?, ?)',
+        [className, JSON.stringify([]), JSON.stringify([])]
+      );
+    }
+
+    /* ---------- 3. Admission number ---------- */
+    const [[{ maxId }]] = await conn.execute('SELECT MAX(id) AS maxId FROM students');
+    const newId = (maxId || 0) + 1;
+    const admissionNo = `STD/${new Date().getFullYear()}/${String(newId).padStart(3, '0')}`;
+
+    /* ---------- 4. Student row ---------- */
+    const [sRes] = await conn.execute(
+      `INSERT INTO students
+        (user_id, name, admission_no, class_name, gender,
+         guardian_name, guardian_phone, address, email, house)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        studentUserId, name, admissionNo, className,
+        gender || 'Not specified',
+        guardianName || '', guardianPhone || '',
+        address || '', email.toLowerCase(),
+        'Unassigned'
+      ]
+    );
+    const studentId = sRes.insertId;
+
+    /* ---------- 5. Optional parent account ---------- */
+    let parentCredentials = null;
+    if (wantsParent) {
+      const parentPwd = (parentPassword && parentPassword.trim()) || 'Parent@123';
+
+      const [pU] = await conn.execute(
+        'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
+        [guardianName || name + "'s Guardian", parentEmail.toLowerCase(), parentPwd, 'parent']
+      );
+      const parentUserId = pU.insertId;
+
+      const [pRes] = await conn.execute(
+        `INSERT INTO parents
+          (user_id, name, email, phone, relationship, address)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          parentUserId,
+          guardianName || name + "'s Guardian",
+          parentEmail.toLowerCase(),
+          guardianPhone || '',
+          parentRelationship || 'Guardian',
+          address || ''
+        ]
+      );
+      const parentId = pRes.insertId;
+
+      // Link the parent to the student
+      await conn.execute(
+        'UPDATE students SET parent_id = ? WHERE id = ?',
+        [parentId, studentId]
+      );
+
+      parentCredentials = {
+        name: guardianName || name + "'s Guardian",
+        email: parentEmail.toLowerCase(),
+        password: parentPwd,
+      };
+    }
+
+    await conn.commit();
+
+    res.status(201).json({
+      message: wantsParent
+        ? 'Student and parent accounts created'
+        : 'Student enrolled successfully',
+      credentials: {
+        email: email.toLowerCase(),
+        password: studentPwd,
+      },
+      student: {
+        id: studentId,
+        userId: studentUserId,
+        name,
+        email: email.toLowerCase(),
+        admissionNo,
+        className,
+        gender: gender || 'Not specified',
+      },
+      parentCredentials,
+    });
+  } catch (err) {
+    await conn.rollback();
+    console.error('Enroll student with parent failed:', err);
+    res.status(500).json({ message: err.message || 'Enrollment failed' });
+  } finally {
+    conn.release();
+  }
+});
+
 module.exports = router;

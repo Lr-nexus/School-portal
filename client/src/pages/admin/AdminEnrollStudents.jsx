@@ -1,18 +1,23 @@
 import { useState, useRef } from 'react';
 import {
-  FiUserPlus, FiCopy, FiCheck, FiUpload, FiDownload
+  FiUserPlus, FiCopy, FiCheck, FiUpload, FiDownload,
+  FiUserCheck, FiHeart
 } from 'react-icons/fi';
 import { api } from '../../api/api';
 
 const emptyForm = {
   name: '', email: '', password: '', className: 'JSS 2A',
-  gender: 'Female', guardianName: '', guardianPhone: '', address: ''
+  gender: 'Female', guardianName: '', guardianPhone: '', address: '',
+  // optional parent account
+  parentEmail: '', parentPassword: '', parentRelationship: 'Guardian',
 };
 
 export default function AdminEnrollStudents() {
   const [form, setForm] = useState(emptyForm);
+  const [createParent, setCreateParent] = useState(false);
   const [message, setMessage] = useState('');
   const [credentials, setCredentials] = useState(null);
+  const [parentCredentials, setParentCredentials] = useState(null);
   const [copied, setCopied] = useState(false);
 
   const [importFile, setImportFile] = useState(null);
@@ -27,21 +32,56 @@ export default function AdminEnrollStudents() {
     e.preventDefault();
     setMessage('');
     setCredentials(null);
-    if (!form.email.trim()) return setMessage('Email is required');
+    setParentCredentials(null);
+
+    if (!form.email.trim()) return setMessage('Student email is required');
+    if (createParent && !form.parentEmail.trim()) {
+      return setMessage('Parent email is required to create a parent account');
+    }
 
     try {
-      const res = await api('/admin/students', {
+      const payload = {
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        className: form.className,
+        gender: form.gender,
+        guardianName: form.guardianName,
+        guardianPhone: form.guardianPhone,
+        address: form.address,
+      };
+
+      if (createParent) {
+        payload.parentEmail = form.parentEmail;
+        payload.parentPassword = form.parentPassword;
+        payload.parentRelationship = form.parentRelationship;
+      }
+
+      const res = await api('/admin/students-with-parent', {
         method: 'POST',
-        body: JSON.stringify(form)
+        body: JSON.stringify(payload),
       });
+
       setMessage('Student enrolled successfully');
+
       setCredentials({
         name: res.student.name,
         email: res.credentials.email,
         password: res.credentials.password,
-        admissionNo: res.student.admissionNo
+        admissionNo: res.student.admissionNo,
       });
+
+      if (res.parentCredentials) {
+        setParentCredentials({
+          name: res.parentCredentials.name,
+          email: res.parentCredentials.email,
+          password: res.parentCredentials.password,
+          child: res.student.name,
+        });
+      }
+
       setForm(emptyForm);
+      setCreateParent(false);
     } catch (err) {
       setMessage(err.message);
     }
@@ -49,12 +89,20 @@ export default function AdminEnrollStudents() {
 
   const copyCredentials = () => {
     if (!credentials) return;
-    const text =
-      `Login credentials\n` +
+    let text =
+      `Student login\n` +
       `Name: ${credentials.name}\n` +
       `Email: ${credentials.email}\n` +
       `Password: ${credentials.password}\n` +
       `Admission No: ${credentials.admissionNo}`;
+    if (parentCredentials) {
+      text +=
+        `\n\nParent login\n` +
+        `Name: ${parentCredentials.name}\n` +
+        `Email: ${parentCredentials.email}\n` +
+        `Password: ${parentCredentials.password}\n` +
+        `Child: ${parentCredentials.child}`;
+    }
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -106,28 +154,45 @@ export default function AdminEnrollStudents() {
     <>
       {message && <div className="alert alert--info">{message}</div>}
 
-      {credentials && (
+      {/* ---------- Credentials card ---------- */}
+      {(credentials || parentCredentials) && (
         <div className="card credentials-card">
           <div className="credentials-card__head">
             <h3>
-              <FiCheck size={16} /> Account Created — Share With the Student
+              <FiCheck size={16} /> Account Created — Share With Them
             </h3>
             <button className="btn btn--ghost" onClick={copyCredentials}>
               {copied
                 ? <><FiCheck size={14} /> Copied</>
-                : <><FiCopy size={14} /> Copy</>}
+                : <><FiCopy size={14} /> Copy All</>}
             </button>
           </div>
           <div className="credentials-card__body">
-            <div><strong>Name:</strong> {credentials.name}</div>
-            <div><strong>Email:</strong> <code>{credentials.email}</code></div>
-            <div><strong>Password:</strong> <code>{credentials.password}</code></div>
-            <div><strong>Admission No:</strong> {credentials.admissionNo}</div>
+            {credentials && (
+              <>
+                <div><strong>Student:</strong> {credentials.name}</div>
+                <div><strong>Email:</strong> <code>{credentials.email}</code></div>
+                <div><strong>Password:</strong> <code>{credentials.password}</code></div>
+                <div><strong>Admission No:</strong> {credentials.admissionNo}</div>
+              </>
+            )}
+            {parentCredentials && (
+              <>
+                <div style={{ gridColumn: '1 / -1', marginTop: 12, paddingTop: 12, borderTop: '1px dashed var(--border)' }}>
+                  <FiHeart size={12} /> <strong>Parent Login</strong>
+                </div>
+                <div><strong>Parent:</strong> {parentCredentials.name}</div>
+                <div><strong>Email:</strong> <code>{parentCredentials.email}</code></div>
+                <div><strong>Password:</strong> <code>{parentCredentials.password}</code></div>
+                <div><strong>Linked Child:</strong> {parentCredentials.child}</div>
+              </>
+            )}
           </div>
         </div>
       )}
 
       <div className="enroll-grid">
+        {/* ---------- Bulk import ---------- */}
         <div className="card enroll-card">
           <div className="enroll-card__head">
             <div className="enroll-card__icon">
@@ -198,6 +263,7 @@ export default function AdminEnrollStudents() {
           )}
         </div>
 
+        {/* ---------- Single enrollment ---------- */}
         <div className="card enroll-card">
           <div className="enroll-card__head">
             <div className="enroll-card__icon">
@@ -254,11 +320,64 @@ export default function AdminEnrollStudents() {
               </label>
             </div>
 
+            {/* ---------- Parent portal account ---------- */}
+            <h4 className="enroll-section-title">
+              <FiHeart size={12} style={{ marginRight: 6 }} />
+              Parent / Guardian Portal Access (optional)
+            </h4>
+
+            <label className="checkbox-inline" style={{ marginBottom: 12 }}>
+              <input
+                type="checkbox"
+                checked={createParent}
+                onChange={(e) => setCreateParent(e.target.checked)}
+                style={{ width: 'auto', marginRight: 8 }}
+              />
+              <span>Also create a login account for the parent/guardian</span>
+            </label>
+
+            {createParent && (
+              <div className="form-grid">
+                <label>Parent Email *
+                  <input
+                    type="email"
+                    name="parentEmail"
+                    value={form.parentEmail}
+                    onChange={handleChange}
+                    placeholder="parent@school.com"
+                  />
+                </label>
+                <label>Parent Password
+                  <input
+                    name="parentPassword"
+                    value={form.parentPassword}
+                    onChange={handleChange}
+                    placeholder="Leave blank → Parent@123"
+                  />
+                </label>
+                <label>Relationship
+                  <select
+                    name="parentRelationship"
+                    value={form.parentRelationship}
+                    onChange={handleChange}
+                  >
+                    <option>Father</option>
+                    <option>Mother</option>
+                    <option>Guardian</option>
+                    <option>Other</option>
+                  </select>
+                </label>
+              </div>
+            )}
+
             <div className="enroll-card__actions enroll-card__actions--end">
               <button
                 type="button"
                 className="btn btn--ghost"
-                onClick={() => setForm(emptyForm)}
+                onClick={() => {
+                  setForm(emptyForm);
+                  setCreateParent(false);
+                }}
               >
                 Clear
               </button>

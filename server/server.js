@@ -23,6 +23,12 @@ const discussionsRoutes    = require('./routes/discussions.routes');
 const analyticsRoutes      = require('./routes/analytics.routes');
 const passwordResetRoutes  = require('./routes/passwordReset.routes');
 const smsRoutes            = require('./routes/sms.routes');
+
+// ⭐ THESE THREE WERE MISSING — that's why Timetable/Calendar/Attendance 404'd
+const timetableRoutes      = require('./routes/timetable.routes');
+const calendarRoutes       = require('./routes/calendar.routes');
+const attendanceRoutes     = require('./routes/attendance.routes');
+
 const { setupSocket }      = require('./socket');
 
 const app = express();
@@ -35,10 +41,11 @@ const server = http.createServer(app);
 const allowedOrigins = [
   'https://nexus-nexus-1876.vercel.app',
   'https://school-portal-1-xaio.onrender.com',
+  'http://localhost:3000',
+  'http://localhost:3001',
 ];
 
 function corsOriginCheck(origin, callback) {
-  // Allow server-to-server / curl / same-origin (no Origin header)
   if (!origin) return callback(null, true);
   if (allowedOrigins.includes(origin)) return callback(null, true);
   console.log(`❌ CORS blocked: ${origin}`);
@@ -57,11 +64,7 @@ const corsOptions = {
    ============================================================ */
 
 const io = new Server(server, {
-  cors: {
-    origin: '*',
-    credentials: false,
-    methods: ['GET', 'POST'],
-  },
+  cors: { origin: '*', credentials: false, methods: ['GET', 'POST'] },
   transports: ['polling', 'websocket'],
   pingTimeout: 60000,
   pingInterval: 25000,
@@ -83,15 +86,9 @@ app.use((req, res, next) => {
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-/* ============================================================
-   ⭐ HEALTH CHECK — must respond BEFORE any DB work
-   Render pings this every ~30s to decide if the service is alive.
-   If it doesn't respond within ~90s, Render reports "no open ports"
-   and returns 502 to every request.
-   ============================================================ */
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'healthy', uptime: process.uptime() });
-});
+app.get('/health', (req, res) =>
+  res.status(200).json({ status: 'healthy', uptime: process.uptime() })
+);
 
 app.get('/', (req, res) =>
   res.json({ message: 'School Portal API is running' })
@@ -121,6 +118,11 @@ app.use('/api/analytics',      analyticsRoutes);
 app.use('/api/password-reset', passwordResetRoutes);
 app.use('/api/sms',            smsRoutes);
 
+// ⭐ The three that were missing
+app.use('/api/timetable',      timetableRoutes);
+app.use('/api/calendar',       calendarRoutes);
+app.use('/api/attendance',     attendanceRoutes);
+
 app.use((req, res) =>
   res.status(404).json({ message: 'Route not found' })
 );
@@ -130,7 +132,7 @@ app.use((req, res) =>
    ============================================================ */
 
 const PORT = process.env.PORT || 5000;
-const HOST = '0.0.0.0';   // ⭐ Render needs this, NOT localhost
+const HOST = '0.0.0.0';
 
 server.listen(PORT, HOST, () => {
   console.log(`🚀 Server running on ${HOST}:${PORT}`);
@@ -139,7 +141,6 @@ server.listen(PORT, HOST, () => {
   console.log(`   DB_NAME  = ${process.env.DB_NAME || '(not set)'}`);
 });
 
-/* Non-fatal DB ping — never blocks the HTTP listener */
 setTimeout(() => {
   require('./db')
     .getConnection()
