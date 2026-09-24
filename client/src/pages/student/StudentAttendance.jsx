@@ -3,9 +3,9 @@ import {
   FiCalendar, FiCheck, FiX, FiClock, FiCheckCircle, FiAlertCircle
 } from 'react-icons/fi';
 import { api } from '../../api/api';
-import PageHeader from '../components/PageHeader';
-import StatCard from '../components/StatCard';
-import Loader from '../components/Loader';
+import PageHeader from '../../components/PageHeader';
+import StatCard from '../../components/StatCard';
+import Loader from '../../components/Loader';
 
 const STATUS_COLORS = {
   Present: 'status-present',
