@@ -74,8 +74,7 @@ export default function StudentLMS() {
     return () => clearInterval(id);
   }, [active, result]);
 
-  /* Auto-submit when time hits 0.
-     All dependencies included → no eslint-disable needed. */
+  /* Auto-submit when time hits 0. */
   useEffect(() => {
     if (timeLeft === 0 && active && !result && !autoSubmittedRef.current) {
       autoSubmittedRef.current = true;

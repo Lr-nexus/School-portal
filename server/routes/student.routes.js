@@ -69,22 +69,30 @@ router.patch('/me', async (req, res) => {
 /* ---------- CLASSES ---------- */
 router.get('/me/classes', async (req, res) => {
   const [studentRows] = await pool.execute(
-    'SELECT class_name FROM students WHERE user_id = ?',
+    'SELECT id, class_name FROM students WHERE user_id = ?',
     [req.user.id]
   );
   if (!studentRows.length) {
     return res.json({ className: null, subjects: [], schedule: [], classmates: [] });
   }
   const className = studentRows[0].class_name;
+  const myStudentId = studentRows[0].id;
+
   const [classRows] = await pool.execute('SELECT * FROM classes WHERE name = ?', [className]);
   if (!classRows.length) {
     return res.json({ className, subjects: [], schedule: [], classmates: [] });
   }
   const myClass = classRows[0];
+
+  /* ⭐ Exclude the logged-in student from the classmates list */
   const [classmates] = await pool.execute(
-    'SELECT id, name, admission_no FROM students WHERE class_name = ?',
-    [className]
+    `SELECT id, name, admission_no
+     FROM students
+     WHERE class_name = ? AND id != ?
+     ORDER BY name`,
+    [className, myStudentId]
   );
+
   res.json({
     id: myClass.id,
     name: myClass.name,

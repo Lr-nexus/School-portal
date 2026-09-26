@@ -8,9 +8,6 @@ router.use(protect);
 /* Helper — always store smaller ID first so a pair is unique */
 const pair = (a, b) => (a < b ? [a, b] : [b, a]);
 
-/* ============================================================
-   GET /api/messages/conversations
-   ============================================================ */
 router.get('/conversations', async (req, res) => {
   const me = req.user.id;
 
@@ -60,10 +57,6 @@ router.get('/conversations', async (req, res) => {
   res.json(result);
 });
 
-/* ============================================================
-   POST /api/messages/conversations
-   body: { otherUserId }
-   ============================================================ */
 router.post('/conversations', async (req, res) => {
   const me = req.user.id;
   const other = Number(req.body.otherUserId);
@@ -92,9 +85,6 @@ router.post('/conversations', async (req, res) => {
   res.status(201).json({ conversationId: result.insertId });
 });
 
-/* ============================================================
-   GET /api/messages/conversations/:id
-   ============================================================ */
 router.get('/conversations/:id', async (req, res) => {
   const me = req.user.id;
   const id = Number(req.params.id);
@@ -142,12 +132,6 @@ router.get('/conversations/:id', async (req, res) => {
   });
 });
 
-/* ============================================================
-   POST /api/messages/conversations/:id/send
-   body: { body }
-
-   ⭐ NEW: Notifies the recipient so their bell lights up.
-   ============================================================ */
 router.post('/conversations/:id/send', async (req, res) => {
   const me = req.user.id;
   const id = Number(req.params.id);
@@ -179,7 +163,6 @@ router.post('/conversations/:id/send', async (req, res) => {
   );
   const m = rows[0];
 
-  /* ⭐ Notify the other participant */
   try {
     const recipientId = conv.user1_id === me ? conv.user2_id : conv.user1_id;
 
@@ -218,9 +201,6 @@ router.post('/conversations/:id/send', async (req, res) => {
   });
 });
 
-/* ============================================================
-   GET /api/messages/contacts  (unchanged)
-   ============================================================ */
 router.get('/contacts', async (req, res) => {
   const me = req.user.id;
   const role = req.user.role;

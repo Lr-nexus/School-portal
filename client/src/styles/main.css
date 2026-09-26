@@ -3699,7 +3699,81 @@ textarea { resize: vertical; min-height: 60px; }
 .status-bg-excused { background: rgba(37, 99, 235, .05); }
 
 /* ==========================================================================
-   44. TIMETABLE
+   44. SUBJECT TILES & CLASSMATES (Student → My Class)
+   ========================================================================== */
+
+.subject-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+}
+.subject-tile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: all .15s;
+}
+.subject-tile:hover {
+  border-color: var(--accent-ring);
+  background: var(--accent-soft);
+}
+.subject-tile__icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.subject-tile__name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.classmate-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+.classmate-tile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: all .15s;
+}
+.classmate-tile:hover {
+  border-color: var(--accent-ring);
+  transform: translateY(-1px);
+}
+.classmate-tile__info { min-width: 0; }
+.classmate-tile__info strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.classmate-tile__info span {
+  font-size: 11px;
+  color: var(--muted);
+  font-family: 'Courier New', monospace;
+}
+
+/* ==========================================================================
+   45. WEEKLY TIMETABLE (Student & Parent view)
    ========================================================================== */
 
 .timetable-wrap { display: flex; flex-direction: column; gap: 18px; }
@@ -3760,8 +3834,6 @@ textarea { resize: vertical; min-height: 60px; }
   background: var(--border-strong);
   border-radius: 4px;
 }
-
-.timetable-grid__corner { /* blank top-left */ }
 
 .timetable-grid__head {
   font-size: 11px;
@@ -3911,72 +3983,147 @@ textarea { resize: vertical; min-height: 60px; }
 .timetable-empty svg { margin-bottom: 14px; opacity: .5; }
 .timetable-empty p { font-size: 15px; margin-bottom: 6px; }
 
-/* ----- Teacher editor ----- */
-.timetable-editor { display: flex; flex-direction: column; gap: 14px; }
+/* ==========================================================================
+   46. TEACHER TIMETABLE — Editable grid
+   ========================================================================== */
 
-.timetable-editor__day {
+.timetable-editor-grid {
+  display: grid;
+  grid-template-columns: 90px repeat(5, minmax(140px, 1fr));
+  gap: 6px;
+  padding: 16px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  overflow: hidden;
   box-shadow: var(--shadow-sm);
+  overflow-x: auto;
 }
-.timetable-editor__day-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 16px;
-  background: var(--accent-soft);
-  border-bottom: 1px solid var(--border);
-  flex-wrap: wrap;
+
+.timetable-editor-grid__corner {
+  display: grid;
+  place-items: center;
+  padding: 10px 0;
+  color: var(--muted);
+  background: var(--surface-2);
+  border-radius: 8px;
+  font-size: 14px;
 }
-.timetable-editor__day-head h3 {
-  font-size: 12px;
+
+.timetable-editor-grid__head {
+  display: grid;
+  place-items: center;
+  padding: 12px 8px;
+  font-size: 11.5px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: .8px;
-  color: var(--accent);
-  margin: 0;
+  letter-spacing: .7px;
+  color: var(--muted);
+  background: var(--surface-2);
+  border-radius: 8px;
 }
-.timetable-editor__day-count {
+
+.timetable-editor-grid__time {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 2px;
+  padding: 10px 10px 10px 4px;
+  border-right: 1px dashed var(--border);
+}
+.timetable-editor-grid__period {
   font-size: 11px;
-  color: var(--muted);
-  font-weight: 600;
-}
-.timetable-editor__slots { display: flex; flex-direction: column; }
-
-.timetable-slot-edit {
-  display: grid;
-  grid-template-columns: 70px 1fr 100px 100px auto;
-  gap: 10px;
-  align-items: end;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border);
-}
-.timetable-slot-edit:last-child { border-bottom: none; }
-.timetable-slot-edit label {
-  margin: 0;
-  font-size: 10.5px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: .4px;
+  letter-spacing: .5px;
+  color: var(--accent);
+}
+.timetable-editor-grid__range {
+  font-size: 10.5px;
   color: var(--muted);
-  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
-.timetable-slot-edit input,
-.timetable-slot-edit select {
-  margin-top: 4px;
-  font-size: 13px;
-  padding: 8px 10px;
-}
-.timetable-slot-edit .btn { padding: 8px 10px; }
 
-@media (max-width: 768px) {
-  .timetable-slot-edit { grid-template-columns: 1fr 1fr; }
+.timetable-editor-grid__cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 78px;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border: 1.5px dashed var(--border-strong);
+  border-radius: 10px;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  transition: all .15s ease;
+}
+.timetable-editor-grid__cell:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--accent-ring);
+}
+.timetable-editor-grid__cell--filled {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  border-style: solid;
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 4px 12px var(--accent-ring);
+}
+.timetable-editor-grid__cell--filled:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px var(--accent-ring);
+  background: linear-gradient(135deg, var(--accent-2), var(--accent));
+}
+.timetable-editor-grid__subject {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: inherit;
+}
+.timetable-editor-grid__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  opacity: .85;
+  color: inherit;
+}
+.timetable-editor-grid__add {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  color: var(--muted);
+  opacity: .55;
+  transition: opacity .15s;
+}
+.timetable-editor-grid__cell:hover .timetable-editor-grid__add {
+  opacity: 1;
+  color: var(--accent);
+}
+
+@media (max-width: 900px) {
+  .timetable-editor-grid {
+    grid-template-columns: 70px repeat(5, minmax(110px, 1fr));
+    padding: 10px;
+    gap: 4px;
+  }
+  .timetable-editor-grid__cell {
+    min-height: 68px;
+    padding: 8px;
+  }
+  .timetable-editor-grid__subject { font-size: 12px; }
+  .timetable-editor-grid__range { font-size: 9.5px; }
 }
 
 /* ==========================================================================
-   45. CALENDAR
+   47. CALENDAR
    ========================================================================== */
 
 .calendar-wrap {
@@ -4209,7 +4356,7 @@ textarea { resize: vertical; min-height: 60px; }
 }
 
 /* ==========================================================================
-   46. PRINT PAGES (Report Card · ID Card · sticky toolbar)
+   48. PRINT PAGES (Report Card · ID Card · sticky toolbar)
    ========================================================================== */
 
 .print-page {
@@ -4503,7 +4650,7 @@ textarea { resize: vertical; min-height: 60px; }
 }
 
 /* ==========================================================================
-   47. MESSAGES
+   49. MESSAGES
    ========================================================================== */
 
 .messages-layout {
@@ -4713,7 +4860,7 @@ textarea { resize: vertical; min-height: 60px; }
 }
 
 /* ==========================================================================
-   48. ANALYTICS
+   50. ANALYTICS
    ========================================================================== */
 
 .analytics-row {
@@ -4767,7 +4914,7 @@ textarea { resize: vertical; min-height: 60px; }
 }
 
 /* ==========================================================================
-   49. SMS META ROW
+   51. SMS META ROW
    ========================================================================== */
 
 .sms-meta {
@@ -4782,7 +4929,7 @@ textarea { resize: vertical; min-height: 60px; }
 .sms-meta .btn-link { font-size: 12px; color: var(--accent); }
 
 /* ==========================================================================
-   QUIZ TIMER (Student LMS)
+   52. QUIZ TIMER (Student LMS)
    ========================================================================== */
 
 .quiz-timer {
@@ -4881,7 +5028,7 @@ textarea { resize: vertical; min-height: 60px; }
 }
 
 /* ==========================================================================
-   50. RESPONSIVE
+   53. RESPONSIVE
    ========================================================================== */
 
 @media (max-width: 1024px) {
@@ -4909,6 +5056,10 @@ textarea { resize: vertical; min-height: 60px; }
 
 @media (max-width: 900px) {
   .grid-2 { grid-template-columns: 1fr; }
+  .calendar-body { grid-template-columns: 1fr; }
+  .calendar-panel { position: static; margin-top: 4px; }
+  .timetable-grid { display: none; }
+  .timetable-stack { display: flex; }
 }
 
 @media (max-width: 768px) {
@@ -4943,8 +5094,6 @@ textarea { resize: vertical; min-height: 60px; }
     justify-content: flex-end;
   }
 
-  .timetable-slot-edit { grid-template-columns: 1fr 1fr; }
-  .timetable-slot { grid-template-columns: 1fr; gap: 6px; }
   .attendance-row__buttons { width: 100%; }
   .calendar-cell { aspect-ratio: auto; min-height: 60px; padding: 6px; }
   .calendar-cell__num { font-size: 12px; }
@@ -5003,6 +5152,10 @@ textarea { resize: vertical; min-height: 60px; }
 
   .analytics-row { grid-template-columns: 1fr 60px; }
   .analytics-bar { grid-column: 1 / -1; }
+
+  .calendar-wrap { padding: 14px; }
+  .calendar-dot { width: 5px; height: 5px; }
+  .calendar-head__legend { display: none; }
 }
 
 @media (max-width: 600px) {
@@ -5022,7 +5175,7 @@ textarea { resize: vertical; min-height: 60px; }
 }
 
 /* ==========================================================================
-   51. PRINT (merged from two blocks)
+   54. PRINT
    ========================================================================== */
 
 @media print {
