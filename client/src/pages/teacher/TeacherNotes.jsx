@@ -3,17 +3,18 @@ import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import {
   FiUploadCloud, FiFileText, FiTrash2, FiDownload,
-  FiMessageCircle, FiSend, FiX, FiEdit3, FiAlertCircle,
+  FiMessageCircle, FiSend, FiX, FiEdit3, FiAlertCircle, FiUsers,
 } from 'react-icons/fi';
-import { api } from '../../api/api';
+import { api, SERVER_URL } from '../../api/api';
 import { useAuth } from '../../context/AuthContext';
 import { useTeacherProfile } from '../../hooks/useTeacherProfile';
 import PageHeader from '../../components/PageHeader';
 import Loader from '../../components/Loader';
 
-const BASE_URL =
-  (process.env.REACT_APP_API_URL || 'https://school-portal-1-xaio.onrender.com/api')
-    .replace(/\/api\/?$/, '');
+const SUBJECTS = [
+  'Mathematics', 'English Language', 'Basic Science',
+  'Social Studies', 'Computer Studies',
+];
 
 const QUILL_MODULES = {
   toolbar: [
@@ -25,6 +26,7 @@ const QUILL_MODULES = {
     ['clean'],
   ],
 };
+
 const QUILL_FORMATS = [
   'header', 'bold', 'italic', 'underline', 'strike',
   'list', 'bullet', 'blockquote', 'code-block', 'link', 'image',
@@ -102,12 +104,17 @@ export default function TeacherNotes() {
 
     setUploading(true);
     try {
-      const res = await fetch(`${BASE_URL}/api/notes`, {
+      const res = await fetch(`${SERVER_URL}/api/notes`, {
         method: 'POST',
         headers: { 'X-User-Id': String(user.id) },
         body: fd,
       });
-      const data = await res.json();
+      const raw = await res.text();
+      let data = {};
+      if (raw) {
+        try { data = JSON.parse(raw); }
+        catch { data = { message: raw }; }
+      }
       if (!res.ok) throw new Error(data.message || 'Upload failed');
 
       setMessage('PDF note uploaded');
@@ -170,7 +177,7 @@ export default function TeacherNotes() {
   const downloadFile = async (note) => {
     if (note.type === 'pdf' && note.fileUrl) {
       try {
-        const res = await fetch(`${BASE_URL}${note.fileUrl}`);
+        const res = await fetch(`${SERVER_URL}${note.fileUrl}`);
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -178,16 +185,21 @@ export default function TeacherNotes() {
         a.download = note.originalName || 'note.pdf';
         a.click();
         URL.revokeObjectURL(url);
-      } catch { setMessage('Download failed'); }
+      } catch {
+        setMessage('Download failed');
+      }
       return;
     }
 
-    const html = `<!doctype html><html><head><meta charset="utf-8"><title>${note.title}</title>
+    const html = `
+<!doctype html>
+<html><head><meta charset="utf-8"><title>${note.title}</title>
 <style>body{font-family:system-ui;max-width:760px;margin:40px auto;padding:0 20px;line-height:1.6;color:#111}</style>
 </head><body>
 <h1>${note.title}</h1>
 <p><em>${note.subject} · ${note.className} · ${note.teacherName}</em></p>
-${note.content}</body></html>`;
+${note.content}
+</body></html>`;
     const blob = new Blob([html], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -209,7 +221,9 @@ ${note.content}</body></html>`;
       setCommentText('');
       await openNote(active.id);
       await load();
-    } catch (err) { setMessage(err.message); }
+    } catch (err) {
+      setMessage(err.message);
+    }
   };
 
   if (loading || profileLoading) return <Loader />;
@@ -375,7 +389,7 @@ ${note.content}</body></html>`;
             {active.type === 'richtext' ? (
               <div className="rich-content" dangerouslySetInnerHTML={{ __html: active.content }} />
             ) : (
-              <iframe title={active.title} src={`${BASE_URL}${active.fileUrl}`} className="pdf-viewer" />
+              <iframe title={active.title} src={`${SERVER_URL}${active.fileUrl}`} className="pdf-viewer" />
             )}
 
             <div className="modal__actions">

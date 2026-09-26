@@ -6,8 +6,6 @@ router.use(protect);
 
 /* ============================================================
    GET /api/calendar?from=YYYY-MM-DD&to=YYYY-MM-DD
-   Aggregates live classes, assignment due dates, exams, events,
-   announcements — filtered by the caller's role.
    ============================================================ */
 router.get('/', async (req, res) => {
   const from = req.query.from || new Date().toISOString().split('T')[0];
@@ -42,7 +40,6 @@ router.get('/', async (req, res) => {
         sessionParams.push(tRows[0].id);
       }
     }
-    // admin sees all
 
     const [sessions] = await pool.execute(sessionQuery, sessionParams);
     sessions.forEach((s) => events.push({
@@ -142,7 +139,7 @@ router.get('/', async (req, res) => {
       link: `/${role}/announcements`,
     }));
 
-    /* ---------- CALENDAR EVENTS (admin-created) ---------- */
+    /* ---------- CUSTOM CALENDAR EVENTS (admin & teacher) ---------- */
     const [customEvents] = await pool.execute(
       `SELECT * FROM calendar_events
        WHERE date BETWEEN ? AND ?
@@ -169,9 +166,9 @@ router.get('/', async (req, res) => {
 });
 
 /* ============================================================
-   ADMIN — Create a custom calendar event
+   ADMIN / TEACHER — Create a custom calendar event
    ============================================================ */
-router.post('/events', allow('admin'), async (req, res) => {
+router.post('/events', allow('admin', 'teacher'), async (req, res) => {
   const { title, description, date, endDate, category, audience } = req.body;
 
   if (!title || !date) {
@@ -193,14 +190,31 @@ router.post('/events', allow('admin'), async (req, res) => {
     ]
   );
 
-  const [rows] = await pool.execute('SELECT * FROM calendar_events WHERE id = ?', [result.insertId]);
+  const [rows] = await pool.execute(
+    'SELECT * FROM calendar_events WHERE id = ?',
+    [result.insertId]
+  );
   res.status(201).json({ message: 'Event created', event: rows[0] });
 });
 
 /* ============================================================
-   ADMIN — Delete a custom calendar event
+   ADMIN / TEACHER — Delete a custom calendar event
+   - admin can delete any
+   - teacher can only delete events they created
    ============================================================ */
-router.delete('/events/:id', allow('admin'), async (req, res) => {
+router.delete('/events/:id', allow('admin', 'teacher'), async (req, res) => {
+  const [rows] = await pool.execute(
+    'SELECT created_by FROM calendar_events WHERE id = ?',
+    [req.params.id]
+  );
+  if (!rows.length) {
+    return res.status(404).json({ message: 'Event not found' });
+  }
+
+  if (req.user.role === 'teacher' && rows[0].created_by !== req.user.id) {
+    return res.status(403).json({ message: 'You can only delete your own events' });
+  }
+
   await pool.execute('DELETE FROM calendar_events WHERE id = ?', [req.params.id]);
   res.json({ message: 'Event deleted' });
 });

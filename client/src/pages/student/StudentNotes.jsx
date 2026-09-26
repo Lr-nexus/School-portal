@@ -1,13 +1,11 @@
 import { useEffect, useState } from 'react';
 import {
   FiFileText, FiDownload, FiMessageCircle, FiSend,
-  FiX, FiEye, FiEdit3
+  FiX, FiEye, FiEdit3,
 } from 'react-icons/fi';
-import { api } from '../../api/api';
+import { api, SERVER_URL } from '../../api/api';
 import PageHeader from '../../components/PageHeader';
 import Loader from '../../components/Loader';
-
-const BASE_URL = 'https://nexus-nexus-1876.vercel.app';
 
 export default function StudentNotes() {
   const [notes, setNotes] = useState([]);
@@ -33,7 +31,7 @@ export default function StudentNotes() {
   const downloadFile = async (note) => {
     if (note.type === 'pdf' && note.fileUrl) {
       try {
-        const res = await fetch(`${BASE_URL}${note.fileUrl}`);
+        const res = await fetch(`${SERVER_URL}${note.fileUrl}`);
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -72,7 +70,7 @@ ${note.content}
     try {
       await api(`/notes/${active.id}/comments`, {
         method: 'POST',
-        body: JSON.stringify({ text })
+        body: JSON.stringify({ text }),
       });
       setCommentText('');
       await openNote(active.id);
@@ -152,7 +150,7 @@ ${note.content}
             ) : (
               <iframe
                 title={active.title}
-                src={`${BASE_URL}${active.fileUrl}`}
+                src={`${SERVER_URL}${active.fileUrl}`}
                 className="pdf-viewer"
               />
             )}

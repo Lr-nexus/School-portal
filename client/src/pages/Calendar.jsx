@@ -42,6 +42,9 @@ const isoDate = (d) => {
 
 export default function Calendar() {
   const { user } = useAuth();
+
+  /* Both admin and teacher can create events */
+  const canCreate = user?.role === 'admin' || user?.role === 'teacher';
   const isAdmin = user?.role === 'admin';
 
   const [cursor, setCursor] = useState(new Date());
@@ -113,6 +116,7 @@ export default function Calendar() {
   const saveEvent = async (e) => {
     e.preventDefault();
     setSaving(true);
+    setErrorMsg('');
     try {
       await api('/calendar/events', {
         method: 'POST',
@@ -144,13 +148,26 @@ export default function Calendar() {
 
   const todayKey = isoDate(new Date());
 
+  /* Anyone with canCreate can delete their own events.
+     Admin can delete any event. The backend enforces this; we show
+     the trash icon for both so teachers can act on theirs. */
+  const canDeleteEvent = (e) => {
+    if (isAdmin) return true;
+    if (user?.role === 'teacher') {
+      // We don't have creator info in the payload for simplicity,
+      // so we allow the icon to show and let the backend decide.
+      return e.type === 'event';
+    }
+    return false;
+  };
+
   return (
     <div>
       <PageHeader title="Calendar" subtitle="Everything happening this month">
         <button className="btn btn--ghost" onClick={goToToday}>
           Today
         </button>
-        {isAdmin && (
+        {canCreate && (
           <button className="btn btn--primary" onClick={() => setShowForm(true)}>
             <FiPlus size={16} /> Add Event
           </button>
@@ -163,7 +180,7 @@ export default function Calendar() {
         </div>
       )}
 
-      {showForm && isAdmin && (
+      {showForm && canCreate && (
         <div className="card">
           <h3><FiPlus size={16} /> New Calendar Event</h3>
           <form onSubmit={saveEvent}>
@@ -241,7 +258,6 @@ export default function Calendar() {
       )}
 
       <div className="calendar-wrap">
-        {/* -------- Header: month nav + legend -------- */}
         <div className="calendar-head">
           <div className="calendar-head__nav">
             <button
@@ -278,7 +294,6 @@ export default function Calendar() {
           <Loader />
         ) : (
           <div className="calendar-body">
-            {/* -------- Grid -------- */}
             <div className="calendar-grid">
               {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => (
                 <div key={d} className="calendar-dow">{d}</div>
@@ -327,7 +342,6 @@ export default function Calendar() {
               })}
             </div>
 
-            {/* -------- Side panel -------- */}
             <div className="calendar-panel">
               <div className="calendar-panel__head">
                 <div className="calendar-panel__date">
@@ -379,7 +393,7 @@ export default function Calendar() {
                             Open
                           </a>
                         )}
-                        {isAdmin && e.type === 'event' && (
+                        {canDeleteEvent(e) && (
                           <button
                             className="btn btn--danger btn--sm"
                             onClick={() => deleteEvent(e.id)}

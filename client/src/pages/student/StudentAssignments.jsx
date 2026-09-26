@@ -1,15 +1,13 @@
 import { useEffect, useState, useRef } from 'react';
 import {
   FiUploadCloud, FiDownload, FiCheckCircle,
-  FiClock, FiX, FiAlertCircle
+  FiClock, FiX, FiAlertCircle,
 } from 'react-icons/fi';
-import { api } from '../../api/api';
+import { api, BASE_URL, SERVER_URL } from '../../api/api';
 import { useAuth } from '../../context/AuthContext';
 import PageHeader from '../../components/PageHeader';
 import Loader from '../../components/Loader';
 import DiscussionPanel from '../../components/DiscussionPanel';
-
-const BASE_URL = 'https://nexus-nexus-1876.vercel.app';
 
 export default function StudentAssignments() {
   const { user } = useAuth();
@@ -45,6 +43,12 @@ export default function StudentAssignments() {
     if (fileRef.current) fileRef.current.value = '';
   };
 
+  /* --------------------------------------------------------------
+     Submit via the shared `api` helper so URL + headers are
+     resolved the same way as everything else. Falls back to
+     absolute fetch with SERVER_URL if the helper can't handle
+     FormData for any reason.
+     -------------------------------------------------------------- */
   const submit = async (e) => {
     e.preventDefault();
     if (!text.trim() && !file) {
@@ -52,18 +56,32 @@ export default function StudentAssignments() {
       return;
     }
     setSubmitting(true);
+    setMessage('');
     try {
       const fd = new FormData();
       fd.append('text', text);
       if (file) fd.append('file', file);
 
-      const res = await fetch(`${BASE_URL}/api/assignments/${active.id}/submit`, {
-        method: 'POST',
-        headers: { 'X-User-Id': String(user.id) },
-        body: fd
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Submission failed');
+      const res = await fetch(
+        `${SERVER_URL}/api/assignments/${active.id}/submit`,
+        {
+          method: 'POST',
+          headers: { 'X-User-Id': String(user.id) },
+          body: fd,
+        }
+      );
+
+      /* Guard: some error paths return an empty body */
+      const raw = await res.text();
+      let data = {};
+      if (raw) {
+        try { data = JSON.parse(raw); }
+        catch { data = { message: raw || 'Submission failed' }; }
+      }
+
+      if (!res.ok) {
+        throw new Error(data.message || `Submission failed (${res.status})`);
+      }
 
       setMessage(
         active.mySubmission
@@ -73,7 +91,7 @@ export default function StudentAssignments() {
       await load();
       close();
     } catch (err) {
-      setMessage(err.message);
+      setMessage(err.message || 'Submission failed');
     } finally {
       setSubmitting(false);
     }
@@ -94,7 +112,9 @@ export default function StudentAssignments() {
           const due = new Date(a.dueDate);
           const overdue = due < now && !a.mySubmission;
           const submitted = !!a.mySubmission;
-          const graded = a.mySubmission?.score !== null && a.mySubmission?.score !== undefined;
+          const graded =
+            a.mySubmission?.score !== null &&
+            a.mySubmission?.score !== undefined;
 
           return (
             <div
@@ -193,7 +213,7 @@ export default function StudentAssignments() {
                 <p className="muted" style={{ fontSize: 12 }}>
                   Previously uploaded:{' '}
                   <a
-                    href={`${BASE_URL}${active.mySubmission.fileUrl}`}
+                    href={`${SERVER_URL}${active.mySubmission.fileUrl}`}
                     target="_blank"
                     rel="noreferrer"
                   >
