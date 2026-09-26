@@ -20,6 +20,7 @@ import StudentNotes from '../pages/student/StudentNotes';
 import StudentAssignments from '../pages/student/StudentAssignments';
 import StudentAttendance from '../pages/student/StudentAttendance';
 import StudentTimetable from '../pages/student/StudentTimetable';
+import StudentGrades from '../pages/student/StudentGrades';
 
 /* TEACHER */
 import TeacherHome from '../pages/teacher/TeacherHome';
@@ -31,6 +32,7 @@ import TeacherAssignments from '../pages/teacher/TeacherAssignments';
 import TeacherStudents from '../pages/teacher/TeacherStudents';
 import TeacherAttendance from '../pages/teacher/TeacherAttendance';
 import TeacherTimetable from '../pages/teacher/TeacherTimetable';
+import TeacherGrades from '../pages/teacher/TeacherGrades';
 
 /* PARENT */
 import ParentHome from '../pages/parent/ParentHome';
@@ -89,6 +91,7 @@ export default function AppRoutes() {
           <Route path="lms"           element={<StudentLMS />} />
           <Route path="messages"      element={<Messages />} />
           <Route path="announcements" element={<Announcements />} />
+          <Route path="grades"        element={<StudentGrades />} />
           <Route path="*"             element={<Navigate to="home" replace />} />
         </Route>
       </Route>
@@ -114,6 +117,7 @@ export default function AppRoutes() {
           <Route path="lms"           element={<TeacherLMS />} />
           <Route path="messages"      element={<Messages />} />
           <Route path="announcements" element={<Announcements />} />
+          <Route path="grades"        element={<TeacherGrades />} />
           <Route path="*"             element={<Navigate to="home" replace />} />
         </Route>
       </Route>

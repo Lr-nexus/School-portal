@@ -3,13 +3,9 @@ import {
   FiEdit3, FiUsers, FiUserCheck, FiTrendingUp,
   FiVideo, FiFileText, FiClipboard, FiLayers,
   FiUserPlus, FiBell, FiCalendar, FiCheckSquare,
-  FiClock, FiHeart, FiMessageCircle, FiSend
+  FiClock, FiHeart, FiMessageCircle, FiSend, FiAward
 } from 'react-icons/fi';
 
-/* ------------------------------------------------------------------
-   Grouped navigation — each role has an array of sections.
-   Each section: { label, items: [{ to, label, icon }] }
-   ------------------------------------------------------------------ */
 export const navConfig = {
   student: [
     {
@@ -35,6 +31,7 @@ export const navConfig = {
       items: [
         { to: '/student/results', label: 'Results',         icon: FiBarChart2 },
         { to: '/student/lms',     label: 'Tests & Quizzes', icon: FiEdit3 },
+        { to: '/student/grades',  label: 'My Grades',       icon: FiAward },
       ],
     },
     {
@@ -69,6 +66,7 @@ export const navConfig = {
       items: [
         { to: '/teacher/assignments', label: 'Assignments',     icon: FiClipboard },
         { to: '/teacher/lms',         label: 'Tests & Quizzes', icon: FiEdit3 },
+        { to: '/teacher/grades',      label: 'Student Grades',  icon: FiAward },
       ],
     },
     {
@@ -144,7 +142,6 @@ export const navConfig = {
   ],
 };
 
-/* Flat view — for any consumer that expects a plain list of links */
 export const navConfigFlat = Object.fromEntries(
   Object.entries(navConfig).map(([role, groups]) => [
     role,

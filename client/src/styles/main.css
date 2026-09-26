@@ -5214,3 +5214,166 @@ textarea { resize: vertical; min-height: 60px; }
     border: 1px solid #94a3b8;
   }
 }
+
+/* ==========================================================================
+   GRADES — Student & Teacher
+   ========================================================================== */
+
+/* ---------- Teacher: per-student expandable cards ---------- */
+.grade-student-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  margin-bottom: 10px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: border-color .15s, box-shadow .15s;
+}
+.grade-student-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md);
+}
+.grade-student-card--open {
+  border-color: var(--accent);
+  box-shadow: 0 4px 16px var(--accent-ring);
+}
+
+.grade-student-card__head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 18px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  transition: background .15s;
+}
+.grade-student-card__head:hover { background: var(--surface-2); }
+
+.grade-student-card__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.grade-student-card__info strong {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.grade-student-card__info span { font-size: 12px; }
+
+.grade-student-card__stats {
+  display: flex;
+  gap: 20px;
+  flex-shrink: 0;
+}
+.grade-student-card__stats > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: right;
+  min-width: 62px;
+}
+.grade-student-card__stat-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--muted);
+  font-weight: 600;
+}
+.grade-student-card__stats strong {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-2);
+}
+.grade-student-card__stat-main {
+  color: var(--accent) !important;
+  font-size: 15px !important;
+}
+
+.grade-student-card__chevron {
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.grade-student-card__body {
+  padding: 4px 18px 18px;
+  background: var(--surface-2);
+  border-top: 1px solid var(--border);
+}
+
+.grade-student-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 12px 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.grade-student-card__meta > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.grade-student-card__meta .btn { margin-left: auto; }
+
+.grade-detail-section {
+  margin-top: 4px;
+}
+.grade-detail-section + .grade-detail-section {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--border);
+}
+.grade-detail-section h4 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--accent);
+  margin-bottom: 10px;
+}
+
+.grade-detail-section .table {
+  background: var(--surface);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.grade-detail-section .table th,
+.grade-detail-section .table td {
+  padding: 8px 12px;
+  font-size: 12.5px;
+}
+
+@media (max-width: 640px) {
+  .grade-student-card__head {
+    flex-wrap: wrap;
+    padding: 12px 14px;
+  }
+  .grade-student-card__stats {
+    order: 3;
+    flex-basis: 100%;
+    justify-content: space-between;
+    padding-top: 10px;
+    border-top: 1px dashed var(--border);
+    margin-top: 4px;
+  }
+  .grade-student-card__stats > div {
+    text-align: left;
+  }
+  .grade-student-card__body { padding: 4px 14px 14px; }
+  .grade-detail-section .table-wrap { overflow-x: auto; }
+}

@@ -330,6 +330,139 @@ router.get('/me/fees/:id/receipt', async (req, res) => {
   });
 });
 
+/* ==================================================================
+   ⭐ MY GRADES — every quiz and assignment score in one place
+   ================================================================== */
+function pctToGrade(pct) {
+  if (pct >= 75) return 'A';
+  if (pct >= 65) return 'B';
+  if (pct >= 55) return 'C';
+  if (pct >= 45) return 'D';
+  if (pct >= 40) return 'E';
+  return 'F';
+}
+
+router.get('/me/grades', async (req, res) => {
+  const [studentRows] = await pool.execute(
+    'SELECT id FROM students WHERE user_id = ?',
+    [req.user.id]
+  );
+  if (!studentRows.length) {
+    return res.json({
+      quizGrades: [],
+      assignmentGrades: [],
+      summary: {
+        quizAverage: 0,
+        assignmentAverage: 0,
+        overallAverage: 0,
+        quizCount: 0,
+        assignmentCount: 0,
+        assignmentsGraded: 0,
+        totalGraded: 0,
+      },
+    });
+  }
+  const studentId = studentRows[0].id;
+
+  /* ---------- Quiz grades ---------- */
+  const [quizRows] = await pool.execute(
+    `SELECT qs.id, qs.quiz_id, qs.score, qs.total, qs.date,
+            q.title, q.subject, q.class_name,
+            t.name AS teacher_name
+     FROM quiz_submissions qs
+     JOIN quizzes q ON q.id = qs.quiz_id
+     LEFT JOIN teachers t ON t.id = q.teacher_id
+     WHERE qs.student_id = ?
+     ORDER BY qs.date DESC, qs.id DESC`,
+    [studentId]
+  );
+
+  /* ---------- Assignment grades ---------- */
+  const [assignRows] = await pool.execute(
+    `SELECT s.id, s.assignment_id, s.score, s.feedback,
+            s.submitted_at, s.graded_at,
+            a.title, a.subject, a.class_name, a.total_marks,
+            t.name AS teacher_name
+     FROM assignment_submissions s
+     JOIN assignments a ON a.id = s.assignment_id
+     LEFT JOIN teachers t ON t.id = a.teacher_id
+     WHERE s.student_id = ?
+     ORDER BY s.submitted_at DESC`,
+    [studentId]
+  );
+
+  const quizGrades = quizRows.map((q) => {
+    const pct = q.total ? Math.round((q.score / q.total) * 100) : 0;
+    return {
+      id: q.id,
+      quizId: q.quiz_id,
+      title: q.title,
+      subject: q.subject,
+      className: q.class_name,
+      teacherName: q.teacher_name || '—',
+      score: q.score,
+      total: q.total,
+      percentage: pct,
+      grade: pctToGrade(pct),
+      date: q.date,
+    };
+  });
+
+  const assignmentGrades = assignRows.map((a) => {
+    const graded = a.score !== null && a.score !== undefined;
+    const pct =
+      graded && a.total_marks
+        ? Math.round((a.score / a.total_marks) * 100)
+        : null;
+    return {
+      id: a.id,
+      assignmentId: a.assignment_id,
+      title: a.title,
+      subject: a.subject,
+      className: a.class_name,
+      teacherName: a.teacher_name || '—',
+      score: a.score,
+      totalMarks: a.total_marks,
+      percentage: pct,
+      grade: pct !== null ? pctToGrade(pct) : '—',
+      feedback: a.feedback,
+      submittedAt: a.submitted_at,
+      gradedAt: a.graded_at,
+      graded,
+    };
+  });
+
+  const gradedAssignments = assignmentGrades.filter((a) => a.graded);
+  const quizPcts = quizGrades.map((q) => q.percentage);
+  const assignPcts = gradedAssignments.map((a) => a.percentage);
+  const allPcts = [...quizPcts, ...assignPcts];
+
+  const quizAverage = quizPcts.length
+    ? Math.round(quizPcts.reduce((s, x) => s + x, 0) / quizPcts.length)
+    : 0;
+  const assignmentAverage = assignPcts.length
+    ? Math.round(assignPcts.reduce((s, x) => s + x, 0) / assignPcts.length)
+    : 0;
+  const overallAverage = allPcts.length
+    ? Math.round(allPcts.reduce((s, x) => s + x, 0) / allPcts.length)
+    : 0;
+
+  res.json({
+    quizGrades,
+    assignmentGrades,
+    summary: {
+      quizAverage,
+      assignmentAverage,
+      overallAverage,
+      quizCount: quizGrades.length,
+      assignmentCount: assignmentGrades.length,
+      assignmentsGraded: gradedAssignments.length,
+      totalGraded: allPcts.length,
+      overallGrade: pctToGrade(overallAverage),
+    },
+  });
+});
+
 /* ---------- ANNOUNCEMENTS ---------- */
 router.get('/me/announcements', async (req, res) => {
   const [rows] = await pool.execute('SELECT * FROM announcements ORDER BY date DESC');
