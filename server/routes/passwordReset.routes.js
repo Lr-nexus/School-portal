@@ -3,10 +3,6 @@ const crypto = require('crypto');
 const pool = require('../db');
 const { sendEmail, passwordResetEmail } = require('../utils/email');
 
-/* ============================================================
-   POST /api/password-reset/forgot
-   body: { email }
-   ============================================================ */
 router.post('/forgot', async (req, res) => {
   const email = String(req.body.email || '').toLowerCase().trim();
   if (!email) return res.status(400).json({ message: 'Email is required' });
@@ -52,9 +48,6 @@ router.post('/forgot', async (req, res) => {
   res.json({ message: genericMessage });
 });
 
-/* ============================================================
-   GET /api/password-reset/verify/:token
-   ============================================================ */
 router.get('/verify/:token', async (req, res) => {
   const [rows] = await pool.execute(
     `SELECT pr.*, u.email, u.name
@@ -76,10 +69,6 @@ router.get('/verify/:token', async (req, res) => {
   });
 });
 
-/* ============================================================
-   POST /api/password-reset/reset
-   body: { token, newPassword }
-   ============================================================ */
 router.post('/reset', async (req, res) => {
   const token = String(req.body.token || '').trim();
   const newPassword = String(req.body.newPassword || '');

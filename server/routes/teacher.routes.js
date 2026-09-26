@@ -170,10 +170,6 @@ router.get('/me/students', async (req, res) => {
   });
 });
 
-/* ==================================================================
-   ⭐ STUDENT GRADES — quizzes + assignments for every student in
-   this teacher's classes, plus their own quiz/assignment summaries
-   ================================================================== */
 function pctToGrade(pct) {
   if (pct >= 75) return 'A';
   if (pct >= 65) return 'B';
