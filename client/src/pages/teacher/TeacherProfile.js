@@ -2,17 +2,19 @@ import { useEffect, useState } from 'react';
 import { FiEdit2, FiSave, FiX, FiUser } from 'react-icons/fi';
 import { api } from '../../api/api';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import PageHeader from '../../components/PageHeader';
 import Loader from '../../components/Loader';
+import ProfilePhotoCard from '../ProfilePhotoCard';
 import ChangePasswordCard from '../../components/ChangePasswordCard';
 
 export default function TeacherProfile() {
   const { updateUser } = useAuth();
+  const toast = useToast();
   const [profile, setProfile] = useState(null);
   const [form, setForm] = useState(null);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState('');
 
   const load = () =>
     api('/teachers/me').then((data) => {
@@ -27,15 +29,11 @@ export default function TeacherProfile() {
   const startEdit = () => {
     setForm({ ...profile, subjects: (profile.subjects || []).join(', ') });
     setEditing(true);
-    setMessage('');
   };
-
   const cancelEdit = () => {
     setForm({ ...profile, subjects: (profile.subjects || []).join(', ') });
     setEditing(false);
-    setMessage('');
   };
-
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -58,15 +56,10 @@ export default function TeacherProfile() {
       setProfile(res.teacher);
       setForm({ ...res.teacher, subjects: (res.teacher.subjects || []).join(', ') });
       setEditing(false);
-      setMessage('Profile updated');
-
-      // ⭐ Sync the AuthContext
-      updateUser({
-        name: res.teacher.name,
-        email: res.teacher.email,
-      });
+      toast.success('Profile updated');
+      updateUser({ name: res.teacher.name, email: res.teacher.email });
     } catch (err) {
-      setMessage(err.message);
+      toast.error(err.message);
     } finally {
       setSaving(false);
     }
@@ -97,7 +90,15 @@ export default function TeacherProfile() {
         )}
       </PageHeader>
 
-      {message && <div className="alert alert--info">{message}</div>}
+      <ProfilePhotoCard
+        currentPhoto={profile.photo}
+        name={profile.name}
+        onUploaded={(url) => {
+          setProfile({ ...profile, photo: url });
+          setForm({ ...form, photo: url });
+          toast.success('Photo updated');
+        }}
+      />
 
       <div className="card profile-card">
         <div className="profile-card__head">

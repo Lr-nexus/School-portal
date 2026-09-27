@@ -6,25 +6,30 @@ const STORAGE_KEY = 'user';
 
 function readUser() {
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
+    // ⭐ Support both storages — localStorage wins if it has data
+    const raw =
+      localStorage.getItem(STORAGE_KEY) ||
+      sessionStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
 }
 
-function writeUser(user) {
-  if (user) {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-  } else {
-    sessionStorage.removeItem(STORAGE_KEY);
-  }
+function writeUser(user, remember = false) {
+  // Always clear first so we don't have stale copies
+  try { localStorage.removeItem(STORAGE_KEY); } catch {}
+  try { sessionStorage.removeItem(STORAGE_KEY); } catch {}
+
+  if (!user) return;
+
+  const target = remember ? localStorage : sessionStorage;
+  try { target.setItem(STORAGE_KEY, JSON.stringify(user)); } catch {}
 }
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(readUser);
 
-  /* On startup, refresh the user's info from the server */
   useEffect(() => {
     const stored = readUser();
     if (!stored) return;
@@ -41,7 +46,9 @@ export function AuthProvider({ children }) {
           role: data.role,
           photo: data.profile?.photo || null,
         };
-        writeUser(fresh);
+        // Preserve the storage choice
+        const remember = !!localStorage.getItem(STORAGE_KEY);
+        writeUser(fresh, remember);
         setUser(fresh);
       })
       .catch((err) => {
@@ -56,25 +63,19 @@ export function AuthProvider({ children }) {
     return () => { cancelled = true; };
   }, []);
 
-  const login = async (email, password) => {
+  const login = async (email, password, remember = false) => {
     const data = await api('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
 
-    // Fetch full profile (includes photo)
     let fullUser = data.user;
     try {
       const me = await api('/auth/me');
-      fullUser = {
-        ...data.user,
-        photo: me.profile?.photo || null,
-      };
-    } catch {
-      // Non-fatal
-    }
+      fullUser = { ...data.user, photo: me.profile?.photo || null };
+    } catch {}
 
-    writeUser(fullUser);
+    writeUser(fullUser, remember);
     setUser(fullUser);
     return fullUser;
   };
@@ -88,7 +89,8 @@ export function AuthProvider({ children }) {
     setUser((prev) => {
       if (!prev) return prev;
       const next = { ...prev, ...patch };
-      writeUser(next);
+      const remember = !!localStorage.getItem(STORAGE_KEY);
+      writeUser(next, remember);
       return next;
     });
   };

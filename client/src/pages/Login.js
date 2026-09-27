@@ -1,15 +1,18 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   FiLogIn, FiUser, FiUsers, FiShield, FiHeart,
   FiBookOpen, FiVideo, FiFileText, FiClipboard,
   FiAward, FiTrendingUp, FiCheckCircle,
-  FiEye, FiEyeOff,
+  FiEye, FiEyeOff, FiSun, FiMoon,
 } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
 const HERO_IMAGE =
   'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=1600&q=80';
+
+const LOGIN_THEME_KEY = 'login-theme-pref';
 
 const FEATURES = [
   { icon: FiBookOpen, text: 'Digital notes & study materials' },
@@ -32,25 +35,47 @@ const DEMO_ACCOUNTS = {
   parent:  { email: 'parent@school.com',  password: 'Parent@123',  label: 'Parent'  },
 };
 
+function readLoginTheme() {
+  try {
+    const v = localStorage.getItem(LOGIN_THEME_KEY);
+    return v === 'dark' ? 'dark' : 'light';
+  } catch {
+    return 'light';
+  }
+}
+
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [remember, setRemember] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loginTheme, setLoginTheme] = useState(readLoginTheme);
+
+  useEffect(() => {
+    try { localStorage.setItem(LOGIN_THEME_KEY, loginTheme); } catch {}
+  }, [loginTheme]);
+
+  const toggleLoginTheme = () =>
+    setLoginTheme((t) => (t === 'dark' ? 'light' : 'dark'));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      const user = await login(email, password);
+      const user = await login(email, password, remember);
+      toast.success(`Welcome back, ${user.name.split(' ')[0]}`);
       navigate(`/${user.role}/home`, { replace: true });
     } catch (err) {
-      setError(err.message || 'Sign-in failed');
+      const msg = err.message || 'Sign-in failed';
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -65,8 +90,19 @@ export default function Login() {
   };
 
   return (
-    <div className="login-split">
-      {/* ---------------- LEFT: hero ---------------- */}
+    <div className="login-split" data-login-theme={loginTheme}>
+      {/* Theme toggle — always top-right */}
+      <button
+        type="button"
+        className="login-theme-toggle"
+        onClick={toggleLoginTheme}
+        title={loginTheme === 'dark' ? 'Switch to light' : 'Switch to dark'}
+        aria-label="Toggle login theme"
+      >
+        {loginTheme === 'dark' ? <FiSun size={16} /> : <FiMoon size={16} />}
+      </button>
+
+      {/* LEFT: hero */}
       <div className="login-hero">
         <div
           className="login-hero__bg"
@@ -116,7 +152,7 @@ export default function Login() {
         </div>
       </div>
 
-      {/* ---------------- RIGHT: form ---------------- */}
+      {/* RIGHT: form */}
       <div className="login-form-panel">
         <div className="login-form-panel__inner">
           <div className="login-form-panel__head">
@@ -129,11 +165,7 @@ export default function Login() {
             <p>Sign in to access your school portal</p>
           </div>
 
-          {error && (
-            <div className="alert alert--error">
-              {error}
-            </div>
-          )}
+          {error && <div className="alert alert--error">{error}</div>}
 
           <form onSubmit={handleSubmit} className="login-form">
             <label>
@@ -174,8 +206,12 @@ export default function Login() {
 
             <div className="login-form__row">
               <label className="login-form__remember">
-                <input type="checkbox" />
-                <span>Remember me</span>
+                <input
+                  type="checkbox"
+                  checked={remember}
+                  onChange={(e) => setRemember(e.target.checked)}
+                />
+                <span>Keep me signed in</span>
               </label>
               <Link to="/forgot-password" className="login-form__forgot">
                 Forgot password?
@@ -192,7 +228,6 @@ export default function Login() {
             </button>
           </form>
 
-          {/* ---------- Demo accounts ---------- */}
           <div className="login-demo">
             <div className="login-demo__head">
               <span>Try a demo account</span>
@@ -201,34 +236,19 @@ export default function Login() {
             <div className="login-demo__btns login-demo__btns--grid">
               <button type="button" onClick={() => quickFill('student')}>
                 <FiUser size={15} />
-                <div>
-                  <strong>Student</strong>
-                  <span>{DEMO_ACCOUNTS.student.email}</span>
-                </div>
+                <div><strong>Student</strong><span>{DEMO_ACCOUNTS.student.email}</span></div>
               </button>
-
               <button type="button" onClick={() => quickFill('teacher')}>
                 <FiUsers size={15} />
-                <div>
-                  <strong>Teacher</strong>
-                  <span>{DEMO_ACCOUNTS.teacher.email}</span>
-                </div>
+                <div><strong>Teacher</strong><span>{DEMO_ACCOUNTS.teacher.email}</span></div>
               </button>
-
               <button type="button" onClick={() => quickFill('admin')}>
                 <FiShield size={15} />
-                <div>
-                  <strong>Admin</strong>
-                  <span>{DEMO_ACCOUNTS.admin.email}</span>
-                </div>
+                <div><strong>Admin</strong><span>{DEMO_ACCOUNTS.admin.email}</span></div>
               </button>
-
               <button type="button" onClick={() => quickFill('parent')}>
                 <FiHeart size={15} />
-                <div>
-                  <strong>Parent</strong>
-                  <span>{DEMO_ACCOUNTS.parent.email}</span>
-                </div>
+                <div><strong>Parent</strong><span>{DEMO_ACCOUNTS.parent.email}</span></div>
               </button>
             </div>
 
@@ -237,20 +257,10 @@ export default function Login() {
             </p>
           </div>
 
-          {/* ---------- Trust badges ---------- */}
           <div className="login-trust">
-            <div className="login-trust__item">
-              <FiAward size={16} />
-              <span>Accredited</span>
-            </div>
-            <div className="login-trust__item">
-              <FiTrendingUp size={16} />
-              <span>Modern Curriculum</span>
-            </div>
-            <div className="login-trust__item">
-              <FiCheckCircle size={16} />
-              <span>Safe & Secure</span>
-            </div>
+            <div className="login-trust__item"><FiAward size={16} /><span>Accredited</span></div>
+            <div className="login-trust__item"><FiTrendingUp size={16} /><span>Modern Curriculum</span></div>
+            <div className="login-trust__item"><FiCheckCircle size={16} /><span>Safe & Secure</span></div>
           </div>
 
           <p className="login-form-panel__footer">

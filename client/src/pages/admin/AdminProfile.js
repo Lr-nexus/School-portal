@@ -2,17 +2,19 @@ import { useEffect, useState } from 'react';
 import { FiEdit2, FiSave, FiX, FiUser } from 'react-icons/fi';
 import { api } from '../../api/api';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import PageHeader from '../../components/PageHeader';
 import Loader from '../../components/Loader';
+import ProfilePhotoCard from '../ProfilePhotoCard';
 import ChangePasswordCard from '../../components/ChangePasswordCard';
 
 export default function AdminProfile() {
   const { updateUser } = useAuth();
+  const toast = useToast();
   const [profile, setProfile] = useState(null);
   const [form, setForm] = useState(null);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState('');
 
   const load = () =>
     api('/admin/me').then((data) => {
@@ -24,18 +26,8 @@ export default function AdminProfile() {
 
   if (!profile) return <Loader />;
 
-  const startEdit = () => {
-    setForm(profile);
-    setEditing(true);
-    setMessage('');
-  };
-
-  const cancelEdit = () => {
-    setForm(profile);
-    setEditing(false);
-    setMessage('');
-  };
-
+  const startEdit = () => { setForm(profile); setEditing(true); };
+  const cancelEdit = () => { setForm(profile); setEditing(false); };
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -56,15 +48,10 @@ export default function AdminProfile() {
       setProfile(res.admin);
       setForm(res.admin);
       setEditing(false);
-      setMessage('Profile updated');
-
-      // ⭐ Sync the AuthContext
-      updateUser({
-        name: res.admin.name,
-        email: res.admin.email,
-      });
+      toast.success('Profile updated');
+      updateUser({ name: res.admin.name, email: res.admin.email });
     } catch (err) {
-      setMessage(err.message);
+      toast.error(err.message);
     } finally {
       setSaving(false);
     }
@@ -92,7 +79,15 @@ export default function AdminProfile() {
         )}
       </PageHeader>
 
-      {message && <div className="alert alert--info">{message}</div>}
+      <ProfilePhotoCard
+        currentPhoto={profile.photo}
+        name={profile.name}
+        onUploaded={(url) => {
+          setProfile({ ...profile, photo: url });
+          setForm({ ...form, photo: url });
+          toast.success('Photo updated');
+        }}
+      />
 
       <div className="card profile-card">
         <div className="profile-card__head">
@@ -132,7 +127,7 @@ export default function AdminProfile() {
               </label>
               <label className="form-grid__full">Office
                 <input name="office" value={form.office || ''} onChange={handleChange}
-                       placeholder="Principal’s Office, Admin Block" />
+                       placeholder="Principal's Office, Admin Block" />
               </label>
             </div>
 

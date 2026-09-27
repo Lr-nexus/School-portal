@@ -5457,3 +5457,149 @@ textarea { resize: vertical; min-height: 60px; }
   .grade-student-card__body { padding: 4px 14px 14px; }
   .grade-detail-section .table-wrap { overflow-x: auto; }
 }
+
+/* ==========================================================================
+   TOASTS
+   ========================================================================== */
+
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+  max-width: calc(100vw - 40px);
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 260px;
+  max-width: 420px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  font-size: 13.5px;
+  color: var(--text);
+  pointer-events: auto;
+  animation: toastSlideIn .25s ease-out;
+}
+
+@keyframes toastSlideIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.toast__icon { flex-shrink: 0; }
+.toast__msg  { flex: 1; min-width: 0; line-height: 1.4; }
+.toast__close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--muted);
+  padding: 4px;
+  border-radius: 6px;
+  display: inline-flex;
+}
+.toast__close:hover { color: var(--text); background: var(--surface-3); }
+
+.toast--success { border-left: 4px solid var(--green); }
+.toast--success .toast__icon { color: var(--green); }
+.toast--error   { border-left: 4px solid var(--red); }
+.toast--error   .toast__icon { color: var(--red); }
+.toast--warn    { border-left: 4px solid var(--amber); }
+.toast--warn    .toast__icon { color: var(--amber); }
+.toast--info    { border-left: 4px solid var(--accent); }
+.toast--info    .toast__icon { color: var(--accent); }
+
+@media (max-width: 500px) {
+  .toast-container {
+    top: 12px;
+    right: 12px;
+    left: 12px;
+    max-width: none;
+  }
+  .toast { max-width: none; }
+}
+
+/* ==========================================================================
+   LOGIN — dark variant + theme toggle
+   ========================================================================== */
+
+/* Floating theme toggle on the login page */
+.login-theme-toggle {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 5;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-2);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  box-shadow: var(--shadow-md);
+  transition: transform .15s, background .15s;
+}
+.login-theme-toggle:hover {
+  transform: scale(1.05);
+  background: var(--surface-3);
+}
+
+/* The login page needs position: relative so the toggle anchors to it */
+.login-split { position: relative; }
+
+/* ⭐ Dark variant of the login page */
+.login-split[data-login-theme="dark"] {
+  --bg:            #0a0f1c;
+  --surface:       #101a2f;
+  --surface-2:     #16233a;
+  --surface-3:     #1c2c47;
+
+  --text:          #e6edf6;
+  --text-2:        #cbd5e1;
+  --muted:         #8a9ab5;
+  --muted-2:       #64748b;
+
+  --border:        #1e2a44;
+  --border-strong: #2f3e5c;
+
+  --accent-soft:   #172554;
+  --accent-text:   #bfdbfe;
+
+  color-scheme: dark;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.login-split[data-login-theme="dark"] .login-form-panel {
+  background: linear-gradient(180deg, #0f172a 0%, #0a0f1c 100%);
+}
+
+.login-split[data-login-theme="dark"] .login-form-panel__inner {
+  background: rgba(16, 26, 47, 0.82);
+  border-color: rgba(148, 163, 184, 0.14);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.5);
+}
+
+.login-split[data-login-theme="dark"] .login-form input {
+  color: #e6edf6;
+  background: rgba(15, 23, 42, 0.5);
+  border-color: var(--border);
+}
+.login-split[data-login-theme="dark"] .login-form input::placeholder {
+  color: #64748b;
+}
+.login-split[data-login-theme="dark"] .login-form input:focus {
+  border-color: rgba(96, 165, 250, 0.5);
+  box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.1);
+}
