@@ -120,10 +120,6 @@ export default function Login() {
       <div className="login-form-panel">
         <div className="login-form-panel__inner">
           <div className="login-form-panel__head">
-            <div className="login-form-panel__eyebrow">
-              <span className="login-form-panel__eyebrow-dot" />
-              Secure portal access
-            </div>
             <div className="login-form-panel__logo-mobile">BF</div>
             <h2>Welcome back</h2>
             <p>Sign in to access your school portal</p>
@@ -173,10 +169,7 @@ export default function Login() {
             </label>
 
             <div className="login-form__row">
-              <label className="login-form__remember">
-                <input type="checkbox" />
-                <span>Remember me</span>
-              </label>
+              <span />
               <Link to="/forgot-password" className="login-form__forgot">
                 Forgot password?
               </Link>
