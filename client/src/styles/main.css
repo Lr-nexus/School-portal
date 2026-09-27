@@ -1252,13 +1252,47 @@ textarea { resize: vertical; min-height: 60px; }
    19. LOGIN — Split-screen
    ========================================================================== */
 
+/* ⭐ Login page is ALWAYS light — the user's theme preference does not
+   reach this page. All tokens are redeclared here so nothing inherits
+   the dark theme from <html data-theme="dark">. */
 .login-split {
+  /* Force light tokens */
+  --bg:            #f4f6fb;
+  --bg-2:          #eef2f9;
+  --surface:       #ffffff;
+  --surface-2:     #f8fafc;
+  --surface-3:     #f1f5f9;
+  --surface-hover: #f8fafc;
+
+  --text:          #0b1220;
+  --text-2:        #334155;
+  --muted:         #64748b;
+  --muted-2:       #94a3b8;
+
+  --border:        #e5e9f2;
+  --border-strong: #cbd5e1;
+
+  --accent:        #2563eb;
+  --accent-2:      #1d4ed8;
+  --accent-soft:   #eff6ff;
+  --accent-text:   #1e40af;
+  --accent-ring:   rgba(37, 99, 235, .2);
+
+  --green:         #16a34a;
+  --red:           #dc2626;
+  --amber:         #f59e0b;
+
+  /* Tells the browser to render native form controls in light mode */
+  color-scheme: light;
+
   display: grid;
   grid-template-columns: 1.15fr 1fr;
   min-height: 100vh;
   background: var(--bg);
+  color: var(--text);
 }
 
+/* ---------------- LEFT: hero (design element, always dark by nature) ---------------- */
 .login-hero {
   position: relative;
   overflow: hidden;
@@ -1385,21 +1419,8 @@ textarea { resize: vertical; min-height: 60px; }
   opacity: .8;
 }
 
-/* ⭐ Login panel — locked to LIGHT theme tokens so text stays dark
-   on the glassmorphic light card regardless of global dark mode */
+/* ---------------- RIGHT: form panel (glassmorphic, light) ---------------- */
 .login-form-panel {
-  --text:          #0b1220;
-  --text-2:        #334155;
-  --muted:         #64748b;
-  --muted-2:       #94a3b8;
-  --border:        #e5e9f2;
-  --border-strong: #cbd5e1;
-  --surface:       #ffffff;
-  --surface-2:     #f8fafc;
-  --surface-3:     #f1f5f9;
-  --accent-soft:   #eff6ff;
-  --accent-text:   #1e40af;
-
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1409,8 +1430,8 @@ textarea { resize: vertical; min-height: 60px; }
 .login-form-panel__inner {
   width: 100%;
   max-width: 420px;
-  background: rgba(255,255,255,0.72);
-  border: 1px solid rgba(148,163,184,0.18);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.18);
   border-radius: 24px;
   box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
   padding: 28px 26px 22px;
@@ -1474,15 +1495,15 @@ textarea { resize: vertical; min-height: 60px; }
   margin-top: 0;
   padding: 13px 14px;
   font-size: 14px;
-  color: #0b1220;                                 /* ⭐ explicit dark text */
+  color: #0b1220;
   border: 1px solid var(--border);
   border-radius: 12px;
-  background: rgba(255,255,255,0.7);
+  background: rgba(255, 255, 255, 0.7);
   box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.02);
   transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
 }
 .login-form input::placeholder {
-  color: #94a3b8;                                 /* ⭐ explicit placeholder */
+  color: #94a3b8;
 }
 .login-form input:focus {
   border-color: rgba(37, 99, 235, 0.45);
@@ -1522,7 +1543,7 @@ textarea { resize: vertical; min-height: 60px; }
   color: var(--text-2);
 }
 
-/* Password row + forgot link */
+/* Password row + remember me + forgot link */
 .login-form__row {
   display: flex;
   justify-content: space-between;
