@@ -256,16 +256,18 @@ a:hover { color: var(--accent-2); }
   flex-shrink: 0;
 }
 .sidebar__logo {
-  width: 42px;
-  height: 42px;
-  border-radius: var(--radius-md);
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  color: #fff;
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 6px;
   display: grid;
   place-items: center;
-  font-weight: 700;
-  box-shadow: 0 4px 14px var(--accent-ring);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  flex-shrink: 0;
 }
+
 .sidebar__brand h2 { font-size: 15px; color: #fff; }
 .sidebar__brand span { font-size: 11px; color: var(--sidebar-muted); }
 
@@ -1333,18 +1335,23 @@ textarea { resize: vertical; min-height: 60px; }
 }
 .login-hero__brand { display: flex; align-items: center; gap: 14px; }
 .login-hero__logo {
-  width: 52px;
-  height: 52px;
+  width: 64px;
+  height: 64px;
   border-radius: 14px;
-  background: rgba(255, 255, 255, .16);
-  border: 1px solid rgba(255, 255, 255, .25);
-  backdrop-filter: blur(6px);
+  background: #ffffff;
+  padding: 8px;
   display: grid;
   place-items: center;
-  font-weight: 800;
-  font-size: 18px;
-  letter-spacing: .5px;
-  color: #fff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.login-hero__logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 .login-hero__brand h1 { font-size: 20px; font-weight: 700; margin: 0; line-height: 1.1; }
 .login-hero__brand p {
@@ -1462,15 +1469,22 @@ textarea { resize: vertical; min-height: 60px; }
 }
 .login-form-panel__logo-mobile {
   display: none;
-  width: 48px;
-  height: 48px;
+  width: 56px;
+  height: 56px;
   border-radius: 12px;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  color: #fff;
+  background: #ffffff;
+  padding: 6px;
   place-items: center;
-  font-weight: 700;
-  font-size: 16px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
   margin-bottom: 16px;
+}
+
+.login-form-panel__logo-mobile img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 .login-form-panel__head h2 {
   font-size: 30px;
@@ -6315,39 +6329,8 @@ textarea { resize: vertical; min-height: 60px; }
    ========================================================================== */
 
 /* ---------- Logo swap in Sidebar ---------- */
-.sidebar__logo {
-  padding: 4px !important;
-  background: #fff !important;
-  overflow: hidden;
-}
-.sidebar__logo img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
 
 /* ---------- Logo swap on Login ---------- */
-.login-hero__logo {
-  padding: 6px;
-  overflow: hidden;
-}
-.login-hero__logo img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  border-radius: 8px;
-}
-.login-form-panel__logo-mobile {
-  padding: 6px;
-  background: #fff !important;
-  overflow: hidden;
-}
-.login-form-panel__logo-mobile img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  border-radius: 8px;
-}
 
 /* ---------- Welcome banner chips (clickable) ---------- */
 .welcome-banner__chip--clickable {
