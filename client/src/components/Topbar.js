@@ -2,13 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import {
   FiMenu, FiUser, FiLogOut, FiChevronDown,
-  FiSun, FiMoon
+  FiSun, FiMoon, FiCommand,
 } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import NotificationBell from './NotificationBell';
 import GlobalSearch from './GlobalSearch';
-import { FiMenu, FiUser, FiLogOut, FiChevronDown, FiSun, FiMoon, FiCommand } from 'react-icons/fi';
 
 const BASE_URL =
   (process.env.REACT_APP_BACKEND_URL ||
@@ -42,6 +41,18 @@ export default function Topbar({ onMenuClick }) {
     navigate('/login', { replace: true });
   };
 
+  const openCommandPalette = () => {
+    const isMac = navigator.platform.toLowerCase().includes('mac');
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'k',
+        metaKey: isMac,
+        ctrlKey: !isMac,
+        bubbles: true,
+      })
+    );
+  };
+
   const avatarInitial = user?.name?.charAt(0) || 'U';
   const photoSrc = user?.photo
     ? (user.photo.startsWith('http') ? user.photo : `${BASE_URL}${user.photo}`)
@@ -60,7 +71,7 @@ export default function Topbar({ onMenuClick }) {
       <div className="topbar__right">
         <span className="topbar__date">
           {new Date().toLocaleDateString('en-GB', {
-            weekday: 'long', day: 'numeric', month: 'long'
+            weekday: 'long', day: 'numeric', month: 'long',
           })}
         </span>
 
@@ -72,6 +83,15 @@ export default function Topbar({ onMenuClick }) {
           title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
         >
           {theme === 'dark' ? <FiSun size={20} /> : <FiMoon size={20} />}
+        </button>
+
+        <button
+          className="topbar__kbd-hint"
+          onClick={openCommandPalette}
+          title="Open command palette (⌘K)"
+        >
+          <FiCommand size={13} />
+          <span>K</span>
         </button>
 
         <NotificationBell />
