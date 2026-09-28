@@ -33,6 +33,7 @@ import TeacherStudents from '../pages/teacher/TeacherStudents';
 import TeacherAttendance from '../pages/teacher/TeacherAttendance';
 import TeacherTimetable from '../pages/teacher/TeacherTimetable';
 import TeacherGrades from '../pages/teacher/TeacherGrades';
+import AcademicTools from '../pages/teacher/AcademicTools';
 
 /* PARENT */
 import ParentHome from '../pages/parent/ParentHome';
@@ -121,6 +122,7 @@ export default function AppRoutes() {
           <Route path="messages"      element={<Messages />} />
           <Route path="announcements" element={<Announcements />} />
           <Route path="grades"        element={<TeacherGrades />} />
+          <Route path="academic"      element={<AcademicTools />} />
           <Route path="behaviour"     element={<TeacherBehaviour />} />
           <Route path="*"             element={<Navigate to="home" replace />} />
         </Route>

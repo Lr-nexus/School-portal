@@ -179,6 +179,182 @@ function pctToGrade(pct) {
   return 'F';
 }
 
+router.get('/me/academic/gradebook', async (req, res) => {
+  const { className, subject, session, term } = req.query;
+  if (!className || !subject || !session || !term) {
+    return res.status(400).json({ message: 'className, subject, session and term are required' });
+  }
+  const ctx = await getTeacherContext(req.user.id);
+  if (!ctx) return res.status(404).json({ message: 'Teacher not found' });
+  if (!canTeach(ctx, className, subject)) {
+    return res.status(403).json({ message: 'You are not assigned to this class and subject' });
+  }
+
+  const [rows] = await pool.execute(
+    `SELECT s.id, s.name, s.admission_no, r.ca, r.exam
+     FROM students s
+     LEFT JOIN results r ON r.student_id = s.id AND r.session = ? AND r.term = ? AND r.subject = ?
+     WHERE s.class_name = ? ORDER BY s.name`,
+    [session, term, subject, className]
+  );
+  res.json(rows.map((row) => ({
+    studentId: row.id,
+    name: row.name,
+    admissionNo: row.admission_no,
+    ca: row.ca,
+    exam: row.exam,
+  })));
+});
+
+router.put('/me/academic/gradebook', async (req, res) => {
+  const { className, subject, session, term, entries } = req.body;
+  if (!className || !subject || !session || !term || !Array.isArray(entries) || !entries.length) {
+    return res.status(400).json({ message: 'className, subject, session, term and entries are required' });
+  }
+  const ctx = await getTeacherContext(req.user.id);
+  if (!ctx) return res.status(404).json({ message: 'Teacher not found' });
+  if (!canTeach(ctx, className, subject)) {
+    return res.status(403).json({ message: 'You are not assigned to this class and subject' });
+  }
+
+  const studentIds = entries.map((entry) => Number(entry.studentId));
+  if (studentIds.some((id) => !Number.isInteger(id) || id < 1) || new Set(studentIds).size !== studentIds.length) {
+    return res.status(400).json({ message: 'Entries must contain unique valid student IDs' });
+  }
+  for (const entry of entries) {
+    const ca = Number(entry.ca);
+    const exam = Number(entry.exam);
+    if (!Number.isInteger(ca) || ca < 0 || ca > 30 || !Number.isInteger(exam) || exam < 0 || exam > 70) {
+      return res.status(400).json({ message: 'CA must be 0–30 and exam must be 0–70' });
+    }
+  }
+
+  const placeholders = studentIds.map(() => '?').join(',');
+  const [roster] = await pool.execute(
+    `SELECT id FROM students WHERE class_name = ? AND id IN (${placeholders})`,
+    [className, ...studentIds]
+  );
+  if (roster.length !== studentIds.length) {
+    return res.status(400).json({ message: 'One or more students are not in this class' });
+  }
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    for (const entry of entries) {
+      await conn.execute(
+        `INSERT INTO results (student_id, session, term, subject, ca, exam)
+         VALUES (?, ?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE ca = VALUES(ca), exam = VALUES(exam)`,
+        [Number(entry.studentId), session, term, subject, Number(entry.ca), Number(entry.exam)]
+      );
+    }
+    await conn.commit();
+    res.json({ message: `Saved grades for ${entries.length} student(s)`, saved: entries.length });
+  } catch (err) {
+    await conn.rollback();
+    res.status(500).json({ message: err.message || 'Failed to save grades' });
+  } finally {
+    conn.release();
+  }
+});
+
+router.get('/me/academic/questions', async (req, res) => {
+  const { className, subject } = req.query;
+  if (!className || !subject) {
+    return res.status(400).json({ message: 'className and subject are required' });
+  }
+  const ctx = await getTeacherContext(req.user.id);
+  if (!ctx) return res.status(404).json({ message: 'Teacher not found' });
+  if (!canTeach(ctx, className, subject)) {
+    return res.status(403).json({ message: 'You are not assigned to this class and subject' });
+  }
+
+  const [rows] = await pool.execute(
+    `SELECT id, question, options, answer, created_at FROM question_bank
+     WHERE teacher_id = ? AND class_name = ? AND subject = ? ORDER BY created_at DESC, id DESC`,
+    [ctx.teacherId, className, subject]
+  );
+  res.json(rows.map((row) => ({ ...row, options: JSON.parse(row.options || '[]') })));
+});
+
+router.post('/me/academic/questions', async (req, res) => {
+  const { className, subject, question, options, answer } = req.body;
+  if (!className || !subject || !String(question || '').trim() || !Array.isArray(options) || options.length < 2 || options.length > 4) {
+    return res.status(400).json({ message: 'Class, subject, question and 2–4 options are required' });
+  }
+  const normalizedOptions = options.map((option) => String(option || '').trim());
+  const answerIndex = Number(answer);
+  if (normalizedOptions.some((option) => !option) || !Number.isInteger(answerIndex) || answerIndex < 0 || answerIndex >= options.length) {
+    return res.status(400).json({ message: 'Enter each option and select a valid correct answer' });
+  }
+  const ctx = await getTeacherContext(req.user.id);
+  if (!ctx) return res.status(404).json({ message: 'Teacher not found' });
+  if (!canTeach(ctx, className, subject)) {
+    return res.status(403).json({ message: 'You are not assigned to this class and subject' });
+  }
+
+  const [result] = await pool.execute(
+    `INSERT INTO question_bank (teacher_id, class_name, subject, question, options, answer)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [ctx.teacherId, className, subject, String(question).trim(), JSON.stringify(normalizedOptions), answerIndex]
+  );
+  res.status(201).json({ id: result.insertId, question: String(question).trim(), options: normalizedOptions, answer: answerIndex });
+});
+
+router.delete('/me/academic/questions/:id', async (req, res) => {
+  const ctx = await getTeacherContext(req.user.id);
+  if (!ctx) return res.status(404).json({ message: 'Teacher not found' });
+  const [result] = await pool.execute(
+    'DELETE FROM question_bank WHERE id = ? AND teacher_id = ?',
+    [req.params.id, ctx.teacherId]
+  );
+  if (!result.affectedRows) return res.status(404).json({ message: 'Question not found' });
+  res.json({ message: 'Question removed from the bank' });
+});
+
+router.get('/me/academic/lessons', async (req, res) => {
+  const ctx = await getTeacherContext(req.user.id);
+  if (!ctx) return res.status(404).json({ message: 'Teacher not found' });
+  const [rows] = await pool.execute(
+        `SELECT id, class_name, subject, title, DATE_FORMAT(lesson_date, '%Y-%m-%d') AS lesson_date,
+          objectives, activities, resources, created_at
+     FROM lesson_plans WHERE teacher_id = ? ORDER BY lesson_date DESC, id DESC`,
+    [ctx.teacherId]
+  );
+  res.json(rows);
+});
+
+router.post('/me/academic/lessons', async (req, res) => {
+  const { className, subject, title, lessonDate, objectives, activities, resources } = req.body;
+  if (!className || !subject || !String(title || '').trim() || !lessonDate || !String(objectives || '').trim()) {
+    return res.status(400).json({ message: 'Class, subject, title, date and objectives are required' });
+  }
+  const ctx = await getTeacherContext(req.user.id);
+  if (!ctx) return res.status(404).json({ message: 'Teacher not found' });
+  if (!canTeach(ctx, className, subject)) {
+    return res.status(403).json({ message: 'You are not assigned to this class and subject' });
+  }
+
+  const [result] = await pool.execute(
+    `INSERT INTO lesson_plans (teacher_id, class_name, subject, title, lesson_date, objectives, activities, resources)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [ctx.teacherId, className, subject, String(title).trim(), lessonDate, String(objectives).trim(), activities || '', resources || '']
+  );
+  res.status(201).json({ id: result.insertId, message: 'Lesson plan saved' });
+});
+
+router.delete('/me/academic/lessons/:id', async (req, res) => {
+  const ctx = await getTeacherContext(req.user.id);
+  if (!ctx) return res.status(404).json({ message: 'Teacher not found' });
+  const [result] = await pool.execute(
+    'DELETE FROM lesson_plans WHERE id = ? AND teacher_id = ?',
+    [req.params.id, ctx.teacherId]
+  );
+  if (!result.affectedRows) return res.status(404).json({ message: 'Lesson plan not found' });
+  res.json({ message: 'Lesson plan deleted' });
+});
+
 router.get('/me/grades', async (req, res) => {
   const ctx = await getTeacherContext(req.user.id);
   if (!ctx) {

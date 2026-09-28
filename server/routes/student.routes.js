@@ -330,6 +330,31 @@ router.get('/me/fees/:id/receipt', async (req, res) => {
   });
 });
 
+router.get('/me/results/progress', async (req, res) => {
+  const [students] = await pool.execute(
+    'SELECT id FROM students WHERE user_id = ?',
+    [req.user.id]
+  );
+  if (!students.length) return res.json([]);
+
+  const [rows] = await pool.execute(
+    `SELECT session, term,
+            ROUND(AVG(COALESCE(ca, 0) + COALESCE(exam, 0))) AS average,
+            COUNT(*) AS subject_count
+     FROM results WHERE student_id = ?
+     GROUP BY session, term
+     ORDER BY session ASC,
+       FIELD(term, 'First Term', 'Second Term', 'Third Term'), term ASC`,
+    [students[0].id]
+  );
+  res.json(rows.map((row) => ({
+    session: row.session,
+    term: row.term,
+    average: Number(row.average || 0),
+    subjectCount: Number(row.subject_count || 0),
+  })));
+});
+
 /* ==================================================================
    ⭐ MY GRADES — every quiz and assignment score in one place
    ================================================================== */

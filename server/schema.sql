@@ -135,6 +135,39 @@ CREATE TABLE `results` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================
+-- teacher academic tools
+-- ============================================================
+CREATE TABLE `question_bank` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `teacher_id` int(11) NOT NULL,
+  `class_name` varchar(50) NOT NULL,
+  `subject` varchar(100) NOT NULL,
+  `question` text NOT NULL,
+  `options` text NOT NULL,
+  `answer` tinyint(3) unsigned NOT NULL,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `teacher_subject` (`teacher_id`,`class_name`,`subject`),
+  FOREIGN KEY (`teacher_id`) REFERENCES `teachers`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `lesson_plans` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `teacher_id` int(11) NOT NULL,
+  `class_name` varchar(50) NOT NULL,
+  `subject` varchar(100) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `lesson_date` date NOT NULL,
+  `objectives` text NOT NULL,
+  `activities` longtext,
+  `resources` text,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `teacher_lesson_date` (`teacher_id`,`lesson_date`),
+  FOREIGN KEY (`teacher_id`) REFERENCES `teachers`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
 -- fees
 -- ============================================================
 CREATE TABLE `fees` (

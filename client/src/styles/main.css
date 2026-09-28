@@ -5242,6 +5242,125 @@ textarea { resize: vertical; min-height: 60px; }
   .user-menu__name,
   .topbar__date { display: none; }
   .modal { padding: 16px; }
+
+/* =====================================================================
+   ACADEMIC TOOLS + STUDENT PROGRESS
+   ===================================================================== */
+
+.academic-toolbar {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 14px 16px 2px;
+  margin-bottom: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.academic-toolbar label { flex: 1 1 170px; margin-bottom: 12px; }
+.academic-toolbar label:first-child { flex-grow: 2; }
+.academic-tabs { margin-bottom: 16px; }
+.academic-panel { padding: 18px; }
+.academic-panel > h3,
+.academic-panel__heading h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px;
+}
+.academic-panel__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.academic-panel__heading p { margin: 0; font-size: 13px; }
+.academic-gradebook { min-width: 640px; }
+.academic-gradebook th,
+.academic-gradebook td { vertical-align: middle; }
+.academic-gradebook td input {
+  width: 86px;
+  min-width: 72px;
+  margin: 0;
+  padding: 7px 8px;
+  border-radius: 7px;
+}
+.academic-columns {
+  display: grid;
+  grid-template-columns: minmax(260px, .85fr) minmax(0, 1.4fr);
+  align-items: start;
+  gap: 16px;
+}
+.academic-form label { margin-bottom: 12px; }
+.academic-form h3 { margin-bottom: 16px; }
+.academic-form > button { margin-top: 2px; }
+.academic-list { display: flex; flex-direction: column; }
+.academic-list__item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+.academic-list__item:first-child { padding-top: 4px; }
+.academic-list__item:last-child { border-bottom: 0; padding-bottom: 0; }
+.academic-list__item > div { min-width: 0; }
+.academic-list__item ol { padding-left: 22px; margin: 8px 0 0; color: var(--text-2); font-size: 13px; }
+.academic-list__item li { padding: 2px 0; }
+.academic-answer { color: var(--green); font-weight: 700; }
+.academic-list__date { color: var(--accent); font-size: 12px; font-weight: 700; }
+.academic-list__item h4 { margin: 5px 0 8px; }
+.academic-list__item p { margin: 5px 0; color: var(--text-2); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.icon-button {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.icon-button:hover:not(:disabled) { color: var(--red); border-color: var(--red); }
+.icon-button:disabled { opacity: .5; cursor: not-allowed; }
+
+.progress-chart { margin: 16px 0; padding: 18px; }
+.progress-chart__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.progress-chart__heading h3 { display: flex; align-items: center; gap: 8px; margin: 0; }
+.progress-chart__heading > span { font-size: 12px; }
+.progress-chart__canvas { width: 100%; overflow-x: auto; }
+.progress-chart__canvas svg { display: block; width: 100%; min-width: 520px; }
+.progress-chart__grid { stroke: var(--border); stroke-width: 1; }
+.progress-chart__axis,
+.progress-chart__label { fill: var(--muted); font-size: 10px; }
+.progress-chart__value { fill: var(--text); font-size: 11px; font-weight: 700; }
+.progress-chart__line { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.progress-chart__point { fill: var(--surface); stroke: var(--accent); stroke-width: 3; }
+
+@media (max-width: 760px) {
+  .academic-columns { grid-template-columns: 1fr; }
+  .academic-panel__heading { align-items: flex-start; flex-direction: column; }
+}
+
+@media (max-width: 520px) {
+  .academic-toolbar { gap: 0 12px; padding-inline: 12px; }
+  .academic-toolbar label { flex-basis: 100%; }
+  .academic-panel { padding: 14px; }
+  .progress-chart { padding: 14px; }
+  .progress-chart__heading { align-items: flex-start; flex-direction: column; }
+}
   .card { padding: 16px; }
 }
 

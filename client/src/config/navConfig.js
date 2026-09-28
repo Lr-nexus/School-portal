@@ -66,6 +66,7 @@ export const navConfig = {
       label: 'Assessments',
       items: [
         { to: '/teacher/assignments', label: 'Assignments',     icon: FiClipboard },
+        { to: '/teacher/academic',    label: 'Academic Tools',  icon: FiBook },
         { to: '/teacher/lms',         label: 'Tests & Quizzes', icon: FiEdit3 },
         { to: '/teacher/grades',      label: 'Student Grades',  icon: FiAward },
       ],
