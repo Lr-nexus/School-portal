@@ -179,6 +179,11 @@ function pctToGrade(pct) {
   return 'F';
 }
 
+/* ==========================================================================
+   GRADEBOOK
+   ========================================================================== */
+
+/* GET /me/academic/gradebook — fetch all students + their CA/exam for a slot */
 router.get('/me/academic/gradebook', async (req, res) => {
   const { className, subject, session, term } = req.query;
   if (!className || !subject || !session || !term) {
@@ -193,10 +198,16 @@ router.get('/me/academic/gradebook', async (req, res) => {
   const [rows] = await pool.execute(
     `SELECT s.id, s.name, s.admission_no, r.ca, r.exam
      FROM students s
-     LEFT JOIN results r ON r.student_id = s.id AND r.session = ? AND r.term = ? AND r.subject = ?
-     WHERE s.class_name = ? ORDER BY s.name`,
+     LEFT JOIN results r
+       ON r.student_id = s.id
+      AND r.session = ?
+      AND r.term = ?
+      AND r.subject = ?
+     WHERE s.class_name = ?
+     ORDER BY s.name`,
     [session, term, subject, className]
   );
+
   res.json(rows.map((row) => ({
     studentId: row.id,
     name: row.name,
@@ -206,52 +217,32 @@ router.get('/me/academic/gradebook', async (req, res) => {
   })));
 });
 
-router.get('/me/academic/progress', async (req, res) => {
-  const { className, subject } = req.query;
-  if (!className || !subject) {
-    return res.status(400).json({ message: 'className and subject are required' });
-  }
-  const ctx = await getTeacherContext(req.user.id);
-  if (!ctx) return res.status(404).json({ message: 'Teacher not found' });
-  if (!canTeach(ctx, className, subject)) {
-    return res.status(403).json({ message: 'You are not assigned to this class and subject' });
-  }
-
-  const [rows] = await pool.execute(
-    `SELECT r.session, r.term,
-            ROUND(AVG(COALESCE(r.ca, 0) + COALESCE(r.exam, 0))) AS average,
-            COUNT(DISTINCT r.student_id) AS student_count
-     FROM results r
-     INNER JOIN students s ON s.id = r.student_id
-     WHERE s.class_name = ? AND r.subject = ?
-     GROUP BY r.session, r.term
-     ORDER BY r.session ASC,
-       FIELD(r.term, 'First Term', 'Second Term', 'Third Term'), r.term ASC`,
-    [className, subject]
-  );
-  res.json(rows.map((row) => ({
-    session: row.session,
-    term: row.term,
-    average: Number(row.average || 0),
-    studentCount: Number(row.student_count || 0),
-  })));
-});
-
+/* PUT /me/academic/gradebook — save a batch of CA/exam entries */
 router.put('/me/academic/gradebook', async (req, res) => {
   const { className, subject, session, term, entries } = req.body;
+
   if (!className || !subject || !session || !term || !Array.isArray(entries) || !entries.length) {
-    return res.status(400).json({ message: 'className, subject, session, term and entries are required' });
+    return res.status(400).json({
+      message: 'className, subject, session, term and entries are required',
+    });
   }
+
   const ctx = await getTeacherContext(req.user.id);
   if (!ctx) return res.status(404).json({ message: 'Teacher not found' });
   if (!canTeach(ctx, className, subject)) {
     return res.status(403).json({ message: 'You are not assigned to this class and subject' });
   }
 
+  /* Validate IDs */
   const studentIds = entries.map((entry) => Number(entry.studentId));
-  if (studentIds.some((id) => !Number.isInteger(id) || id < 1) || new Set(studentIds).size !== studentIds.length) {
+  if (
+    studentIds.some((id) => !Number.isInteger(id) || id < 1) ||
+    new Set(studentIds).size !== studentIds.length
+  ) {
     return res.status(400).json({ message: 'Entries must contain unique valid student IDs' });
   }
+
+  /* Validate scores */
   for (const entry of entries) {
     const ca = Number(entry.ca);
     const exam = Number(entry.exam);
@@ -260,6 +251,7 @@ router.put('/me/academic/gradebook', async (req, res) => {
     }
   }
 
+  /* Confirm all students are actually in this class */
   const placeholders = studentIds.map(() => '?').join(',');
   const [roster] = await pool.execute(
     `SELECT id FROM students WHERE class_name = ? AND id IN (${placeholders})`,
@@ -290,6 +282,46 @@ router.put('/me/academic/gradebook', async (req, res) => {
   }
 });
 
+/* ==========================================================================
+   PROGRESS — average across terms for a class+subject
+   ========================================================================== */
+router.get('/me/academic/progress', async (req, res) => {
+  const { className, subject } = req.query;
+  if (!className || !subject) {
+    return res.status(400).json({ message: 'className and subject are required' });
+  }
+  const ctx = await getTeacherContext(req.user.id);
+  if (!ctx) return res.status(404).json({ message: 'Teacher not found' });
+  if (!canTeach(ctx, className, subject)) {
+    return res.status(403).json({ message: 'You are not assigned to this class and subject' });
+  }
+
+  const [rows] = await pool.execute(
+    `SELECT r.session, r.term,
+            ROUND(AVG(COALESCE(r.ca, 0) + COALESCE(r.exam, 0))) AS average,
+            COUNT(DISTINCT r.student_id) AS student_count
+     FROM results r
+     INNER JOIN students s ON s.id = r.student_id
+     WHERE s.class_name = ? AND r.subject = ?
+     GROUP BY r.session, r.term
+     ORDER BY r.session ASC,
+       FIELD(r.term, 'First Term', 'Second Term', 'Third Term'), r.term ASC`,
+    [className, subject]
+  );
+
+  res.json(rows.map((row) => ({
+    session: row.session,
+    term: row.term,
+    average: Number(row.average || 0),
+    studentCount: Number(row.student_count || 0),
+  })));
+});
+
+/* ==========================================================================
+   QUESTION BANK
+   ========================================================================== */
+
+/* GET /me/academic/questions — list all questions for class+subject */
 router.get('/me/academic/questions', async (req, res) => {
   const { className, subject } = req.query;
   if (!className || !subject) {
@@ -302,23 +334,45 @@ router.get('/me/academic/questions', async (req, res) => {
   }
 
   const [rows] = await pool.execute(
-    `SELECT id, question, options, answer, created_at FROM question_bank
-     WHERE teacher_id = ? AND class_name = ? AND subject = ? ORDER BY created_at DESC, id DESC`,
+    `SELECT id, question, options, answer, created_at
+     FROM question_bank
+     WHERE teacher_id = ? AND class_name = ? AND subject = ?
+     ORDER BY created_at DESC, id DESC`,
     [ctx.teacherId, className, subject]
   );
-  res.json(rows.map((row) => ({ ...row, options: JSON.parse(row.options || '[]') })));
+  res.json(rows.map((row) => ({
+    ...row,
+    options: JSON.parse(row.options || '[]'),
+  })));
 });
 
+/* POST /me/academic/questions — add a question */
 router.post('/me/academic/questions', async (req, res) => {
   const { className, subject, question, options, answer } = req.body;
-  if (!className || !subject || !String(question || '').trim() || !Array.isArray(options) || options.length < 2 || options.length > 4) {
-    return res.status(400).json({ message: 'Class, subject, question and 2–4 options are required' });
+
+  if (
+    !className || !subject || !String(question || '').trim() ||
+    !Array.isArray(options) || options.length < 2 || options.length > 4
+  ) {
+    return res.status(400).json({
+      message: 'Class, subject, question and 2–4 options are required',
+    });
   }
+
   const normalizedOptions = options.map((option) => String(option || '').trim());
   const answerIndex = Number(answer);
-  if (normalizedOptions.some((option) => !option) || !Number.isInteger(answerIndex) || answerIndex < 0 || answerIndex >= options.length) {
-    return res.status(400).json({ message: 'Enter each option and select a valid correct answer' });
+
+  if (
+    normalizedOptions.some((option) => !option) ||
+    !Number.isInteger(answerIndex) ||
+    answerIndex < 0 ||
+    answerIndex >= options.length
+  ) {
+    return res.status(400).json({
+      message: 'Enter each option and select a valid correct answer',
+    });
   }
+
   const ctx = await getTeacherContext(req.user.id);
   if (!ctx) return res.status(404).json({ message: 'Teacher not found' });
   if (!canTeach(ctx, className, subject)) {
@@ -328,39 +382,71 @@ router.post('/me/academic/questions', async (req, res) => {
   const [result] = await pool.execute(
     `INSERT INTO question_bank (teacher_id, class_name, subject, question, options, answer)
      VALUES (?, ?, ?, ?, ?, ?)`,
-    [ctx.teacherId, className, subject, String(question).trim(), JSON.stringify(normalizedOptions), answerIndex]
+    [
+      ctx.teacherId, className, subject,
+      String(question).trim(),
+      JSON.stringify(normalizedOptions),
+      answerIndex,
+    ]
   );
-  res.status(201).json({ id: result.insertId, question: String(question).trim(), options: normalizedOptions, answer: answerIndex });
+
+  res.status(201).json({
+    id: result.insertId,
+    question: String(question).trim(),
+    options: normalizedOptions,
+    answer: answerIndex,
+  });
 });
 
+/* DELETE /me/academic/questions/:id — remove a question */
 router.delete('/me/academic/questions/:id', async (req, res) => {
   const ctx = await getTeacherContext(req.user.id);
   if (!ctx) return res.status(404).json({ message: 'Teacher not found' });
+
   const [result] = await pool.execute(
     'DELETE FROM question_bank WHERE id = ? AND teacher_id = ?',
     [req.params.id, ctx.teacherId]
   );
-  if (!result.affectedRows) return res.status(404).json({ message: 'Question not found' });
+  if (!result.affectedRows) {
+    return res.status(404).json({ message: 'Question not found' });
+  }
   res.json({ message: 'Question removed from the bank' });
 });
 
+/* ==========================================================================
+   LESSON PLANS
+   ========================================================================== */
+
+/* GET /me/academic/lessons — all lesson plans for this teacher */
 router.get('/me/academic/lessons', async (req, res) => {
   const ctx = await getTeacherContext(req.user.id);
   if (!ctx) return res.status(404).json({ message: 'Teacher not found' });
+
   const [rows] = await pool.execute(
-        `SELECT id, class_name, subject, title, DATE_FORMAT(lesson_date, '%Y-%m-%d') AS lesson_date,
-          objectives, activities, resources, created_at
-     FROM lesson_plans WHERE teacher_id = ? ORDER BY lesson_date DESC, id DESC`,
+    `SELECT id, class_name, subject, title,
+            DATE_FORMAT(lesson_date, '%Y-%m-%d') AS lesson_date,
+            objectives, activities, resources, created_at
+     FROM lesson_plans
+     WHERE teacher_id = ?
+     ORDER BY lesson_date DESC, id DESC`,
     [ctx.teacherId]
   );
   res.json(rows);
 });
 
+/* POST /me/academic/lessons — create a lesson plan */
 router.post('/me/academic/lessons', async (req, res) => {
   const { className, subject, title, lessonDate, objectives, activities, resources } = req.body;
-  if (!className || !subject || !String(title || '').trim() || !lessonDate || !String(objectives || '').trim()) {
-    return res.status(400).json({ message: 'Class, subject, title, date and objectives are required' });
+
+  if (
+    !className || !subject || !String(title || '').trim() ||
+    !lessonDate || !String(objectives || '').trim()
+  ) {
+    return res.status(400).json({
+      message: 'Class, subject, title, date and objectives are required',
+    });
   }
+
   const ctx = await getTeacherContext(req.user.id);
   if (!ctx) return res.status(404).json({ message: 'Teacher not found' });
   if (!canTeach(ctx, className, subject)) {
@@ -368,196 +454,32 @@ router.post('/me/academic/lessons', async (req, res) => {
   }
 
   const [result] = await pool.execute(
-    `INSERT INTO lesson_plans (teacher_id, class_name, subject, title, lesson_date, objectives, activities, resources)
+    `INSERT INTO lesson_plans
+       (teacher_id, class_name, subject, title, lesson_date, objectives, activities, resources)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [ctx.teacherId, className, subject, String(title).trim(), lessonDate, String(objectives).trim(), activities || '', resources || '']
+    [
+      ctx.teacherId, className, subject,
+      String(title).trim(), lessonDate,
+      String(objectives).trim(),
+      activities || '', resources || '',
+    ]
   );
   res.status(201).json({ id: result.insertId, message: 'Lesson plan saved' });
 });
 
+/* DELETE /me/academic/lessons/:id — remove a lesson plan */
 router.delete('/me/academic/lessons/:id', async (req, res) => {
   const ctx = await getTeacherContext(req.user.id);
   if (!ctx) return res.status(404).json({ message: 'Teacher not found' });
+
   const [result] = await pool.execute(
     'DELETE FROM lesson_plans WHERE id = ? AND teacher_id = ?',
     [req.params.id, ctx.teacherId]
   );
-  if (!result.affectedRows) return res.status(404).json({ message: 'Lesson plan not found' });
+  if (!result.affectedRows) {
+    return res.status(404).json({ message: 'Lesson plan not found' });
+  }
   res.json({ message: 'Lesson plan deleted' });
-});
-
-router.get('/me/grades', async (req, res) => {
-  const ctx = await getTeacherContext(req.user.id);
-  if (!ctx) {
-    return res.json({ quizzes: [], assignments: [], students: [], classNames: [] });
-  }
-
-  /* ---------- Quizzes created by this teacher ---------- */
-  const [quizzes] = await pool.execute(
-    `SELECT q.id, q.title, q.subject, q.class_name, q.due_date,
-            COUNT(qs.id) AS submissions,
-            AVG(CASE WHEN qs.total > 0 THEN (qs.score / qs.total) * 100 END) AS avg_pct
-     FROM quizzes q
-     LEFT JOIN quiz_submissions qs ON qs.quiz_id = q.id
-     WHERE q.teacher_id = ?
-     GROUP BY q.id
-     ORDER BY q.id DESC`,
-    [ctx.teacherId]
-  );
-
-  /* ---------- Assignments created by this teacher ---------- */
-  const [assignments] = await pool.execute(
-    `SELECT a.id, a.title, a.subject, a.class_name, a.total_marks, a.due_date,
-            COUNT(s.id) AS submissions,
-            SUM(CASE WHEN s.score IS NOT NULL THEN 1 ELSE 0 END) AS graded,
-            AVG(CASE WHEN s.score IS NOT NULL AND a.total_marks > 0
-                     THEN (s.score / a.total_marks) * 100 END) AS avg_pct
-     FROM assignments a
-     LEFT JOIN assignment_submissions s ON s.assignment_id = a.id
-     WHERE a.teacher_id = ?
-     GROUP BY a.id
-     ORDER BY a.id DESC`,
-    [ctx.teacherId]
-  );
-
-  /* ---------- Students in this teacher's classes ---------- */
-  const classSet = new Set();
-  if (ctx.formClass) classSet.add(ctx.formClass);
-  ctx.assignments.forEach((a) => classSet.add(a.className));
-  const classList = Array.from(classSet).filter(Boolean);
-
-  let students = [];
-
-  if (classList.length) {
-    const cPlaceholders = classList.map(() => '?').join(',');
-    const [studentRows] = await pool.execute(
-      `SELECT id, name, admission_no, class_name
-       FROM students
-       WHERE class_name IN (${cPlaceholders})
-       ORDER BY class_name, name`,
-      classList
-    );
-
-    const studentIds = studentRows.map((s) => s.id);
-
-    if (studentIds.length) {
-      const sPlaceholders = studentIds.map(() => '?').join(',');
-
-      /* All quiz submissions for these students on THIS teacher's quizzes */
-      const [quizSubs] = await pool.execute(
-        `SELECT qs.student_id, qs.score, qs.total, qs.date,
-                q.id AS quiz_id, q.title, q.subject
-         FROM quiz_submissions qs
-         JOIN quizzes q ON q.id = qs.quiz_id
-         WHERE q.teacher_id = ? AND qs.student_id IN (${sPlaceholders})`,
-        [ctx.teacherId, ...studentIds]
-      );
-
-      /* All assignment submissions for these students on THIS teacher's assignments */
-      const [assignSubs] = await pool.execute(
-        `SELECT s.student_id, s.score, s.feedback, s.submitted_at, s.graded_at,
-                a.id AS assignment_id, a.title, a.subject, a.total_marks
-         FROM assignment_submissions s
-         JOIN assignments a ON a.id = s.assignment_id
-         WHERE a.teacher_id = ? AND s.student_id IN (${sPlaceholders})`,
-        [ctx.teacherId, ...studentIds]
-      );
-
-      students = studentRows.map((st) => {
-        const myQuiz = quizSubs.filter((x) => x.student_id === st.id);
-        const myAssign = assignSubs.filter((x) => x.student_id === st.id);
-
-        const quizGrades = myQuiz.map((q) => {
-          const pct = q.total ? Math.round((q.score / q.total) * 100) : 0;
-          return {
-            quizId: q.quiz_id,
-            title: q.title,
-            subject: q.subject,
-            score: q.score,
-            total: q.total,
-            percentage: pct,
-            grade: pctToGrade(pct),
-            date: q.date,
-          };
-        });
-
-        const assignmentGrades = myAssign.map((a) => {
-          const graded = a.score !== null && a.score !== undefined;
-          const pct =
-            graded && a.total_marks
-              ? Math.round((a.score / a.total_marks) * 100)
-              : null;
-          return {
-            assignmentId: a.assignment_id,
-            title: a.title,
-            subject: a.subject,
-            score: a.score,
-            totalMarks: a.total_marks,
-            percentage: pct,
-            grade: pct !== null ? pctToGrade(pct) : '—',
-            feedback: a.feedback,
-            submittedAt: a.submitted_at,
-            gradedAt: a.graded_at,
-            graded,
-          };
-        });
-
-        const quizPcts = quizGrades.map((q) => q.percentage);
-        const assignPcts = assignmentGrades
-          .filter((a) => a.graded)
-          .map((a) => a.percentage);
-        const allPcts = [...quizPcts, ...assignPcts];
-
-        return {
-          id: st.id,
-          name: st.name,
-          admissionNo: st.admission_no,
-          className: st.class_name,
-          quizGrades,
-          assignmentGrades,
-          summary: {
-            quizAverage: quizPcts.length
-              ? Math.round(quizPcts.reduce((s, x) => s + x, 0) / quizPcts.length)
-              : 0,
-            assignmentAverage: assignPcts.length
-              ? Math.round(assignPcts.reduce((s, x) => s + x, 0) / assignPcts.length)
-              : 0,
-            overallAverage: allPcts.length
-              ? Math.round(allPcts.reduce((s, x) => s + x, 0) / allPcts.length)
-              : 0,
-            quizzesTaken: quizGrades.length,
-            assignmentsSubmitted: assignmentGrades.length,
-            assignmentsGraded: assignPcts.length,
-          },
-        };
-      });
-    }
-  }
-
-  res.json({
-    quizzes: quizzes.map((q) => ({
-      id: q.id,
-      title: q.title,
-      subject: q.subject,
-      className: q.class_name,
-      dueDate: q.due_date,
-      submissions: Number(q.submissions),
-      averageScore: q.avg_pct !== null ? Math.round(q.avg_pct) : 0,
-    })),
-    assignments: assignments.map((a) => ({
-      id: a.id,
-      title: a.title,
-      subject: a.subject,
-      className: a.class_name,
-      totalMarks: a.total_marks,
-      dueDate: a.due_date,
-      submissions: Number(a.submissions),
-      graded: Number(a.graded),
-      averageScore: a.avg_pct !== null ? Math.round(a.avg_pct) : 0,
-    })),
-    students,
-    classNames: classList,
-  });
 });
 
 /* ---------- ANNOUNCEMENTS ---------- */

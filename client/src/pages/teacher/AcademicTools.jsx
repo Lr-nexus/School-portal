@@ -2,8 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   FiBookOpen, FiCalendar, FiCheck, FiClipboard, FiPlus,
   FiSave, FiTrash2, FiTrendingUp, FiSearch, FiX,
-  FiAlertCircle, FiEdit3, FiUsers, FiChevronDown, FiChevronUp,
-  FiLayers,
+  FiAlertCircle, FiEdit3, FiUsers,
 } from 'react-icons/fi';
 import { api } from '../../api/api';
 import { useTeacherProfile } from '../../hooks/useTeacherProfile';
@@ -48,7 +47,6 @@ function GradebookTab({ target, session, term, onSessionChange, onTermChange }) 
   const [bulkCA, setBulkCA] = useState('');
   const [bulkExam, setBulkExam] = useState('');
 
-  /* -------- load -------- */
   const load = useCallback(async () => {
     if (!target.className || !target.subject) return;
     setLoading(true);
@@ -67,7 +65,6 @@ function GradebookTab({ target, session, term, onSessionChange, onTermChange }) 
         exam: r.exam ?? '',
       }));
       setRows(normalized);
-
       const snap = {};
       normalized.forEach((r) => {
         snap[r.studentId] = { ca: r.ca, exam: r.exam };
@@ -80,26 +77,19 @@ function GradebookTab({ target, session, term, onSessionChange, onTermChange }) 
     }
   }, [target.className, target.subject, session, term]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useEffect(() => { load(); }, [load]);
 
-  /* -------- dirty tracking -------- */
   const isDirty = useCallback(
     (row) => {
       const orig = original[row.studentId];
       if (!orig) return true;
-      return (
-        String(orig.ca) !== String(row.ca) ||
-        String(orig.exam) !== String(row.exam)
-      );
+      return String(orig.ca) !== String(row.ca) || String(orig.exam) !== String(row.exam);
     },
     [original]
   );
 
   const dirtyRows = useMemo(() => rows.filter(isDirty), [rows, isDirty]);
 
-  /* -------- filtering -------- */
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return rows;
@@ -110,7 +100,6 @@ function GradebookTab({ target, session, term, onSessionChange, onTermChange }) 
     );
   }, [rows, search]);
 
-  /* -------- edits -------- */
   const updateField = (studentId, field, value) => {
     setRows((prev) =>
       prev.map((r) => (r.studentId === studentId ? { ...r, [field]: value } : r))
@@ -124,7 +113,6 @@ function GradebookTab({ target, session, term, onSessionChange, onTermChange }) 
       exam: r.exam === '' ? 0 : Number(r.exam),
     }));
     if (!entries.length) return;
-
     setSaving(true);
     setMessage('');
     try {
@@ -133,9 +121,7 @@ function GradebookTab({ target, session, term, onSessionChange, onTermChange }) 
         body: JSON.stringify({
           className: target.className,
           subject: target.subject,
-          session,
-          term,
-          entries,
+          session, term, entries,
         }),
       });
       setMessage(res.message || `Saved ${entries.length} student(s)`);
@@ -150,10 +136,7 @@ function GradebookTab({ target, session, term, onSessionChange, onTermChange }) 
   const applyBulk = () => {
     const caVal = bulkCA === '' ? null : Number(bulkCA);
     const examVal = bulkExam === '' ? null : Number(bulkExam);
-    if (caVal === null && examVal === null) {
-      setBulkOpen(false);
-      return;
-    }
+    if (caVal === null && examVal === null) { setBulkOpen(false); return; }
     setRows((prev) =>
       prev.map((r) => ({
         ...r,
@@ -166,26 +149,19 @@ function GradebookTab({ target, session, term, onSessionChange, onTermChange }) 
     setBulkExam('');
   };
 
-  /* -------- keyboard navigation -------- */
   const handleKeyDown = (e, rowIdx, col) => {
     if (e.key !== 'Enter' && e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
     e.preventDefault();
-    const nextIdx =
-      e.key === 'Enter' || e.key === 'ArrowDown' ? rowIdx + 1 : rowIdx - 1;
+    const nextIdx = e.key === 'Enter' || e.key === 'ArrowDown' ? rowIdx + 1 : rowIdx - 1;
     const selector = `input[data-row="${nextIdx}"][data-col="${col}"]`;
     const el = document.querySelector(selector);
     if (el) el.focus();
   };
 
-  /* -------- stats -------- */
   const stats = useMemo(() => {
     const withScores = rows.filter((r) => r.ca !== '' || r.exam !== '');
-    if (!withScores.length) {
-      return { avg: 0, passRate: 0, top: null, count: 0 };
-    }
-    const totals = withScores.map(
-      (r) => (Number(r.ca) || 0) + (Number(r.exam) || 0)
-    );
+    if (!withScores.length) return { avg: 0, passRate: 0, top: null, count: 0 };
+    const totals = withScores.map((r) => (Number(r.ca) || 0) + (Number(r.exam) || 0));
     const avg = Math.round(totals.reduce((s, x) => s + x, 0) / totals.length);
     const passCount = totals.filter((t) => t >= 40).length;
     const top = withScores.reduce((best, r) => {
@@ -201,26 +177,18 @@ function GradebookTab({ target, session, term, onSessionChange, onTermChange }) 
     };
   }, [rows]);
 
-  /* -------- render -------- */
   return (
     <>
       {message && (
-        <div className="alert alert--info">
-          <FiCheck size={16} /> {message}
-        </div>
+        <div className="alert alert--info"><FiCheck size={16} /> {message}</div>
       )}
       {errorMsg && (
-        <div className="alert alert--error">
-          <FiAlertCircle size={16} /> {errorMsg}
-        </div>
+        <div className="alert alert--error"><FiAlertCircle size={16} /> {errorMsg}</div>
       )}
 
-      {/* -------- Toolbar -------- */}
       <div className="card gradebook-toolbar">
         <div className="gradebook-toolbar__left">
-          <h3>
-            {target.className} · {target.subject}
-          </h3>
+          <h3>{target.className} · {target.subject}</h3>
           <p className="muted">CA out of 30 · Exam out of 70 · Total 100</p>
         </div>
 
@@ -242,14 +210,8 @@ function GradebookTab({ target, session, term, onSessionChange, onTermChange }) 
             title="Academic session"
           />
 
-          <select
-            value={term}
-            onChange={(e) => onTermChange(e.target.value)}
-            title="Term"
-          >
-            {TERMS.map((t) => (
-              <option key={t}>{t}</option>
-            ))}
+          <select value={term} onChange={(e) => onTermChange(e.target.value)} title="Term">
+            {TERMS.map((t) => <option key={t}>{t}</option>)}
           </select>
 
           <button
@@ -267,30 +229,22 @@ function GradebookTab({ target, session, term, onSessionChange, onTermChange }) 
             disabled={saving || !dirtyRows.length}
           >
             <FiSave size={14} />
-            {saving
-              ? 'Saving…'
-              : dirtyRows.length
-                ? `Save ${dirtyRows.length}`
-                : 'Save'}
+            {saving ? 'Saving…' : dirtyRows.length ? `Save ${dirtyRows.length}` : 'Save'}
           </button>
         </div>
       </div>
 
-      {/* -------- Bulk fill panel -------- */}
       {bulkOpen && (
         <div className="card gradebook-bulk">
           <h4>Bulk fill all students</h4>
           <p className="muted">
-            Applies to every student in this class. Leave a field blank to skip
-            it — only the fields you fill will be overwritten.
+            Applies to every student in this class. Leave a field blank to skip it.
           </p>
           <div className="gradebook-bulk__row">
             <label>
               CA (0 – 30)
               <input
-                type="number"
-                min="0"
-                max="30"
+                type="number" min="0" max="30"
                 value={bulkCA}
                 onChange={(e) => setBulkCA(e.target.value)}
                 placeholder="e.g. 20"
@@ -299,27 +253,17 @@ function GradebookTab({ target, session, term, onSessionChange, onTermChange }) 
             <label>
               Exam (0 – 70)
               <input
-                type="number"
-                min="0"
-                max="70"
+                type="number" min="0" max="70"
                 value={bulkExam}
                 onChange={(e) => setBulkExam(e.target.value)}
                 placeholder="e.g. 45"
               />
             </label>
             <div className="gradebook-bulk__actions">
-              <button
-                type="button"
-                className="btn btn--ghost"
-                onClick={() => setBulkOpen(false)}
-              >
+              <button type="button" className="btn btn--ghost" onClick={() => setBulkOpen(false)}>
                 Cancel
               </button>
-              <button
-                type="button"
-                className="btn btn--primary"
-                onClick={applyBulk}
-              >
+              <button type="button" className="btn btn--primary" onClick={applyBulk}>
                 <FiCheck size={14} /> Apply
               </button>
             </div>
@@ -327,7 +271,6 @@ function GradebookTab({ target, session, term, onSessionChange, onTermChange }) 
         </div>
       )}
 
-      {/* -------- Stats strip -------- */}
       <div className="gradebook-stats">
         <div className="gradebook-stat">
           <span className="gradebook-stat__label">Students</span>
@@ -349,7 +292,7 @@ function GradebookTab({ target, session, term, onSessionChange, onTermChange }) 
             {stats.count ? `${stats.passRate}%` : '—'}
           </strong>
         </div>
-        <div className="gradebook-stat gradebook-stat--wide">
+        <div className="gradebook-stat">
           <span className="gradebook-stat__label">Top Student</span>
           <strong className="gradebook-stat__value">
             {stats.top ? stats.top.name : '—'}
@@ -357,7 +300,6 @@ function GradebookTab({ target, session, term, onSessionChange, onTermChange }) 
         </div>
       </div>
 
-      {/* -------- Table -------- */}
       {loading ? (
         <Loader />
       ) : (
@@ -391,33 +333,23 @@ function GradebookTab({ target, session, term, onSessionChange, onTermChange }) 
                     const hasScore = row.ca !== '' || row.exam !== '';
 
                     return (
-                      <tr
-                        key={row.studentId}
-                        className={dirty ? 'gradebook-row--dirty' : ''}
-                      >
+                      <tr key={row.studentId} className={dirty ? 'gradebook-row--dirty' : ''}>
                         <td className="gradebook-table__num">{idx + 1}</td>
                         <td>
                           <div className="gradebook-student">
-                            <div className="avatar avatar--sm">
-                              {row.name.charAt(0)}
-                            </div>
+                            <div className="avatar avatar--sm">{row.name.charAt(0)}</div>
                             <strong>{row.name}</strong>
                           </div>
                         </td>
                         <td className="muted">{row.admissionNo}</td>
                         <td>
                           <input
-                            type="number"
-                            min="0"
-                            max="30"
-                            step="1"
+                            type="number" min="0" max="30" step="1"
                             className="gradebook-input"
                             value={row.ca}
                             data-row={idx}
                             data-col="ca"
-                            onChange={(e) =>
-                              updateField(row.studentId, 'ca', e.target.value)
-                            }
+                            onChange={(e) => updateField(row.studentId, 'ca', e.target.value)}
                             onKeyDown={(e) => handleKeyDown(e, idx, 'ca')}
                             onFocus={(e) => e.target.select()}
                             placeholder="—"
@@ -425,17 +357,12 @@ function GradebookTab({ target, session, term, onSessionChange, onTermChange }) 
                         </td>
                         <td>
                           <input
-                            type="number"
-                            min="0"
-                            max="70"
-                            step="1"
+                            type="number" min="0" max="70" step="1"
                             className="gradebook-input"
                             value={row.exam}
                             data-row={idx}
                             data-col="exam"
-                            onChange={(e) =>
-                              updateField(row.studentId, 'exam', e.target.value)
-                            }
+                            onChange={(e) => updateField(row.studentId, 'exam', e.target.value)}
                             onKeyDown={(e) => handleKeyDown(e, idx, 'exam')}
                             onFocus={(e) => e.target.select()}
                             placeholder="—"
@@ -447,24 +374,16 @@ function GradebookTab({ target, session, term, onSessionChange, onTermChange }) 
                           </strong>
                         </td>
                         <td>
-                          {hasScore ? (
-                            <span className={`grade grade--${grade}`}>
-                              {grade}
-                            </span>
-                          ) : (
-                            <span className="muted">—</span>
-                          )}
+                          {hasScore
+                            ? <span className={`grade grade--${grade}`}>{grade}</span>
+                            : <span className="muted">—</span>}
                         </td>
                       </tr>
                     );
                   })}
                   {!filteredRows.length && (
                     <tr>
-                      <td
-                        colSpan="7"
-                        className="muted"
-                        style={{ textAlign: 'center', padding: 30 }}
-                      >
+                      <td colSpan="7" className="muted" style={{ textAlign: 'center', padding: 30 }}>
                         No students match your search.
                       </td>
                     </tr>
@@ -477,9 +396,7 @@ function GradebookTab({ target, session, term, onSessionChange, onTermChange }) 
           {dirtyRows.length > 0 && (
             <div className="gradebook-foot">
               <span className="muted">
-                {dirtyRows.length} unsaved change
-                {dirtyRows.length === 1 ? '' : 's'} — press{' '}
-                <kbd>Ctrl</kbd> + <kbd>S</kbd> to save
+                {dirtyRows.length} unsaved change{dirtyRows.length === 1 ? '' : 's'}
               </span>
             </div>
           )}
@@ -500,7 +417,6 @@ function QuestionBankTab({ target }) {
   const [message, setMessage] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState('all');
 
   const [form, setForm] = useState({
     question: '',
@@ -508,7 +424,6 @@ function QuestionBankTab({ target }) {
     answer: 0,
   });
 
-  /* -------- load -------- */
   const load = useCallback(async () => {
     if (!target.className || !target.subject) return;
     setLoading(true);
@@ -527,11 +442,8 @@ function QuestionBankTab({ target }) {
     }
   }, [target.className, target.subject]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useEffect(() => { load(); }, [load]);
 
-  /* -------- save -------- */
   const saveQuestion = async (e) => {
     e.preventDefault();
     const options = form.options.map((o) => o.trim());
@@ -579,7 +491,6 @@ function QuestionBankTab({ target }) {
     }
   };
 
-  /* -------- filter -------- */
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return questions.filter((item) => {
@@ -589,26 +500,18 @@ function QuestionBankTab({ target }) {
     });
   }, [questions, search]);
 
-  /* -------- render -------- */
   return (
     <>
       {message && (
-        <div className="alert alert--info">
-          <FiCheck size={16} /> {message}
-        </div>
+        <div className="alert alert--info"><FiCheck size={16} /> {message}</div>
       )}
       {errorMsg && (
-        <div className="alert alert--error">
-          <FiAlertCircle size={16} /> {errorMsg}
-        </div>
+        <div className="alert alert--error"><FiAlertCircle size={16} /> {errorMsg}</div>
       )}
 
       <div className="academic-columns">
-        {/* ---------- Add form ---------- */}
         <form className="card academic-panel academic-form" onSubmit={saveQuestion}>
-          <h3>
-            <FiPlus size={16} /> New question
-          </h3>
+          <h3><FiPlus size={16} /> New question</h3>
           <p className="muted" style={{ fontSize: 12, marginBottom: 12 }}>
             Saved to <strong>{target.className}</strong> · <strong>{target.subject}</strong>
           </p>
@@ -618,9 +521,7 @@ function QuestionBankTab({ target }) {
             <textarea
               rows="3"
               value={form.question}
-              onChange={(e) =>
-                setForm({ ...form, question: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, question: e.target.value })}
               placeholder="What is the capital of Nigeria?"
               required
             />
@@ -633,15 +534,11 @@ function QuestionBankTab({ target }) {
               return (
                 <label
                   key={i}
-                  className={`question-option-input ${
-                    isCorrect ? 'question-option-input--correct' : ''
-                  }`}
+                  className={`question-option-input ${isCorrect ? 'question-option-input--correct' : ''}`}
                 >
                   <button
                     type="button"
-                    className={`question-option-input__mark ${
-                      isCorrect ? 'question-option-input__mark--on' : ''
-                    }`}
+                    className={`question-option-input__mark ${isCorrect ? 'question-option-input__mark--on' : ''}`}
                     onClick={() => setForm({ ...form, answer: i })}
                     title={isCorrect ? 'Correct answer' : 'Set as correct'}
                   >
@@ -653,9 +550,7 @@ function QuestionBankTab({ target }) {
                     onChange={(e) =>
                       setForm({
                         ...form,
-                        options: form.options.map((v, idx) =>
-                          idx === i ? e.target.value : v
-                        ),
+                        options: form.options.map((v, idx) => (idx === i ? e.target.value : v)),
                       })
                     }
                     required={i < 2}
@@ -673,9 +568,7 @@ function QuestionBankTab({ target }) {
             <button
               type="button"
               className="btn btn--ghost"
-              onClick={() =>
-                setForm({ question: '', options: ['', '', '', ''], answer: 0 })
-              }
+              onClick={() => setForm({ question: '', options: ['', '', '', ''], answer: 0 })}
             >
               Clear
             </button>
@@ -685,13 +578,10 @@ function QuestionBankTab({ target }) {
           </div>
         </form>
 
-        {/* ---------- List ---------- */}
         <section className="card academic-panel">
           <div className="academic-panel__heading">
             <div>
-              <h3>
-                <FiBookOpen size={16} /> {target.subject} bank
-              </h3>
+              <h3><FiBookOpen size={16} /> {target.subject} bank</h3>
               <p className="muted">
                 {questions.length} question{questions.length === 1 ? '' : 's'}
               </p>
@@ -741,8 +631,6 @@ function QuestionBankTab({ target }) {
 }
 
 function QuestionItem({ item, index, onDelete }) {
-  const [open, setOpen] = useState(true);
-
   return (
     <article className="question-item">
       <div className="question-item__head">
@@ -759,29 +647,21 @@ function QuestionItem({ item, index, onDelete }) {
         </button>
       </div>
 
-      {open && (
-        <div className="question-item__options">
-          {item.options.map((opt, i) => {
-            const isCorrect = i === item.answer;
-            return (
-              <div
-                key={i}
-                className={`question-item__option ${
-                  isCorrect ? 'question-item__option--correct' : ''
-                }`}
-              >
-                <span className="question-item__letter">
-                  {String.fromCharCode(65 + i)}.
-                </span>
-                <span>{opt}</span>
-                {isCorrect && (
-                  <FiCheck size={12} style={{ marginLeft: 'auto' }} />
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
+      <div className="question-item__options">
+        {item.options.map((opt, i) => {
+          const isCorrect = i === item.answer;
+          return (
+            <div
+              key={i}
+              className={`question-item__option ${isCorrect ? 'question-item__option--correct' : ''}`}
+            >
+              <span className="question-item__letter">{String.fromCharCode(65 + i)}.</span>
+              <span>{opt}</span>
+              {isCorrect && <FiCheck size={12} style={{ marginLeft: 'auto' }} />}
+            </div>
+          );
+        })}
+      </div>
     </article>
   );
 }
@@ -819,9 +699,7 @@ function LessonPlansTab({ target }) {
     }
   }, []);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useEffect(() => { load(); }, [load]);
 
   const save = async (e) => {
     e.preventDefault();
@@ -867,22 +745,15 @@ function LessonPlansTab({ target }) {
   return (
     <>
       {message && (
-        <div className="alert alert--info">
-          <FiCheck size={16} /> {message}
-        </div>
+        <div className="alert alert--info"><FiCheck size={16} /> {message}</div>
       )}
       {errorMsg && (
-        <div className="alert alert--error">
-          <FiAlertCircle size={16} /> {errorMsg}
-        </div>
+        <div className="alert alert--error"><FiAlertCircle size={16} /> {errorMsg}</div>
       )}
 
       <div className="academic-columns">
-        {/* ---------- Form ---------- */}
         <form className="card academic-panel academic-form" onSubmit={save}>
-          <h3>
-            <FiPlus size={16} /> New lesson plan
-          </h3>
+          <h3><FiPlus size={16} /> New lesson plan</h3>
 
           <label>
             Title *
@@ -899,9 +770,7 @@ function LessonPlansTab({ target }) {
             <input
               type="date"
               value={form.lessonDate}
-              onChange={(e) =>
-                setForm({ ...form, lessonDate: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, lessonDate: e.target.value })}
               required
             />
           </label>
@@ -911,9 +780,7 @@ function LessonPlansTab({ target }) {
             <textarea
               rows="3"
               value={form.objectives}
-              onChange={(e) =>
-                setForm({ ...form, objectives: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, objectives: e.target.value })}
               placeholder="By the end of the lesson students should be able to…"
               required
             />
@@ -924,9 +791,7 @@ function LessonPlansTab({ target }) {
             <textarea
               rows="3"
               value={form.activities}
-              onChange={(e) =>
-                setForm({ ...form, activities: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, activities: e.target.value })}
               placeholder="Introduction · Group work · Practice questions · Summary"
             />
           </label>
@@ -935,19 +800,13 @@ function LessonPlansTab({ target }) {
             Resources
             <input
               value={form.resources}
-              onChange={(e) =>
-                setForm({ ...form, resources: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, resources: e.target.value })}
               placeholder="Textbook page 45, whiteboard, markers"
             />
           </label>
 
           <div className="form-grid__actions">
-            <button
-              type="button"
-              className="btn btn--ghost"
-              onClick={() => setForm(emptyForm)}
-            >
+            <button type="button" className="btn btn--ghost" onClick={() => setForm(emptyForm)}>
               Clear
             </button>
             <button className="btn btn--primary" disabled={busy}>
@@ -956,16 +815,12 @@ function LessonPlansTab({ target }) {
           </div>
         </form>
 
-        {/* ---------- List ---------- */}
         <section className="card academic-panel">
           <div className="academic-panel__heading">
             <div>
-              <h3>
-                <FiCalendar size={16} /> {target.subject} · {target.className}
-              </h3>
+              <h3><FiCalendar size={16} /> {target.subject} · {target.className}</h3>
               <p className="muted">
-                {filtered.length} planned lesson
-                {filtered.length === 1 ? '' : 's'}
+                {filtered.length} planned lesson{filtered.length === 1 ? '' : 's'}
               </p>
             </div>
           </div>
@@ -979,46 +834,34 @@ function LessonPlansTab({ target }) {
             </div>
           ) : (
             <div className="lesson-list">
-              {filtered.map((lesson) => (
-                <article className="lesson-card" key={lesson.id}>
-                  <div className="lesson-card__date">
-                    <span className="lesson-card__day">
-                      {new Date(`${lesson.lesson_date}T00:00:00`).getDate()}
-                    </span>
-                    <span className="lesson-card__month">
-                      {new Date(`${lesson.lesson_date}T00:00:00`).toLocaleString(
-                        'en-GB',
-                        { month: 'short' }
-                      )}
-                    </span>
-                  </div>
-                  <div className="lesson-card__body">
-                    <h4>{lesson.title}</h4>
-                    <p>
-                      <strong>Objectives:</strong> {lesson.objectives}
-                    </p>
-                    {lesson.activities && (
-                      <p>
-                        <strong>Activities:</strong> {lesson.activities}
-                      </p>
-                    )}
-                    {lesson.resources && (
-                      <p>
-                        <strong>Resources:</strong> {lesson.resources}
-                      </p>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    className="icon-button"
-                    onClick={() => remove(lesson.id)}
-                    title="Delete lesson plan"
-                    aria-label="Delete lesson plan"
-                  >
-                    <FiTrash2 size={14} />
-                  </button>
-                </article>
-              ))}
+              {filtered.map((lesson) => {
+                const d = new Date(`${lesson.lesson_date}T00:00:00`);
+                return (
+                  <article className="lesson-card" key={lesson.id}>
+                    <div className="lesson-card__date">
+                      <span className="lesson-card__day">{d.getDate()}</span>
+                      <span className="lesson-card__month">
+                        {d.toLocaleString('en-GB', { month: 'short' })}
+                      </span>
+                    </div>
+                    <div className="lesson-card__body">
+                      <h4>{lesson.title}</h4>
+                      <p><strong>Objectives:</strong> {lesson.objectives}</p>
+                      {lesson.activities && <p><strong>Activities:</strong> {lesson.activities}</p>}
+                      {lesson.resources && <p><strong>Resources:</strong> {lesson.resources}</p>}
+                    </div>
+                    <button
+                      type="button"
+                      className="icon-button"
+                      onClick={() => remove(lesson.id)}
+                      title="Delete lesson plan"
+                      aria-label="Delete lesson plan"
+                    >
+                      <FiTrash2 size={14} />
+                    </button>
+                  </article>
+                );
+              })}
             </div>
           )}
         </section>
@@ -1054,11 +897,10 @@ function ProgressTab({ target }) {
     }
   }, [target.className, target.subject]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useEffect(() => { load(); }, [load]);
 
   if (loading) return <Loader />;
+
   if (errorMsg) {
     return (
       <div className="card">
@@ -1073,9 +915,7 @@ function ProgressTab({ target }) {
     return (
       <div className="card empty-state">
         <FiTrendingUp size={32} />
-        <p>
-          No grade history for {target.className} · {target.subject} yet.
-        </p>
+        <p>No grade history for {target.className} · {target.subject} yet.</p>
         <p className="muted" style={{ fontSize: 13 }}>
           Saved gradebook entries appear here by session and term.
         </p>
@@ -1088,32 +928,24 @@ function ProgressTab({ target }) {
 
 function ProgressChart({ points, subject }) {
   const chart = { left: 56, right: 620, top: 24, bottom: 180 };
-  const yFor = (v) =>
-    chart.top + ((100 - v) / 100) * (chart.bottom - chart.top);
+  const yFor = (v) => chart.top + ((100 - v) / 100) * (chart.bottom - chart.top);
   const labelStep = Math.max(1, Math.ceil(points.length / 6));
 
   const plotted = points.map((p, i) => ({
     ...p,
-    x:
-      points.length === 1
-        ? (chart.left + chart.right) / 2
-        : chart.left +
-          (i / (points.length - 1)) * (chart.right - chart.left),
+    x: points.length === 1
+      ? (chart.left + chart.right) / 2
+      : chart.left + (i / (points.length - 1)) * (chart.right - chart.left),
     y: yFor(Math.max(0, Math.min(100, Number(p.average) || 0))),
   }));
 
-  const totalEntries = points.reduce(
-    (sum, p) => sum + Number(p.studentCount || 0),
-    0
-  );
+  const totalEntries = points.reduce((sum, p) => sum + Number(p.studentCount || 0), 0);
 
   return (
     <section className="card progress-chart">
       <div className="progress-chart__heading">
         <div>
-          <h3>
-            <FiTrendingUp size={16} /> {subject} progress
-          </h3>
+          <h3><FiTrendingUp size={16} /> {subject} progress</h3>
           <p className="muted" style={{ fontSize: 12 }}>
             Class average across terms · {totalEntries} recorded grade entries
           </p>
@@ -1126,7 +958,6 @@ function ProgressChart({ points, subject }) {
           role="img"
           aria-label={`Class average for ${subject} by academic term`}
         >
-          {/* Grid + Y-axis */}
           {[0, 25, 50, 75, 100].map((value) => (
             <g key={value}>
               <line
@@ -1147,7 +978,6 @@ function ProgressChart({ points, subject }) {
             </g>
           ))}
 
-          {/* Filled area */}
           {plotted.length > 1 && (
             <polygon
               points={
@@ -1159,7 +989,6 @@ function ProgressChart({ points, subject }) {
             />
           )}
 
-          {/* Line */}
           {plotted.length > 1 && (
             <polyline
               points={plotted.map((p) => `${p.x},${p.y}`).join(' ')}
@@ -1167,21 +996,10 @@ function ProgressChart({ points, subject }) {
             />
           )}
 
-          {/* Points + labels */}
           {plotted.map((p, i) => (
             <g key={`${p.session}-${p.term}-${i}`}>
-              <circle
-                cx={p.x}
-                cy={p.y}
-                r="5"
-                className="progress-chart__point"
-              />
-              <text
-                x={p.x}
-                y={p.y - 12}
-                textAnchor="middle"
-                className="progress-chart__value"
-              >
+              <circle cx={p.x} cy={p.y} r="5" className="progress-chart__point" />
+              <text x={p.x} y={p.y - 12} textAnchor="middle" className="progress-chart__value">
                 {p.average}%
               </text>
               {(i % labelStep === 0 || i === plotted.length - 1) && (
@@ -1192,9 +1010,7 @@ function ProgressChart({ points, subject }) {
                   className="progress-chart__label"
                 >
                   <tspan x={p.x}>{p.session}</tspan>
-                  <tspan x={p.x} dy="13">
-                    {p.term}
-                  </tspan>
+                  <tspan x={p.x} dy="13">{p.term}</tspan>
                 </text>
               )}
             </g>
@@ -1217,7 +1033,6 @@ export default function AcademicTools() {
   const [session, setSession] = useState(currentSession);
   const [term, setTerm] = useState(TERMS[0]);
 
-  /* Auto-select the first teaching target */
   useEffect(() => {
     if (!target.className && targets.length) {
       setTarget({
@@ -1250,14 +1065,10 @@ export default function AcademicTools() {
         </div>
       ) : (
         <>
-          {/* Target picker */}
           <div className="academic-toolbar">
             <label className="academic-toolbar__target">
               Class &amp; subject
-              <select
-                value={targetValue}
-                onChange={(e) => changeTarget(e.target.value)}
-              >
+              <select value={targetValue} onChange={(e) => changeTarget(e.target.value)}>
                 {targets.map((item) => (
                   <option
                     key={`${item.className}-${item.subject}`}
@@ -1270,12 +1081,7 @@ export default function AcademicTools() {
             </label>
           </div>
 
-          {/* Tabs */}
-          <div
-            className="tabs academic-tabs"
-            role="tablist"
-            aria-label="Academic tools"
-          >
+          <div className="tabs academic-tabs" role="tablist" aria-label="Academic tools">
             {[
               { key: 'gradebook', label: 'Gradebook', icon: FiClipboard },
               { key: 'questions', label: 'Question Bank', icon: FiBookOpen },
@@ -1295,7 +1101,6 @@ export default function AcademicTools() {
             ))}
           </div>
 
-          {/* Active tab content */}
           {tab === 'gradebook' && (
             <GradebookTab
               target={target}
