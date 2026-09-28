@@ -469,4 +469,42 @@ router.get('/me/announcements', async (req, res) => {
   res.json(rows);
 });
 
+/* ============================================================
+   STUDENT — own behaviour notes
+   ============================================================ */
+router.get('/me/behaviour', async (req, res) => {
+  const [studentRows] = await pool.execute(
+    'SELECT id, name, class_name FROM students WHERE user_id = ?',
+    [req.user.id]
+  );
+  if (!studentRows.length) {
+    return res.json({ summary: { total: 0, positive: 0, negative: 0 }, reports: [] });
+  }
+  const s = studentRows[0];
+
+  const [rows] = await pool.execute(
+    `SELECT br.*, t.name AS teacher_name
+     FROM behaviour_reports br
+     LEFT JOIN teachers t ON t.id = br.teacher_id
+     WHERE br.student_id = ?
+     ORDER BY br.date DESC, br.id DESC`,
+    [s.id]
+  );
+
+  const positive = rows.filter((r) => r.type === 'positive').length;
+  const negative = rows.filter((r) => r.type === 'negative').length;
+
+  res.json({
+    summary: { total: rows.length, positive, negative },
+    reports: rows.map((r) => ({
+      id: r.id,
+      type: r.type,
+      title: r.title,
+      note: r.note,
+      date: r.date,
+      teacherName: r.teacher_name || 'Teacher',
+    })),
+  });
+});
+
 module.exports = router;

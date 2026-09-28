@@ -5603,3 +5603,170 @@ textarea { resize: vertical; min-height: 60px; }
   border-color: rgba(96, 165, 250, 0.5);
   box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.1);
 }
+
+/* ==========================================================================
+   MESSAGES — group chat + read receipts (Batch 2)
+   ========================================================================== */
+
+/* Group avatar override */
+.avatar--group {
+  background: linear-gradient(135deg, #7c3aed, #2563eb);
+  color: #fff;
+}
+.avatar--group svg { stroke-width: 2; }
+
+/* Group conversation row */
+.messages-conv--group {
+  background: linear-gradient(90deg, rgba(124, 58, 237, .04), transparent);
+}
+.messages-conv--group.messages-conv--active {
+  background: linear-gradient(90deg, rgba(124, 58, 237, .12), var(--accent-soft));
+}
+
+/* Read receipts */
+.msg__ticks {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  color: rgba(255, 255, 255, .55);
+  vertical-align: middle;
+}
+.msg--mine .msg__ticks { color: rgba(255, 255, 255, .55); }
+.msg__ticks--read {
+  color: #67e8f9;
+}
+
+/* Sender name on other people's group messages */
+.msg__sender {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 2px;
+  padding: 0 4px;
+  text-transform: capitalize;
+}
+
+/* ==========================================================================
+   BEHAVIOUR — timeline + cards (Batch 2)
+   ========================================================================== */
+
+.behaviour-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.behaviour-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: border-color .15s, box-shadow .15s;
+}
+.behaviour-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md);
+}
+
+.behaviour-card__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.behaviour-card__icon--positive {
+  background: rgba(22, 163, 74, .12);
+  color: var(--green);
+}
+.behaviour-card__icon--negative {
+  background: rgba(220, 38, 38, .12);
+  color: var(--red);
+}
+.behaviour-card__icon--neutral {
+  background: rgba(100, 116, 139, .12);
+  color: var(--muted);
+}
+
+.behaviour-card__body { flex: 1; min-width: 0; }
+
+.behaviour-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.behaviour-card__head strong {
+  font-size: 14px;
+  color: var(--text);
+}
+
+.behaviour-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+}
+.behaviour-pill--positive {
+  background: rgba(22, 163, 74, .14);
+  color: var(--green);
+}
+.behaviour-pill--negative {
+  background: rgba(220, 38, 38, .14);
+  color: var(--red);
+}
+.behaviour-pill--neutral {
+  background: var(--surface-3);
+  color: var(--muted);
+}
+
+.behaviour-card__meta {
+  display: flex;
+  gap: 14px;
+  font-size: 12px;
+  color: var(--muted);
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+.behaviour-card__meta > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.behaviour-card__note {
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.55;
+  margin-top: 6px;
+  white-space: pre-wrap;
+}
+
+.behaviour-card__del {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--muted-2);
+  padding: 6px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+.behaviour-card__del:hover { color: var(--red); background: rgba(220, 38, 38, .08); }
+
+@media (max-width: 640px) {
+  .behaviour-card { padding: 14px; }
+  .behaviour-card__head { flex-direction: column; align-items: flex-start; }
+}

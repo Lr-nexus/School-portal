@@ -60,6 +60,9 @@ import VideoRoom from '../pages/classroom/VideoRoom';
 import ReportCard from '../pages/print/ReportCard';
 import StudentIDCard from '../pages/print/StudentIDCard';
 
+import TeacherBehaviour from '../pages/teacher/TeacherBehaviour';
+import ParentBehaviour from '../pages/parent/ParentBehaviour';
+
 export default function AppRoutes() {
   return (
     <Routes>
@@ -118,6 +121,7 @@ export default function AppRoutes() {
           <Route path="messages"      element={<Messages />} />
           <Route path="announcements" element={<Announcements />} />
           <Route path="grades"        element={<TeacherGrades />} />
+          <Route path="behaviour"     element={<TeacherBehaviour />} />
           <Route path="*"             element={<Navigate to="home" replace />} />
         </Route>
       </Route>
@@ -135,6 +139,7 @@ export default function AppRoutes() {
           <Route path="messages"      element={<Messages />} />
           <Route path="profile"       element={<ParentProfile />} />
           <Route path="announcements" element={<Announcements />} />
+          <Route path="behaviour"     element={<ParentBehaviour />} />
           <Route path="*"             element={<Navigate to="home" replace />} />
         </Route>
       </Route>

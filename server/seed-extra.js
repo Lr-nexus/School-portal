@@ -1,9 +1,3 @@
-/* ------------------------------------------------------------------
-   seed-extra.js — adds additional demo content on top of seed.js
-   Run:   node seed-extra.js
-   Safe to run multiple times (skips things that already exist).
-   ------------------------------------------------------------------ */
-
 require('dotenv').config();
 const pool = require('./db');
 

@@ -415,4 +415,43 @@ router.get('/me/announcements', async (req, res) => {
   res.json(rows);
 });
 
+/* ============================================================
+   PARENT — child's behaviour reports
+   ============================================================ */
+router.get('/me/child/behaviour', async (req, res) => {
+  const { child } = await getParentAndChild(req.user.id);
+  if (!child) return res.status(404).json({ message: 'No child linked' });
+
+  const [rows] = await pool.execute(
+    `SELECT br.*, t.name AS teacher_name
+     FROM behaviour_reports br
+     LEFT JOIN teachers t ON t.id = br.teacher_id
+     WHERE br.student_id = ?
+     ORDER BY br.date DESC, br.id DESC`,
+    [child.id]
+  );
+
+  const positive = rows.filter((r) => r.type === 'positive').length;
+  const negative = rows.filter((r) => r.type === 'negative').length;
+
+  res.json({
+    child: {
+      id: child.id,
+      name: child.name,
+      className: child.class_name,
+      admissionNo: child.admission_no,
+    },
+    summary: { total: rows.length, positive, negative },
+    reports: rows.map((r) => ({
+      id: r.id,
+      type: r.type,
+      title: r.title,
+      note: r.note,
+      date: r.date,
+      teacherName: r.teacher_name || 'Teacher',
+      createdAt: r.created_at,
+    })),
+  });
+});
+
 module.exports = router;

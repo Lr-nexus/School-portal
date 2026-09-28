@@ -23,6 +23,7 @@ const discussionsRoutes    = require('./routes/discussions.routes');
 const analyticsRoutes      = require('./routes/analytics.routes');
 const passwordResetRoutes  = require('./routes/passwordReset.routes');
 const smsRoutes            = require('./routes/sms.routes');
+const behaviourRoutes = require('./routes/behaviour.routes');
 
 // ⭐ THESE THREE WERE MISSING — that's why Timetable/Calendar/Attendance 404'd
 const timetableRoutes      = require('./routes/timetable.routes');
@@ -117,8 +118,7 @@ app.use('/api/discussions',    discussionsRoutes);
 app.use('/api/analytics',      analyticsRoutes);
 app.use('/api/password-reset', passwordResetRoutes);
 app.use('/api/sms',            smsRoutes);
-
-// ⭐ The three that were missing
+app.use('/api/behaviour', behaviourRoutes);
 app.use('/api/timetable',      timetableRoutes);
 app.use('/api/calendar',       calendarRoutes);
 app.use('/api/attendance',     attendanceRoutes);

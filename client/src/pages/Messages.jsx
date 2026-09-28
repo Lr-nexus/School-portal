@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   FiSend, FiSearch, FiUser, FiUserCheck, FiShield,
-  FiHeart, FiMessageCircle, FiPlus, FiX, FiAlertCircle
+  FiHeart, FiMessageCircle, FiPlus, FiX, FiAlertCircle,
+  FiCheck, FiUsers,
 } from 'react-icons/fi';
 import { api } from '../api/api';
+import { useToast } from '../context/ToastContext';
 import PageHeader from '../components/PageHeader';
 import Loader from '../components/Loader';
 
@@ -14,7 +16,22 @@ const ROLE_ICON = {
   parent:  FiHeart,
 };
 
+/* ✓ single = sent, ✓✓ blue = read */
+function Ticks({ read }) {
+  return (
+    <span className={`msg__ticks ${read ? 'msg__ticks--read' : ''}`} title={read ? 'Read' : 'Sent'}>
+      {read ? (
+        <><FiCheck size={11} /><FiCheck size={11} style={{ marginLeft: -5 }} /></>
+      ) : (
+        <FiCheck size={11} />
+      )}
+    </span>
+  );
+}
+
 export default function Messages() {
+  const toast = useToast();
+
   const [conversations, setConversations] = useState([]);
   const [contacts, setContacts] = useState([]);
   const [activeId, setActiveId] = useState(null);
@@ -23,23 +40,22 @@ export default function Messages() {
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
   const [showContacts, setShowContacts] = useState(false);
   const [contactSearch, setContactSearch] = useState('');
   const [convSearch, setConvSearch] = useState('');
+  const [myClassGroupId, setMyClassGroupId] = useState(null);
   const messagesEndRef = useRef(null);
 
-  /* ---------- load conversations + contacts ---------- */
   const loadConversations = async () => {
     try {
-      const [c, ct] = await Promise.all([
+      const [convos, cts] = await Promise.all([
         api('/messages/conversations'),
         api('/messages/contacts'),
       ]);
-      setConversations(c);
-      setContacts(ct);
+      setConversations(convos);
+      setContacts(cts);
     } catch (err) {
-      setErrorMsg(err.message);
+      toast.error(err.message);
     } finally {
       setLoading(false);
     }
@@ -47,24 +63,36 @@ export default function Messages() {
 
   useEffect(() => { loadConversations(); }, []);
 
-  /* ---------- open a conversation ---------- */
-  const openConversation = async (id) => {
-    setActiveId(id);
+  /* Try to fetch the class-group info (if the user has one) */
+  useEffect(() => {
+    api('/messages/groups/class')
+      .then((r) => setMyClassGroupId(r.groupId))
+      .catch(() => setMyClassGroupId(null));
+  }, []);
+
+  /* Parse the composite "direct-3" / "group-7" id */
+  const openConversation = async (compositeId) => {
+    const [kind, rawId] = compositeId.split('-');
+    const id = Number(rawId);
+
+    setActiveId(compositeId);
     setMessagesLoading(true);
     try {
-      const data = await api(`/messages/conversations/${id}`);
+      const data = await api(
+        kind === 'group'
+          ? `/messages/groups/${id}`
+          : `/messages/conversations/${id}`
+      );
       setActive(data);
-      // Refresh conversation list (read counts change)
       const c = await api('/messages/conversations');
       setConversations(c);
     } catch (err) {
-      setErrorMsg(err.message);
+      toast.error(err.message);
     } finally {
       setMessagesLoading(false);
     }
   };
 
-  /* ---------- start a conversation with a contact ---------- */
   const startWith = async (userId) => {
     try {
       const res = await api('/messages/conversations', {
@@ -73,40 +101,50 @@ export default function Messages() {
       });
       setShowContacts(false);
       await loadConversations();
-      await openConversation(res.conversationId);
+      await openConversation(`direct-${res.conversationId}`);
     } catch (err) {
-      setErrorMsg(err.message);
+      toast.error(err.message);
     }
   };
 
-  /* ---------- send a message ---------- */
+  const openClassChat = () => {
+    if (myClassGroupId) {
+      openConversation(`group-${myClassGroupId}`);
+    } else {
+      toast.error('No class chat available yet');
+    }
+  };
+
   const send = async (e) => {
     e.preventDefault();
     const text = input.trim();
     if (!text || !activeId) return;
 
+    const [kind, rawId] = activeId.split('-');
+    const id = Number(rawId);
+
     setSending(true);
     try {
-      const res = await api(`/messages/conversations/${activeId}/send`, {
-        method: 'POST',
-        body: JSON.stringify({ body: text }),
-      });
+      const res = await api(
+        kind === 'group'
+          ? `/messages/groups/${id}/send`
+          : `/messages/conversations/${id}/send`,
+        { method: 'POST', body: JSON.stringify({ body: text }) }
+      );
       setActive((prev) => ({
         ...prev,
         messages: [...(prev?.messages || []), res.message],
       }));
       setInput('');
-      // Refresh conversations list ordering
       const c = await api('/messages/conversations');
       setConversations(c);
     } catch (err) {
-      setErrorMsg(err.message);
+      toast.error(err.message);
     } finally {
       setSending(false);
     }
   };
 
-  /* ---------- scroll to bottom on new message ---------- */
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -116,7 +154,8 @@ export default function Messages() {
   const filteredConversations = conversations.filter((c) => {
     const q = convSearch.trim().toLowerCase();
     if (!q) return true;
-    return c.otherName.toLowerCase().includes(q);
+    const name = c.kind === 'group' ? c.name : c.otherName;
+    return name.toLowerCase().includes(q);
   });
 
   const filteredContacts = contacts.filter((c) => {
@@ -133,12 +172,15 @@ export default function Messages() {
         title="Messages"
         subtitle="Chat with students, teachers, admins and parents"
       >
+        {myClassGroupId && (
+          <button className="btn btn--ghost" onClick={openClassChat}>
+            <FiUsers size={16} /> Class Chat
+          </button>
+        )}
         <button className="btn btn--primary" onClick={() => setShowContacts(true)}>
           <FiPlus size={16} /> New Chat
         </button>
       </PageHeader>
-
-      {errorMsg && <div className="alert alert--error"><FiAlertCircle size={16} /> {errorMsg}</div>}
 
       <div className="messages-layout">
         {/* ---------- Sidebar ---------- */}
@@ -155,31 +197,42 @@ export default function Messages() {
           <div className="messages-sidebar__list">
             {filteredConversations.length === 0 && (
               <p className="muted" style={{ padding: 16, textAlign: 'center', fontSize: 13 }}>
-                No chats yet. Click <strong>New Chat</strong> to start one.
+                No chats yet.
               </p>
             )}
 
             {filteredConversations.map((c) => {
-              const Icon = ROLE_ICON[c.otherRole] || FiUser;
+              const isGroup = c.kind === 'group';
+              const Icon = isGroup ? FiUsers : (ROLE_ICON[c.otherRole] || FiUser);
+              const name = isGroup ? c.name : c.otherName;
               return (
                 <button
                   key={c.id}
-                  className={`messages-conv ${activeId === c.id ? 'messages-conv--active' : ''}`}
+                  className={`messages-conv ${activeId === c.id ? 'messages-conv--active' : ''} ${isGroup ? 'messages-conv--group' : ''}`}
                   onClick={() => openConversation(c.id)}
                 >
-                  <div className="avatar avatar--sm">{c.otherName.charAt(0)}</div>
+                  <div className={`avatar avatar--sm ${isGroup ? 'avatar--group' : ''}`}>
+                    {isGroup ? <FiUsers size={14} /> : name.charAt(0)}
+                  </div>
                   <div className="messages-conv__body">
                     <div className="messages-conv__row">
-                      <strong>{c.otherName}</strong>
+                      <strong>{name}</strong>
                       {c.unreadCount > 0 && (
                         <span className="messages-conv__badge">{c.unreadCount}</span>
                       )}
                     </div>
                     <div className="messages-conv__preview">
-                      <Icon size={11} /> {c.otherRole}
+                      {isGroup ? (
+                        <><FiUsers size={11} /> {c.memberCount} members</>
+                      ) : (
+                        <><Icon size={11} /> {c.otherRole}</>
+                      )}
                     </div>
                     {c.lastMessage && (
-                      <p className="messages-conv__msg">{c.lastMessage}</p>
+                      <p className="messages-conv__msg">
+                        {isGroup && c.lastSender ? `${c.lastSender}: ` : ''}
+                        {c.lastMessage}
+                      </p>
                     )}
                   </div>
                 </button>
@@ -202,22 +255,43 @@ export default function Messages() {
           {activeId && !messagesLoading && active && (
             <>
               <div className="messages-chat__head">
-                <div className="avatar avatar--sm">{active.otherName.charAt(0)}</div>
+                <div className={`avatar avatar--sm ${active.kind === 'group' ? 'avatar--group' : ''}`}>
+                  {active.kind === 'group'
+                    ? <FiUsers size={14} />
+                    : active.otherName.charAt(0)}
+                </div>
                 <div>
-                  <strong>{active.otherName}</strong>
-                  <div className="muted" style={{ fontSize: 12 }}>{active.otherRole}</div>
+                  <strong>{active.kind === 'group' ? active.name : active.otherName}</strong>
+                  <div className="muted" style={{ fontSize: 12 }}>
+                    {active.kind === 'group'
+                      ? `${active.members.length} members · ${active.className || ''}`
+                      : active.otherRole}
+                  </div>
                 </div>
               </div>
 
               <div className="messages-chat__body">
                 {active.messages.map((m) => (
-                  <div
-                    key={m.id}
-                    className={`msg ${m.mine ? 'msg--mine' : ''}`}
-                  >
-                    <div className="msg__bubble">{m.body}</div>
+                  <div key={m.id} className={`msg ${m.mine ? 'msg--mine' : ''}`}>
+                    {active.kind === 'group' && !m.mine && (
+                      <div className="msg__sender">{m.senderName}</div>
+                    )}
+                    <div className="msg__bubble">
+                      {m.body}
+                      {m.mine && (
+                        <Ticks
+                          read={
+                            active.kind === 'group'
+                              ? m.readCount > 0
+                              : !!m.readAt
+                          }
+                        />
+                      )}
+                    </div>
                     <div className="msg__time">
-                      {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {new Date(m.createdAt).toLocaleTimeString([], {
+                        hour: '2-digit', minute: '2-digit',
+                      })}
                     </div>
                   </div>
                 ))}

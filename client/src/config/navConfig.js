@@ -59,6 +59,7 @@ export const navConfig = {
         { to: '/teacher/timetable',   label: 'Timetable',   icon: FiClock },
         { to: '/teacher/attendance',  label: 'Attendance',  icon: FiCheckSquare },
         { to: '/teacher/students',    label: 'My Students', icon: FiUsers },
+        { to: '/teacher/behaviour', label: 'Behaviour Log', icon: FiUserCheck },
       ],
     },
     {
@@ -93,6 +94,7 @@ export const navConfig = {
         { to: '/parent/results',    label: 'Results',         icon: FiBarChart2 },
         { to: '/parent/attendance', label: 'Attendance',      icon: FiCheckSquare },
         { to: '/parent/timetable',  label: 'Timetable',       icon: FiClock },
+        { to: '/parent/behaviour', label: 'Behaviour', icon: FiHeart },
       ],
     },
     {
