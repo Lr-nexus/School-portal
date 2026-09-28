@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   FiDollarSign, FiSearch, FiDownload, FiAlertCircle, FiRefreshCw,
-  FiCheckCircle, FiClock, FiFileText, FiPrinter,
+  FiFileText, FiPrinter,
 } from 'react-icons/fi';
 import { api } from '../../api/api';
 import { useParentContext } from '../../hooks/useParentContext';
@@ -9,6 +9,7 @@ import PageHeader from '../../components/PageHeader';
 import StatCard from '../../components/StatCard';
 import Loader from '../../components/Loader';
 import ChildSelector from '../../components/ChildSelector';
+import ReceiptModal from '../../components/ReceiptModal';
 
 const formatNaira = (n) => '₦' + Number(n || 0).toLocaleString('en-NG');
 const statusClass = (s) =>
@@ -24,6 +25,7 @@ export default function ParentPayments() {
   const [errorMsg, setErrorMsg] = useState('');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [receiptUrl, setReceiptUrl] = useState(null);
 
   const load = async (childId) => {
     if (!childId) return;
@@ -77,6 +79,10 @@ export default function ParentPayments() {
     a.download = `payments-${activeChild.admissionNo}-${new Date().toISOString().slice(0,10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const openReceipt = (feeId) => {
+    setReceiptUrl(`/parents/me/children/${activeChildId}/fees/${feeId}/receipt`);
   };
 
   if (loading) return <Loader />;
@@ -173,6 +179,7 @@ export default function ParentPayments() {
                       <th className="right">Paid</th>
                       <th className="right">Balance</th>
                       <th>Status</th>
+                      <th style={{ textAlign: 'right' }}>Receipt</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -187,6 +194,19 @@ export default function ParentPayments() {
                         <td className="right"><strong>{formatNaira(p.amountPaid)}</strong></td>
                         <td className="right">{formatNaira(p.balance)}</td>
                         <td><span className={`pill ${statusClass(p.status)}`}>{p.status}</span></td>
+                        <td style={{ textAlign: 'right' }}>
+                          {p.amountPaid > 0 ? (
+                            <button
+                              className="btn btn--ghost btn--sm"
+                              onClick={() => openReceipt(p.id)}
+                              title="View / download receipt"
+                            >
+                              <FiFileText size={12} /> Receipt
+                            </button>
+                          ) : (
+                            <span className="muted" style={{ fontSize: 12 }}>—</span>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -195,6 +215,13 @@ export default function ParentPayments() {
             )}
           </div>
         </>
+      )}
+
+      {receiptUrl && (
+        <ReceiptModal
+          receiptUrl={receiptUrl}
+          onClose={() => setReceiptUrl(null)}
+        />
       )}
     </div>
   );

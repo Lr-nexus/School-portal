@@ -86,9 +86,11 @@ export default function AppRoutes() {
         <Route path="/print/id-card/:studentId" element={<StudentIDCard />} />
       </Route>
 
-      {/* Shared pages available to every authenticated user */}
+      {/* Shared pages available to every authenticated user — WITH Layout */}
       <Route element={<ProtectedRoute roles={['student', 'teacher', 'admin', 'parent']} />}>
-        <Route path="/library" element={<Library />} />
+        <Route element={<Layout />}>
+          <Route path="/library" element={<Library />} />
+        </Route>
       </Route>
 
       {/* STUDENT */}

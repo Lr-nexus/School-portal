@@ -4,6 +4,7 @@ import {
   FiSearch, FiCheckSquare, FiSquare, FiMinusSquare,
   FiChevronDown, FiChevronUp, FiMail, FiLayers,
   FiPlus, FiSettings, FiCheck, FiDownload, FiFilter, FiPrinter,
+  FiFileText,
 } from 'react-icons/fi';
 import { api } from '../../api/api';
 import PageHeader from '../../components/PageHeader';
@@ -27,7 +28,7 @@ const ROLE_OPTIONS = [
 ];
 
 /* ==================================================================
-   CSV helpers
+   CSV + TXT helpers
    ================================================================== */
 function escapeCSV(val) {
   const s = String(val ?? '');
@@ -60,8 +61,81 @@ function buildCredentialsCSV(data) {
   return lines.join('\n');
 }
 
+function buildCredentialsTXT(data) {
+  const groups = {};
+  data.rows.forEach((r) => {
+    if (!groups[r.role]) groups[r.role] = [];
+    groups[r.role].push(r);
+  });
+
+  const ROLE_ORDER = [
+    'Admin', 'Teacher (Class)', 'Teacher (Subject)', 'Student', 'Parent',
+  ];
+  const orderedRoles = [
+    ...ROLE_ORDER.filter((r) => groups[r]),
+    ...Object.keys(groups).filter((r) => !ROLE_ORDER.includes(r)),
+  ];
+
+  const lines = [];
+  const sep = '='.repeat(78);
+
+  lines.push(sep);
+  lines.push('  BRIGHT FUTURE SECONDARY SCHOOL');
+  lines.push('  Portal Login Credentials');
+  lines.push(sep);
+  lines.push('');
+  lines.push(`  Generated:  ${new Date(data.generatedAt).toLocaleString()}`);
+  lines.push(`  Filter:     ${data.filters.role}${data.filters.className ? ` · Class ${data.filters.className}` : ''}`);
+  lines.push(`  Total:      ${data.total} user${data.total === 1 ? '' : 's'}`);
+  lines.push('');
+  lines.push(`  Admins:           ${data.summary.admins}`);
+  lines.push(`  Class teachers:   ${data.summary.classTeachers}`);
+  lines.push(`  Subject teachers: ${data.summary.subjectTeachers}`);
+  lines.push(`  Students:         ${data.summary.students}`);
+  lines.push(`  Parents:          ${data.summary.parents}`);
+  lines.push('');
+
+  for (const role of orderedRoles) {
+    const rows = groups[role];
+
+    lines.push(sep);
+    lines.push(`  ${role.toUpperCase()}${role.endsWith('s') ? '' : 'S'}  (${rows.length})`);
+    lines.push(sep);
+    lines.push('');
+
+    rows.forEach((r, i) => {
+      lines.push(`  ${String(i + 1).padStart(3)}.  ${r.name}`);
+      lines.push(`       Email:      ${r.email}`);
+      lines.push(`       Password:   ${r.password}`);
+      if (r.detail)    lines.push(`       Detail:     ${r.detail}`);
+      if (r.reference) lines.push(`       Reference:  ${r.reference}`);
+      lines.push('');
+    });
+  }
+
+  lines.push(sep);
+  lines.push('  CONFIDENTIAL — Handle with care.');
+  lines.push('  Do not share this file publicly.');
+  lines.push(sep);
+  lines.push('');
+
+  return lines.join('\n');
+}
+
 function downloadCSVFile(content, filename) {
   const blob = new Blob(['\uFEFF' + content], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 500);
+}
+
+function downloadTXTFile(content, filename) {
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -89,11 +163,7 @@ function buildCredentialsPrintHTML(data) {
   });
 
   const ROLE_ORDER = [
-    'Admin',
-    'Teacher (Class)',
-    'Teacher (Subject)',
-    'Student',
-    'Parent',
+    'Admin', 'Teacher (Class)', 'Teacher (Subject)', 'Student', 'Parent',
   ];
   const orderedRoles = [
     ...ROLE_ORDER.filter((r) => groups[r]),
@@ -309,7 +379,6 @@ function buildCredentialsPrintHTML(data) {
    The iframe is removed from the DOM after printing.
 -------------------------------------------------------------- */
 function printViaIframe(html) {
-  // Create a hidden iframe
   const iframe = document.createElement('iframe');
   iframe.style.position = 'fixed';
   iframe.style.right = '0';
@@ -323,13 +392,11 @@ function printViaIframe(html) {
 
   document.body.appendChild(iframe);
 
-  // Write the HTML inside the iframe
   const doc = iframe.contentWindow.document;
   doc.open();
   doc.write(html);
   doc.close();
 
-  // Wait for images/fonts (none in our case, but be safe) then print
   const triggerPrint = () => {
     try {
       iframe.contentWindow.focus();
@@ -338,9 +405,6 @@ function printViaIframe(html) {
       console.error('Print failed:', e);
     }
 
-    // Clean up after the print dialog closes (or immediately on cancel)
-    // 800ms is a safe delay — long enough for the dialog to open,
-    // short enough that we don't leak iframes.
     setTimeout(() => {
       if (iframe.parentNode) {
         iframe.parentNode.removeChild(iframe);
@@ -348,8 +412,6 @@ function printViaIframe(html) {
     }, 800);
   };
 
-  // The document is fully available synchronously after doc.close(),
-  // but wait one tick to be extra safe in Safari.
   setTimeout(triggerPrint, 50);
 }
 
@@ -953,7 +1015,7 @@ export default function AdminUsers() {
 }
 
 /* ==================================================================
-   MANAGE ASSIGNMENTS MODAL (unchanged)
+   MANAGE ASSIGNMENTS MODAL
    ================================================================== */
 function ManageAssignmentsModal({ teacher, classes, onClose, onSaved }) {
   const [teacherType, setTeacherType] = useState(
@@ -1176,6 +1238,28 @@ function ExportCredentialsModal({ classes, onClose, onDone }) {
     }
   };
 
+  const downloadTXT = async (overrideRole) => {
+    setErr('');
+    setBusy(true);
+    try {
+      const data = await fetchData(overrideRole);
+      if (!data.rows?.length) {
+        setErr('No matching users to export');
+        setBusy(false);
+        return;
+      }
+      const txt = buildCredentialsTXT(data);
+      const stamp = new Date().toISOString().slice(0, 10);
+      const label = (overrideRole || role) === 'all' ? 'all' : (overrideRole || role);
+      const cls = (showClassFilter && className) ? `-${className.replace(/\s+/g, '')}` : '';
+      downloadTXTFile(txt, `credentials-${label}${cls}-${stamp}.txt`);
+      onDone(`Downloaded ${data.total} credential${data.total === 1 ? '' : 's'} as TXT`);
+    } catch (ex) {
+      setErr(ex.message || 'Download failed');
+      setBusy(false);
+    }
+  };
+
   const printSheet = async (overrideRole) => {
     setErr('');
     setBusy(true);
@@ -1203,7 +1287,7 @@ function ExportCredentialsModal({ classes, onClose, onDone }) {
         <div className="modal__head">
           <div>
             <h3><FiFilter size={18} /> Export / Print Credentials</h3>
-            <p className="muted">Choose who to include, then download a CSV or print an A4 sheet</p>
+            <p className="muted">Choose who to include, then download CSV, TXT, or print an A4 sheet</p>
           </div>
           <button className="btn btn--ghost" onClick={onClose} disabled={busy}>
             <FiX size={16} />
@@ -1249,6 +1333,9 @@ function ExportCredentialsModal({ classes, onClose, onDone }) {
             <FiDownload size={14} /> <strong>CSV</strong> — opens in Excel / Google Sheets
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
+            <FiFileText size={14} /> <strong>TXT</strong> — plain text, easy to share
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
             <FiPrinter size={14} /> <strong>Print</strong> — opens your browser's print dialog directly
           </div>
         </div>
@@ -1273,6 +1360,14 @@ function ExportCredentialsModal({ classes, onClose, onDone }) {
           <button
             type="button"
             className="btn btn--ghost"
+            onClick={() => downloadTXT('all')}
+            disabled={busy}
+          >
+            <FiFileText size={14} /> TXT Everyone
+          </button>
+          <button
+            type="button"
+            className="btn btn--ghost"
             onClick={() => printSheet()}
             disabled={busy}
           >
@@ -1280,11 +1375,19 @@ function ExportCredentialsModal({ classes, onClose, onDone }) {
           </button>
           <button
             type="button"
-            className="btn btn--primary"
+            className="btn btn--ghost"
             onClick={() => downloadCSV()}
             disabled={busy}
           >
-            <FiDownload size={14} /> {busy ? 'Preparing…' : 'Download CSV'}
+            <FiDownload size={14} /> CSV
+          </button>
+          <button
+            type="button"
+            className="btn btn--primary"
+            onClick={() => downloadTXT()}
+            disabled={busy}
+          >
+            <FiFileText size={14} /> {busy ? 'Preparing…' : 'Download TXT'}
           </button>
         </div>
       </div>

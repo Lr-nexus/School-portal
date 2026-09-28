@@ -10,6 +10,7 @@ import PageHeader from '../../components/PageHeader';
 import StatCard from '../../components/StatCard';
 import Loader from '../../components/Loader';
 import ChildSelector from '../../components/ChildSelector';
+import ReceiptModal from '../../components/ReceiptModal';
 
 const formatNaira = (n) => '₦' + Number(n || 0).toLocaleString('en-NG');
 const statusClass = (s) =>
@@ -25,7 +26,7 @@ export default function ParentFees() {
   const [message, setMessage] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [payModal, setPayModal] = useState(null);
-  const [receiptModal, setReceiptModal] = useState(null);
+  const [receiptUrl, setReceiptUrl] = useState(null);
 
   const load = async (childId) => {
     if (!childId) return;
@@ -62,15 +63,8 @@ export default function ParentFees() {
     return res.fee;
   };
 
-  const openReceipt = async (feeId) => {
-    setReceiptModal({ loading: true });
-    try {
-      const d = await api(`/parents/me/children/${activeChildId}/fees/${feeId}/receipt`);
-      setReceiptModal({ data: d });
-    } catch (err) {
-      setReceiptModal(null);
-      setErrorMsg(err.message);
-    }
+  const openReceipt = (feeId) => {
+    setReceiptUrl(`/parents/me/children/${activeChildId}/fees/${feeId}/receipt`);
   };
 
   if (loading) return <Loader />;
@@ -188,11 +182,10 @@ export default function ParentFees() {
         />
       )}
 
-      {receiptModal && (
+      {receiptUrl && (
         <ReceiptModal
-          loading={receiptModal.loading}
-          data={receiptModal.data}
-          onClose={() => setReceiptModal(null)}
+          receiptUrl={receiptUrl}
+          onClose={() => setReceiptUrl(null)}
         />
       )}
     </div>
