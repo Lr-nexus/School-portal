@@ -9,6 +9,7 @@ function run(script) {
 try {
   run('init.js');
   run('seed.js');
+  run('scripts/set-passwords.js');   // ⭐ guarantee demo creds match the printout
   console.log('\n🎉 Setup complete. Run `npm run dev` to start the server.\n');
 } catch (err) {
   console.error('\n❌ Setup failed. See the errors above.\n');

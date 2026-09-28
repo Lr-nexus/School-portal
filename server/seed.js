@@ -134,7 +134,7 @@ async function seed() {
       for (const t of defs) {
         const [u] = await q(
           `INSERT INTO users (name, email, password, role)
-           VALUES (?, ?, 'teacher123', 'teacher')`,
+           VALUES (?, ?, 'Teacher@123', 'teacher')`,
           [t.name, t.email]
         );
         const [tr] = await q(
@@ -210,7 +210,7 @@ async function seed() {
 
           const [sU] = await q(
             `INSERT INTO users (name, email, password, role)
-             VALUES (?, ?, 'changeme123', 'student')`,
+             VALUES (?, ?, 'Student@123', 'student')`,
             [name, email]
           );
           const [sRes] = await q(
@@ -255,7 +255,7 @@ async function seed() {
       for (const p of defs) {
         const [pU] = await q(
           `INSERT INTO users (name, email, password, role)
-           VALUES (?, ?, 'parent123', 'parent')`,
+           VALUES (?, ?, 'Parent@123', 'parent')`,
           [p.name, p.email]
         );
         const [pRes] = await q(
