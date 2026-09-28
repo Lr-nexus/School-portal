@@ -479,4 +479,75 @@ CREATE TABLE `meetings` (
   FOREIGN KEY (`student_id`) REFERENCES `students`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- ============================================================
+-- push_subscriptions
+-- ============================================================
+CREATE TABLE `push_subscriptions` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `endpoint` varchar(500) NOT NULL,
+  `p256dh` varchar(255) NOT NULL,
+  `auth` varchar(255) NOT NULL,
+  `user_agent` varchar(255) DEFAULT NULL,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `last_used_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `endpoint` (`endpoint`(191)),
+  KEY `user_id` (`user_id`),
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- reminder_log
+-- ============================================================
+CREATE TABLE `reminder_log` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `kind` varchar(50) NOT NULL,
+  `entity_type` varchar(50) NOT NULL,
+  `entity_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `channel` enum('in_app','push','email') NOT NULL,
+  `sent_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_send` (`kind`,`entity_type`,`entity_id`,`user_id`,`channel`),
+  KEY `user_kind` (`user_id`,`kind`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- notification_prefs
+-- ============================================================
+CREATE TABLE `notification_prefs` (
+  `user_id` int(11) NOT NULL,
+  `push_enabled` tinyint(1) NOT NULL DEFAULT 1,
+  `email_digest_enabled` tinyint(1) NOT NULL DEFAULT 1,
+  `digest_frequency` enum('daily','weekly','off') NOT NULL DEFAULT 'daily',
+  `deadline_reminders` tinyint(1) NOT NULL DEFAULT 1,
+  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`user_id`),
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- audit_log
+-- ============================================================
+CREATE TABLE `audit_log` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) DEFAULT NULL,
+  `user_name` varchar(255) DEFAULT NULL,
+  `user_role` varchar(20) DEFAULT NULL,
+  `method` varchar(10) NOT NULL,
+  `path` varchar(500) NOT NULL,
+  `resource` varchar(100) DEFAULT NULL,
+  `entity_id` int(11) DEFAULT NULL,
+  `status` int(11) NOT NULL,
+  `ip` varchar(50) DEFAULT NULL,
+  `user_agent` varchar(255) DEFAULT NULL,
+  `meta` text,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `user_created` (`user_id`, `created_at`),
+  KEY `resource_created` (`resource`, `created_at`),
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 COMMIT;

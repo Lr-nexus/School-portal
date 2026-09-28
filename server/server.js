@@ -13,6 +13,7 @@ const classroomRoutes      = require('./routes/classroom.routes');
 const notesRoutes          = require('./routes/notes.routes');
 const assignmentsRoutes    = require('./routes/assignments.routes');
 const notificationsRoutes  = require('./routes/notifications.routes');
+const pushRoutes           = require('./routes/push.routes');
 const searchRoutes         = require('./routes/search.routes');
 const announcementsRoutes  = require('./routes/announcements.routes');
 const uploadsRoutes        = require('./routes/uploads.routes');
@@ -23,6 +24,11 @@ const discussionsRoutes    = require('./routes/discussions.routes');
 const analyticsRoutes      = require('./routes/analytics.routes');
 const passwordResetRoutes  = require('./routes/passwordReset.routes');
 const smsRoutes            = require('./routes/sms.routes');
+const auditRoutes            = require('./routes/audit.routes');
+const financialRoutes        = require('./routes/financial.routes');
+const backupRoutes           = require('./routes/backup.routes');
+const bulkPdfRoutes          = require('./routes/bulkPdf.routes');
+const auditMiddleware        = require('./middleware/audit');
 const behaviourRoutes = require('./routes/behaviour.routes');
 
 // ⭐ THESE THREE WERE MISSING — that's why Timetable/Calendar/Attendance 404'd
@@ -79,6 +85,7 @@ setupSocket(io);
 
 app.use(cors(corsOptions));
 app.use(express.json());
+app.use(auditMiddleware);
 
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.url}`);
@@ -108,6 +115,7 @@ app.use('/api/classroom',      classroomRoutes);
 app.use('/api/notes',          notesRoutes);
 app.use('/api/assignments',    assignmentsRoutes);
 app.use('/api/notifications',  notificationsRoutes);
+app.use('/api/push',           pushRoutes);
 app.use('/api/search',         searchRoutes);
 app.use('/api/announcements',  announcementsRoutes);
 app.use('/api/uploads',        uploadsRoutes);
@@ -118,6 +126,10 @@ app.use('/api/discussions',    discussionsRoutes);
 app.use('/api/analytics',      analyticsRoutes);
 app.use('/api/password-reset', passwordResetRoutes);
 app.use('/api/sms',            smsRoutes);
+app.use('/api/audit',          auditRoutes);
+app.use('/api/financial',      financialRoutes);
+app.use('/api/backup',         backupRoutes);
+app.use('/api/bulk',           bulkPdfRoutes);
 app.use('/api/behaviour', behaviourRoutes);
 app.use('/api/timetable',      timetableRoutes);
 app.use('/api/calendar',       calendarRoutes);
@@ -140,6 +152,15 @@ server.listen(PORT, HOST, () => {
   console.log(`   DB_HOST  = ${process.env.DB_HOST || '(not set)'}`);
   console.log(`   DB_NAME  = ${process.env.DB_NAME || '(not set)'}`);
 });
+
+/* ============================================================
+   Background scheduler
+   ============================================================ */
+if (process.env.ENABLE_SCHEDULER === 'true') {
+  require('./utils/scheduler').start();
+} else {
+  console.log('⏱  Scheduler disabled (set ENABLE_SCHEDULER=true to enable)');
+}
 
 setTimeout(() => {
   require('./db')

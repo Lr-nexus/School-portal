@@ -7,6 +7,7 @@ import PageHeader from '../../components/PageHeader';
 import Loader from '../../components/Loader';
 import ProfilePhotoCard from '../ProfilePhotoCard';
 import ChangePasswordCard from '../../components/ChangePasswordCard';
+import NotificationSettings from '../../components/NotificationSettings';
 
 export default function AdminProfile() {
   const { updateUser } = useAuth();
@@ -147,6 +148,7 @@ export default function AdminProfile() {
         )}
       </div>
 
+      <NotificationSettings />
       <ChangePasswordCard />
     </div>
   );

@@ -1,41 +1,51 @@
-/* Minimal service worker — makes the app installable + caches shell */
+/* ------------------------------------------------------------------
+   Service worker — Web Push handler
+------------------------------------------------------------------- */
 
-const CACHE = 'bf-portal-v1';
-const PRECACHE = ['/', '/index.html', '/manifest.json'];
+/* Push received */
+self.addEventListener('push', (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { title: 'Bright Future', body: event.data ? event.data.text() : '' };
+  }
 
-self.addEventListener('install', (event) => {
+  const title = data.title || 'Bright Future';
+  const options = {
+    body: data.body || '',
+    icon: data.icon || '/school-logo.png',
+    badge: data.icon || '/school-logo.png',
+    tag: data.tag || 'bright-future',
+    data: { url: data.url || '/' },
+    vibrate: [100, 50, 100],
+    requireInteraction: false,
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+/* Notification clicked */
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || '/';
+
   event.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(PRECACHE).catch(() => {}))
-  );
-  self.skipWaiting();
-});
-
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))
-      )
-    )
-  );
-  self.clients.claim();
-});
-
-/* Network-first, fall back to cache */
-self.addEventListener('fetch', (event) => {
-  const req = event.request;
-  if (req.method !== 'GET') return;
-  const url = new URL(req.url);
-  // Don't cache API calls or socket.io
-  if (url.pathname.startsWith('/api') || url.pathname.startsWith('/socket.io')) return;
-
-  event.respondWith(
-    fetch(req)
-      .then((res) => {
-        const copy = res.clone();
-        caches.open(CACHE).then((cache) => cache.put(req, copy)).catch(() => {});
-        return res;
-      })
-      .catch(() => caches.match(req).then((r) => r || caches.match('/index.html')))
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      // Focus an existing tab if it's already open
+      for (const client of list) {
+        if (client.url.includes(self.location.origin)) {
+          client.focus();
+          if ('navigate' in client) client.navigate(url);
+          return;
+        }
+      }
+      // Otherwise open a new one
+      if (clients.openWindow) return clients.openWindow(url);
+    })
   );
 });
+
+/* Take control ASAP */
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));

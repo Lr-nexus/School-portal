@@ -60,6 +60,10 @@ import AdminUsers from '../pages/admin/AdminUsers';
 import AdminFees from '../pages/admin/AdminFees';
 import AdminParents from '../pages/admin/AdminParents';
 import AdminSMS from '../pages/admin/AdminSMS';
+import AdminFinancialReports from '../pages/admin/AdminFinancialReports';
+import AdminBulkExport from '../pages/admin/AdminBulkExport';
+import AdminBackup from '../pages/admin/AdminBackup';
+import AdminAuditLog from '../pages/admin/AdminAuditLog';
 
 /* SHARED */
 import VideoRoom from '../pages/classroom/VideoRoom';
@@ -170,6 +174,10 @@ export default function AppRoutes() {
           <Route path="sms"           element={<AdminSMS />} />
           <Route path="profile"       element={<AdminProfile />} />
           <Route path="announcements" element={<Announcements />} />
+          <Route path="financial-reports" element={<AdminFinancialReports />} />
+          <Route path="bulk-export"       element={<AdminBulkExport />} />
+          <Route path="backup"            element={<AdminBackup />} />
+          <Route path="audit-log"         element={<AdminAuditLog />} />
           <Route path="*"             element={<Navigate to="home" replace />} />
         </Route>
       </Route>

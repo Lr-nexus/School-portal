@@ -4,7 +4,7 @@ import {
   FiVideo, FiFileText, FiClipboard, FiLayers,
   FiUserPlus, FiBell, FiCalendar, FiCheckSquare,
   FiClock, FiHeart, FiMessageCircle, FiSend, FiAward,
-  FiDollarSign,
+  FiDollarSign, FiDatabase, FiActivity,
 } from 'react-icons/fi';
 
 export const navConfig = {
@@ -80,29 +80,55 @@ export const navConfig = {
     ]},
   ],
 
-  admin: [
-    { label: 'Overview', items: [
-      { to: '/admin/home',     label: 'Dashboard', icon: FiHome },
-      { to: '/admin/calendar', label: 'Calendar',  icon: FiCalendar },
-    ]},
-    { label: 'People', items: [
-      { to: '/admin/enrollment', label: 'Enrollment', icon: FiUserPlus },
-      { to: '/admin/users',      label: 'Users',      icon: FiUsers },
-      { to: '/admin/parents',    label: 'Parents',    icon: FiHeart },
-      { to: '/admin/classes',    label: 'Classes',    icon: FiLayers },
-    ]},
-    { label: 'Academics', items: [
-      { to: '/admin/results',   label: 'Results',      icon: FiBarChart2 },
-      { to: '/admin/lms',       label: 'Performance',  icon: FiEdit3 },
-      { to: '/admin/classroom', label: 'Live Classes', icon: FiVideo },
-      { to: '/admin/analytics', label: 'Analytics',    icon: FiTrendingUp },
-      { to: '/admin/fees',      label: 'Fees',         icon: FiCreditCard },
-    ]},
-    { label: 'Communication', items: [
-      { to: '/admin/messages',      label: 'Messages',      icon: FiMessageCircle },
-      { to: '/admin/sms',           label: 'Bulk SMS',      icon: FiSend },
-      { to: '/admin/announcements', label: 'Announcements', icon: FiBell },
-    ]},
+    admin: [
+    {
+      label: 'Overview',
+      items: [
+        { to: '/admin/home',     label: 'Dashboard', icon: FiHome },
+        { to: '/admin/calendar', label: 'Calendar',  icon: FiCalendar },
+      ],
+    },
+    {
+      label: 'People',
+      items: [
+        { to: '/admin/enrollment', label: 'Enrollment', icon: FiUserPlus },
+        { to: '/admin/users',      label: 'Users',      icon: FiUsers },
+        { to: '/admin/parents',    label: 'Parents',    icon: FiHeart },
+        { to: '/admin/classes',    label: 'Classes',    icon: FiLayers },
+      ],
+    },
+    {
+      label: 'Academics',
+      items: [
+        { to: '/admin/results',   label: 'Results',      icon: FiBarChart2 },
+        { to: '/admin/lms',       label: 'Performance',  icon: FiEdit3 },
+        { to: '/admin/classroom', label: 'Live Classes', icon: FiVideo },
+        { to: '/admin/analytics', label: 'Analytics',    icon: FiTrendingUp },
+      ],
+    },
+    {
+      label: 'Finance',
+      items: [
+        { to: '/admin/fees',              label: 'Fees',              icon: FiCreditCard },
+        { to: '/admin/financial-reports', label: 'Financial Reports', icon: FiBarChart2 },
+        { to: '/admin/bulk-export',       label: 'Bulk PDF Export',   icon: FiFileText },
+      ],
+    },
+    {
+      label: 'Communication',
+      items: [
+        { to: '/admin/messages',      label: 'Messages',      icon: FiMessageCircle },
+        { to: '/admin/sms',           label: 'Bulk SMS',      icon: FiSend },
+        { to: '/admin/announcements', label: 'Announcements', icon: FiBell },
+      ],
+    },
+    {
+      label: 'System',
+      items: [
+        { to: '/admin/backup',    label: 'Backup & Export', icon: FiDatabase },
+        { to: '/admin/audit-log', label: 'Audit Log',       icon: FiActivity },
+      ],
+    },
   ],
 };
 
