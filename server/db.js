@@ -8,7 +8,6 @@ const pool = mysql.createPool({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
 
-  // Tuned for a DB with max_user_connections = 5
   waitForConnections: true,
   connectionLimit: 3,
   maxIdle: 2,
@@ -19,12 +18,9 @@ const pool = mysql.createPool({
   enableKeepAlive: true,
   keepAliveInitialDelay: 10000,
 
-  // Clever Cloud requires SSL
   ssl: { rejectUnauthorized: false },
 });
 
-/* A one-time informational ping. It runs AFTER the caller has had a
-   chance to register its own work, and it never crashes the process. */
 setTimeout(() => {
   pool.getConnection()
     .then((conn) => {

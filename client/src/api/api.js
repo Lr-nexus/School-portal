@@ -1,11 +1,8 @@
-/* Support both env var names — whichever is set will be used */
 const BASE_URL =
   process.env.REACT_APP_BACKEND_URL ||
   process.env.REACT_APP_API_URL ||
   'https://school-portal-1-xaio.onrender.com/api';
 
-/* Backend origin without the trailing `/api` — used for static files
-   like `/uploads/xyz.pdf`, avatar URLs, etc. */
 const SERVER_URL = BASE_URL.replace(/\/api\/?$/, '');
 
 const STORAGE_KEY = 'user';
@@ -34,7 +31,6 @@ export async function api(path, options = {}) {
     },
   });
 
-  /* Some error paths return an empty body — guard against that */
   const text = await res.text();
   let data = {};
   if (text) {

@@ -91,7 +91,6 @@ export default function Login() {
 
   return (
     <div className="login-split" data-login-theme={loginTheme}>
-      {/* Theme toggle — always top-right */}
       <button
         type="button"
         className="login-theme-toggle"
@@ -102,14 +101,9 @@ export default function Login() {
         {loginTheme === 'dark' ? <FiSun size={16} /> : <FiMoon size={16} />}
       </button>
 
-      {/* LEFT: hero */}
       <div className="login-hero">
-        <div
-          className="login-hero__bg"
-          style={{ backgroundImage: `url(${HERO_IMAGE})` }}
-        />
+        <div className="login-hero__bg" style={{ backgroundImage: `url(${HERO_IMAGE})` }} />
         <div className="login-hero__overlay" />
-
         <div className="login-hero__content">
           <div className="login-hero__brand">
             <div className="login-hero__logo">BF</div>
@@ -121,10 +115,7 @@ export default function Login() {
 
           <div className="login-hero__tagline">
             <h2>Where Learning Meets&nbsp;Innovation</h2>
-            <p>
-              A complete digital platform for students, teachers and administrators —
-              everything the school needs, in one place.
-            </p>
+            <p>A complete digital platform for students, teachers and administrators — everything the school needs, in one place.</p>
           </div>
 
           <ul className="login-hero__features">
@@ -152,7 +143,6 @@ export default function Login() {
         </div>
       </div>
 
-      {/* RIGHT: form */}
       <div className="login-form-panel">
         <div className="login-form-panel__inner">
           <div className="login-form-panel__head">

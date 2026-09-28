@@ -2,11 +2,7 @@ const router = require('express').Router();
 const pool = require('../db');
 const { protect } = require('../middleware/auth');
 
-/* ==================================================================
-   Helper — find the display name for a user.
-   Prefers the role-specific profile table (which the user can edit),
-   falls back to the shared users table.
-================================================================== */
+/* Helper — find the display name for a user */
 async function getDisplayName(userId, role, fallback) {
   try {
     if (role === 'student') {
@@ -34,7 +30,7 @@ async function getDisplayName(userId, role, fallback) {
       );
       if (rows.length) {
         const p = rows[0];
-        return p.name || fallback;   // you only need the name here
+        return p.name || fallback;
       }
     }
   } catch (err) {
@@ -53,18 +49,35 @@ router.post('/login', async (req, res) => {
     return res.status(400).json({ message: 'Email and password are required' });
   }
 
+  // ⭐ ADD THIS DEBUG BLOCK — temporarily
+  console.log('─── LOGIN ATTEMPT ───────────────');
+  console.log('  email:   ', email);
+  console.log('  password:', password);
+
   const [rows] = await pool.execute(
     'SELECT id, name, email, role FROM users WHERE email = ? AND password = ?',
     [email, password]
   );
 
+  console.log('  → matched rows:', rows.length);
+  if (rows.length) console.log('  → user:', rows[0]);
+
   if (!rows.length) {
+    // ⭐ ADD THIS — show what IS in the DB for this email (ignoring password)
+    const [anyUser] = await pool.execute(
+      'SELECT id, name, email, role, password FROM users WHERE email = ?',
+      [email]
+    );
+    console.log('  → email exists:', anyUser.length ? 'YES' : 'NO');
+    if (anyUser.length) {
+      console.log('  → stored password for this email:', JSON.stringify(anyUser[0].password));
+      console.log('  → you sent password:', JSON.stringify(password));
+    }
+
     return res.status(401).json({ message: 'Invalid email or password' });
   }
 
   const u = rows[0];
-
-  // ⭐ Prefer the profile table name
   const displayName = await getDisplayName(u.id, u.role, u.name);
 
   res.json({
@@ -77,9 +90,7 @@ router.post('/login', async (req, res) => {
   });
 });
 
-/* ==================================================================
-   CURRENT USER
-================================================================== */
+/* CURRENT USER */
 router.get('/me', protect, async (req, res) => {
   let profile = null;
 
@@ -91,17 +102,10 @@ router.get('/me', protect, async (req, res) => {
     if (rows.length) {
       const s = rows[0];
       profile = {
-        id: s.id,
-        name: s.name,
-        admissionNo: s.admission_no,
-        className: s.class_name,
-        email: s.email,
-        gender: s.gender,
-        dob: s.dob,
-        guardianName: s.guardian_name,
-        guardianPhone: s.guardian_phone,
-        address: s.address,
-        house: s.house,
+        id: s.id, name: s.name, admissionNo: s.admission_no,
+        className: s.class_name, email: s.email, gender: s.gender,
+        dob: s.dob, guardianName: s.guardian_name,
+        guardianPhone: s.guardian_phone, address: s.address, house: s.house,
       };
     }
   } else if (req.user.role === 'teacher') {
@@ -114,16 +118,9 @@ router.get('/me', protect, async (req, res) => {
       let subjects = [];
       try { subjects = JSON.parse(t.subjects || '[]'); } catch { subjects = []; }
       profile = {
-        id: t.id,
-        name: t.name,
-        staffNo: t.staff_no,
-        email: t.email,
-        phone: t.phone,
-        subjects,
-        formClass: t.form_class,
-        qualification: t.qualification,
-        address: t.address,
-        joined: t.joined,
+        id: t.id, name: t.name, staffNo: t.staff_no, email: t.email,
+        phone: t.phone, subjects, formClass: t.form_class,
+        qualification: t.qualification, address: t.address, joined: t.joined,
       };
     }
   } else if (req.user.role === 'admin') {
@@ -134,18 +131,12 @@ router.get('/me', protect, async (req, res) => {
     if (rows.length) {
       const a = rows[0];
       profile = {
-        id: a.id,
-        name: a.name,
-        title: a.title,
-        email: a.email,
-        phone: a.phone,
-        office: a.office,
-        joined: a.joined,
+        id: a.id, name: a.name, title: a.title, email: a.email,
+        phone: a.phone, office: a.office, joined: a.joined,
       };
     }
   }
 
-  // ⭐ Use the profile name if available
   const displayName = profile?.name || req.user.name;
 
   res.json({
@@ -157,9 +148,7 @@ router.get('/me', protect, async (req, res) => {
   });
 });
 
-/* ==================================================================
-   CHANGE PASSWORD
-================================================================== */
+/* CHANGE PASSWORD */
 router.patch('/me/password', protect, async (req, res) => {
   const { currentPassword, newPassword } = req.body;
 

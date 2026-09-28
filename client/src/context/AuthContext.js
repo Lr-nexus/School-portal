@@ -6,7 +6,6 @@ const STORAGE_KEY = 'user';
 
 function readUser() {
   try {
-    // ⭐ Support both storages — localStorage wins if it has data
     const raw =
       localStorage.getItem(STORAGE_KEY) ||
       sessionStorage.getItem(STORAGE_KEY);
@@ -17,7 +16,6 @@ function readUser() {
 }
 
 function writeUser(user, remember = false) {
-  // Always clear first so we don't have stale copies
   try { localStorage.removeItem(STORAGE_KEY); } catch {}
   try { sessionStorage.removeItem(STORAGE_KEY); } catch {}
 
@@ -40,13 +38,9 @@ export function AuthProvider({ children }) {
       .then((data) => {
         if (cancelled) return;
         const fresh = {
-          id: data.id,
-          name: data.name,
-          email: data.email,
-          role: data.role,
-          photo: data.profile?.photo || null,
+          id: data.id, name: data.name, email: data.email,
+          role: data.role, photo: data.profile?.photo || null,
         };
-        // Preserve the storage choice
         const remember = !!localStorage.getItem(STORAGE_KEY);
         writeUser(fresh, remember);
         setUser(fresh);
