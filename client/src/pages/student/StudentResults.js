@@ -4,21 +4,26 @@ import {
   FiBarChart2, FiCalendar, FiAlertCircle,
   FiPrinter, FiCreditCard, FiDownload, FiTrendingUp,
 } from 'react-icons/fi';
+import {
+  ResponsiveContainer, AreaChart, Area,
+  XAxis, YAxis, CartesianGrid, Tooltip,
+} from 'recharts';
 import { api } from '../../api/api';
 import PageHeader from '../../components/PageHeader';
 import StatCard from '../../components/StatCard';
 import Loader from '../../components/Loader';
 
+/* ============================================================
+   Progress chart — Recharts area chart
+   ============================================================ */
 function ProgressChart({ points }) {
-  const chart = { left: 48, right: 620, top: 20, bottom: 174 };
-  const yFor = (value) => chart.top + ((100 - value) / 100) * (chart.bottom - chart.top);
-  const labelStep = Math.max(1, Math.ceil(points.length / 6));
-  const plotted = points.map((point, index) => ({
-    ...point,
-    x: points.length === 1
-      ? (chart.left + chart.right) / 2
-      : chart.left + (index / (points.length - 1)) * (chart.right - chart.left),
-    y: yFor(Math.max(0, Math.min(100, Number(point.average) || 0))),
+  const data = points.map((p) => ({
+    session: p.session,
+    term: p.term,
+    shortTerm: p.term.split(' ')[0],
+    label: `${p.session.slice(2, 4)}/${p.session.slice(7, 9)} ${p.term.split(' ')[0]}`,
+    average: Number(p.average) || 0,
+    studentCount: Number(p.studentCount) || 0,
   }));
 
   return (
@@ -27,38 +32,76 @@ function ProgressChart({ points }) {
         <h3><FiTrendingUp size={16} /> Progress by term</h3>
         <span className="muted">Average across subjects</span>
       </div>
-      <div className="progress-chart__canvas">
-        <svg viewBox="0 0 640 232" role="img" aria-label="Average results by academic term">
-          {[0, 50, 100].map((value) => (
-            <g key={value}>
-              <line x1={chart.left} x2={chart.right} y1={yFor(value)} y2={yFor(value)} className="progress-chart__grid" />
-              <text x="36" y={yFor(value) + 4} textAnchor="end" className="progress-chart__axis">{value}</text>
-            </g>
-          ))}
-          {plotted.length > 1 && (
-            <polyline
-              points={plotted.map((point) => `${point.x},${point.y}`).join(' ')}
-              className="progress-chart__line"
+
+      <div className="recharts-wrap">
+        <ResponsiveContainer width="100%" height={300}>
+          <AreaChart data={data} margin={{ top: 20, right: 30, left: 0, bottom: 10 }}>
+            <defs>
+              <linearGradient id="studentProgressFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.35} />
+                <stop offset="100%" stopColor="var(--accent)" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+
+            <XAxis
+              dataKey="label"
+              stroke="var(--muted)"
+              tick={{ fontSize: 11 }}
+              tickLine={false}
             />
-          )}
-          {plotted.map((point, index) => (
-            <g key={`${point.session}-${point.term}`}>
-              <circle cx={point.x} cy={point.y} r="4" className="progress-chart__point" />
-              <text x={point.x} y={point.y - 10} textAnchor="middle" className="progress-chart__value">{point.average}%</text>
-              {(index % labelStep === 0 || index === plotted.length - 1) && (
-                <text x={point.x} y="197" textAnchor="middle" className="progress-chart__label">
-                  <tspan x={point.x}>{point.session}</tspan>
-                  <tspan x={point.x} dy="13">{point.term}</tspan>
-                </text>
-              )}
-            </g>
-          ))}
-        </svg>
+            <YAxis
+              domain={[0, 100]}
+              stroke="var(--muted)"
+              tick={{ fontSize: 11 }}
+              tickLine={false}
+              width={40}
+            />
+
+            <Tooltip
+              contentStyle={{
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
+                borderRadius: 10,
+                fontSize: 12,
+                color: 'var(--text)',
+                boxShadow: '0 8px 24px rgba(15,23,42,.12)',
+              }}
+              labelFormatter={(_, payload) => {
+                if (payload && payload.length) {
+                  const p = payload[0].payload;
+                  return `${p.session} · ${p.term}`;
+                }
+                return '';
+              }}
+              formatter={(value) => [`${value}%`, 'Average']}
+            />
+
+            <Area
+              type="monotone"
+              dataKey="average"
+              stroke="var(--accent)"
+              strokeWidth={3}
+              fill="url(#studentProgressFill)"
+              dot={{
+                r: 5,
+                fill: 'var(--surface)',
+                stroke: 'var(--accent)',
+                strokeWidth: 2,
+              }}
+              activeDot={{ r: 7 }}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
       </div>
     </section>
   );
 }
 
+/* ============================================================
+   Main page
+   ============================================================ */
 export default function StudentResults() {
   const [data, setData] = useState(null);
   const [progress, setProgress] = useState([]);

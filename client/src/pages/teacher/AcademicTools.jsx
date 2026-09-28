@@ -4,6 +4,10 @@ import {
   FiSave, FiTrash2, FiTrendingUp, FiSearch, FiX,
   FiAlertCircle, FiEdit3, FiUsers,
 } from 'react-icons/fi';
+import {
+  ResponsiveContainer, AreaChart, Area,
+  XAxis, YAxis, CartesianGrid, Tooltip,
+} from 'recharts';
 import { api } from '../../api/api';
 import { useTeacherProfile } from '../../hooks/useTeacherProfile';
 import PageHeader from '../../components/PageHeader';
@@ -32,7 +36,7 @@ function gradeFor(total) {
 }
 
 /* ==========================================================================
-   Gradebook tab — spreadsheet view
+   Gradebook tab
    ========================================================================== */
 
 function GradebookTab({ target, session, term, onSessionChange, onTermChange }) {
@@ -871,7 +875,7 @@ function LessonPlansTab({ target }) {
 }
 
 /* ==========================================================================
-   Progress tab — SVG chart
+   Progress tab — Recharts area chart
    ========================================================================== */
 
 function ProgressTab({ target }) {
@@ -927,95 +931,99 @@ function ProgressTab({ target }) {
 }
 
 function ProgressChart({ points, subject }) {
-  const chart = { left: 56, right: 620, top: 24, bottom: 180 };
-  const yFor = (v) => chart.top + ((100 - v) / 100) * (chart.bottom - chart.top);
-  const labelStep = Math.max(1, Math.ceil(points.length / 6));
-
-  const plotted = points.map((p, i) => ({
-    ...p,
-    x: points.length === 1
-      ? (chart.left + chart.right) / 2
-      : chart.left + (i / (points.length - 1)) * (chart.right - chart.left),
-    y: yFor(Math.max(0, Math.min(100, Number(p.average) || 0))),
+  const data = points.map((p) => ({
+    session: p.session,
+    term: p.term,
+    label: `${p.session.slice(2, 4)}/${p.session.slice(7, 9)} ${p.term.split(' ')[0]}`,
+    average: Number(p.average) || 0,
+    studentCount: Number(p.studentCount) || 0,
   }));
 
-  const totalEntries = points.reduce((sum, p) => sum + Number(p.studentCount || 0), 0);
+  const totalEntries = points.reduce(
+    (sum, p) => sum + Number(p.studentCount || 0),
+    0
+  );
 
   return (
     <section className="card progress-chart">
       <div className="progress-chart__heading">
         <div>
-          <h3><FiTrendingUp size={16} /> {subject} progress</h3>
+          <h3>
+            <FiTrendingUp size={16} /> {subject} progress
+          </h3>
           <p className="muted" style={{ fontSize: 12 }}>
             Class average across terms · {totalEntries} recorded grade entries
           </p>
         </div>
       </div>
 
-      <div className="progress-chart__canvas">
-        <svg
-          viewBox="0 0 640 240"
-          role="img"
-          aria-label={`Class average for ${subject} by academic term`}
-        >
-          {[0, 25, 50, 75, 100].map((value) => (
-            <g key={value}>
-              <line
-                x1={chart.left}
-                x2={chart.right}
-                y1={yFor(value)}
-                y2={yFor(value)}
-                className="progress-chart__grid"
-              />
-              <text
-                x={chart.left - 10}
-                y={yFor(value) + 4}
-                textAnchor="end"
-                className="progress-chart__axis"
-              >
-                {value}
-              </text>
-            </g>
-          ))}
+      <div className="recharts-wrap">
+        <ResponsiveContainer width="100%" height={320}>
+          <AreaChart data={data} margin={{ top: 20, right: 30, left: 0, bottom: 10 }}>
+            <defs>
+              <linearGradient id="teacherProgressFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.35} />
+                <stop offset="100%" stopColor="var(--accent)" stopOpacity={0} />
+              </linearGradient>
+            </defs>
 
-          {plotted.length > 1 && (
-            <polygon
-              points={
-                `${plotted[0].x},${chart.bottom} ` +
-                plotted.map((p) => `${p.x},${p.y}`).join(' ') +
-                ` ${plotted[plotted.length - 1].x},${chart.bottom}`
-              }
-              fill="rgba(37, 99, 235, 0.08)"
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+
+            <XAxis
+              dataKey="label"
+              stroke="var(--muted)"
+              tick={{ fontSize: 11 }}
+              tickLine={false}
             />
-          )}
-
-          {plotted.length > 1 && (
-            <polyline
-              points={plotted.map((p) => `${p.x},${p.y}`).join(' ')}
-              className="progress-chart__line"
+            <YAxis
+              domain={[0, 100]}
+              stroke="var(--muted)"
+              tick={{ fontSize: 11 }}
+              tickLine={false}
+              width={40}
             />
-          )}
 
-          {plotted.map((p, i) => (
-            <g key={`${p.session}-${p.term}-${i}`}>
-              <circle cx={p.x} cy={p.y} r="5" className="progress-chart__point" />
-              <text x={p.x} y={p.y - 12} textAnchor="middle" className="progress-chart__value">
-                {p.average}%
-              </text>
-              {(i % labelStep === 0 || i === plotted.length - 1) && (
-                <text
-                  x={p.x}
-                  y={chart.bottom + 20}
-                  textAnchor="middle"
-                  className="progress-chart__label"
-                >
-                  <tspan x={p.x}>{p.session}</tspan>
-                  <tspan x={p.x} dy="13">{p.term}</tspan>
-                </text>
-              )}
-            </g>
-          ))}
-        </svg>
+            <Tooltip
+              contentStyle={{
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
+                borderRadius: 10,
+                fontSize: 12,
+                color: 'var(--text)',
+                boxShadow: '0 8px 24px rgba(15,23,42,.12)',
+              }}
+              labelFormatter={(_, payload) => {
+                if (payload && payload.length) {
+                  const p = payload[0].payload;
+                  return `${p.session} · ${p.term}`;
+                }
+                return '';
+              }}
+              formatter={(value, name, payload) => {
+                const count = payload?.payload?.studentCount;
+                return [
+                  `${value}%${count ? ` (${count} students)` : ''}`,
+                  'Average',
+                ];
+              }}
+            />
+
+            <Area
+              type="monotone"
+              dataKey="average"
+              stroke="var(--accent)"
+              strokeWidth={3}
+              fill="url(#teacherProgressFill)"
+              dot={{
+                r: 5,
+                fill: 'var(--surface)',
+                stroke: 'var(--accent)',
+                strokeWidth: 2,
+              }}
+              activeDot={{ r: 7 }}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
       </div>
     </section>
   );

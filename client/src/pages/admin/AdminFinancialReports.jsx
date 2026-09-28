@@ -2,8 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   FiDollarSign, FiTrendingUp, FiUsers, FiAlertTriangle,
   FiRefreshCw, FiAlertCircle, FiBarChart2, FiCreditCard,
-  FiCalendar, FiDownload, FiSearch,
+  FiCalendar, FiSearch,
 } from 'react-icons/fi';
+import {
+  ResponsiveContainer, LineChart, Line, BarChart, Bar,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+} from 'recharts';
 import { api } from '../../api/api';
 import PageHeader from '../../components/PageHeader';
 import StatCard from '../../components/StatCard';
@@ -12,109 +16,179 @@ import Loader from '../../components/Loader';
 const formatNaira = (n) =>
   '₦' + Number(n || 0).toLocaleString('en-NG', { maximumFractionDigits: 0 });
 
+/* Compact axis tick formatter */
+const formatNairaShort = (n) => {
+  const v = Number(n || 0);
+  if (v >= 1_000_000) return `₦${(v / 1_000_000).toFixed(1)}M`;
+  if (v >= 1_000) return `₦${Math.round(v / 1_000)}k`;
+  return `₦${v}`;
+};
+
+const TOOLTIP_STYLE = {
+  background: 'var(--surface)',
+  border: '1px solid var(--border)',
+  borderRadius: 10,
+  fontSize: 12,
+  color: 'var(--text)',
+  boxShadow: '0 8px 24px rgba(15,23,42,.12)',
+};
+
 const SESSIONS = ['2024/2025', '2025/2026', '2023/2024'];
 const TERMS = ['First Term', 'Second Term', 'Third Term'];
 
-/* -------------------- SVG chart helpers -------------------- */
+/* -------------------- Recharts helpers -------------------- */
 
-function BarChart({ points, valueKey, labelKey, color = 'var(--accent)', unit = '' }) {
-  const max = Math.max(...points.map((p) => Number(p[valueKey]) || 0), 1);
+function IncomeTrendChart({ points }) {
+  const data = points.map((p) => ({
+    month: p.month,
+    label: `${p.month.slice(5)}/${p.month.slice(2, 4)}`,
+    collected: Number(p.collected) || 0,
+  }));
+
   return (
-    <div className="fin-bars">
-      {points.map((p, i) => {
-        const v = Number(p[valueKey]) || 0;
-        const pct = Math.round((v / max) * 100);
-        return (
-          <div className="fin-bar-row" key={i}>
-            <div className="fin-bar-row__label">{p[labelKey]}</div>
-            <div className="fin-bar-row__track">
-              <div
-                className="fin-bar-row__fill"
-                style={{ width: `${pct}%`, background: color }}
-              />
-            </div>
-            <div className="fin-bar-row__value">
-              {formatNaira(v)}{unit}
-            </div>
-          </div>
-        );
-      })}
+    <div className="recharts-wrap">
+      <ResponsiveContainer width="100%" height={300}>
+        <LineChart data={data} margin={{ top: 20, right: 30, left: 0, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+
+          <XAxis
+            dataKey="label"
+            stroke="var(--muted)"
+            tick={{ fontSize: 11 }}
+            tickLine={false}
+          />
+          <YAxis
+            stroke="var(--muted)"
+            tick={{ fontSize: 11 }}
+            tickLine={false}
+            tickFormatter={formatNairaShort}
+            width={60}
+          />
+
+          <Tooltip
+            contentStyle={TOOLTIP_STYLE}
+            labelFormatter={(label, payload) => {
+              if (payload && payload.length) return payload[0].payload.month;
+              return label;
+            }}
+            formatter={(v) => [formatNaira(v), 'Collected']}
+          />
+
+          <Line
+            type="monotone"
+            dataKey="collected"
+            stroke="var(--green)"
+            strokeWidth={3}
+            dot={{
+              r: 4,
+              fill: 'var(--surface)',
+              stroke: 'var(--green)',
+              strokeWidth: 2,
+            }}
+            activeDot={{ r: 6 }}
+          />
+        </LineChart>
+      </ResponsiveContainer>
     </div>
   );
 }
 
-function LineChart({ points }) {
-  if (!points.length) return null;
-  const chart = { left: 60, right: 620, top: 24, bottom: 200 };
-  const max = Math.max(...points.map((p) => p.collected), 1);
-  const yFor = (v) => chart.bottom - (v / max) * (chart.bottom - chart.top);
-  const xFor = (i) => points.length === 1
-    ? (chart.left + chart.right) / 2
-    : chart.left + (i / (points.length - 1)) * (chart.right - chart.left);
-
-  const plotted = points.map((p, i) => ({
-    ...p,
-    x: xFor(i),
-    y: yFor(p.collected),
-  }));
-
-  const ticks = [0, max / 2, max];
-
+function TermBreakdownChart({ points }) {
   return (
-    <svg viewBox="0 0 640 250" style={{ width: '100%' }}>
-      {ticks.map((v, i) => (
-        <g key={i}>
-          <line
-            x1={chart.left} x2={chart.right}
-            y1={yFor(v)} y2={yFor(v)}
-            stroke="var(--border)" strokeWidth="1"
+    <div className="recharts-wrap">
+      <ResponsiveContainer width="100%" height={260}>
+        <BarChart data={points} margin={{ top: 20, right: 20, left: 0, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+
+          <XAxis
+            dataKey="term"
+            stroke="var(--muted)"
+            tick={{ fontSize: 11 }}
+            tickLine={false}
           />
-          <text
-            x={chart.left - 8} y={yFor(v) + 4}
-            textAnchor="end" fill="var(--muted)" fontSize="10"
-          >
-            {formatNaira(v)}
-          </text>
-        </g>
-      ))}
+          <YAxis
+            stroke="var(--muted)"
+            tick={{ fontSize: 11 }}
+            tickLine={false}
+            tickFormatter={formatNairaShort}
+            width={60}
+          />
 
-      {plotted.length > 1 && (
-        <polygon
-          points={
-            `${plotted[0].x},${chart.bottom} ` +
-            plotted.map((p) => `${p.x},${p.y}`).join(' ') +
-            ` ${plotted[plotted.length - 1].x},${chart.bottom}`
-          }
-          fill="rgba(22,163,74,.1)"
-        />
-      )}
+          <Tooltip
+            contentStyle={TOOLTIP_STYLE}
+            formatter={(v, name) => [
+              formatNaira(v),
+              name === 'billed' ? 'Billed' : 'Collected',
+            ]}
+          />
+          <Legend
+            wrapperStyle={{ fontSize: 12 }}
+            iconType="circle"
+          />
 
-      {plotted.length > 1 && (
-        <polyline
-          points={plotted.map((p) => `${p.x},${p.y}`).join(' ')}
-          fill="none" stroke="var(--green)" strokeWidth="3"
-          strokeLinecap="round" strokeLinejoin="round"
-        />
-      )}
+          <Bar
+            dataKey="billed"
+            name="Billed"
+            fill="var(--accent)"
+            radius={[6, 6, 0, 0]}
+          />
+          <Bar
+            dataKey="collected"
+            name="Collected"
+            fill="var(--green)"
+            radius={[6, 6, 0, 0]}
+          />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
 
-      {plotted.map((p, i) => (
-        <g key={i}>
-          <circle cx={p.x} cy={p.y} r="4" fill="#fff" stroke="var(--green)" strokeWidth="2.5" />
-          <text
-            x={p.x} y={p.y - 10}
-            textAnchor="middle" fill="var(--text)" fontSize="10" fontWeight="700"
-          >
-            {formatNaira(p.collected)}
-          </text>
-          <text
-            x={p.x} y={chart.bottom + 18}
-            textAnchor="middle" fill="var(--muted)" fontSize="10"
-          >
-            {p.month.slice(5)}/{p.month.slice(2, 4)}
-          </text>
-        </g>
-      ))}
-    </svg>
+function ClassBreakdownChart({ points }) {
+  return (
+    <div className="recharts-wrap">
+      <ResponsiveContainer width="100%" height={260}>
+        <BarChart data={points} margin={{ top: 20, right: 20, left: 0, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+
+          <XAxis
+            dataKey="className"
+            stroke="var(--muted)"
+            tick={{ fontSize: 11 }}
+            tickLine={false}
+          />
+          <YAxis
+            stroke="var(--muted)"
+            tick={{ fontSize: 11 }}
+            tickLine={false}
+            tickFormatter={formatNairaShort}
+            width={60}
+          />
+
+          <Tooltip
+            contentStyle={TOOLTIP_STYLE}
+            formatter={(v, name) => [
+              formatNaira(v),
+              name === 'billed' ? 'Billed' : 'Collected',
+            ]}
+          />
+          <Legend wrapperStyle={{ fontSize: 12 }} iconType="circle" />
+
+          <Bar
+            dataKey="billed"
+            name="Billed"
+            fill="var(--accent)"
+            radius={[6, 6, 0, 0]}
+          />
+          <Bar
+            dataKey="collected"
+            name="Collected"
+            fill="var(--green)"
+            radius={[6, 6, 0, 0]}
+          />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
 
@@ -196,7 +270,6 @@ export default function AdminFinancialReports() {
         </div>
       )}
 
-      {/* ---------- KPI strip ---------- */}
       {overview && (
         <>
           <div className="stats-grid">
@@ -226,7 +299,6 @@ export default function AdminFinancialReports() {
             />
           </div>
 
-          {/* ---------- Payment method strip ---------- */}
           {overview.methods.length > 0 && (
             <div className="card">
               <h3><FiCreditCard size={16} /> Payment methods</h3>
@@ -271,7 +343,7 @@ export default function AdminFinancialReports() {
         {trend.length === 0 ? (
           <p className="muted">No payments recorded yet.</p>
         ) : (
-          <LineChart points={trend} />
+          <IncomeTrendChart points={trend} />
         )}
       </div>
 
@@ -283,12 +355,7 @@ export default function AdminFinancialReports() {
             <p className="muted">No fee records for this session.</p>
           ) : (
             <>
-              <BarChart
-                points={byTerm}
-                labelKey="term"
-                valueKey="collected"
-                color="var(--green)"
-              />
+              <TermBreakdownChart points={byTerm} />
               <table className="table table--striped" style={{ marginTop: 14 }}>
                 <thead>
                   <tr>
@@ -338,12 +405,7 @@ export default function AdminFinancialReports() {
           {byClass.length === 0 ? (
             <p className="muted">No data for the selected filters.</p>
           ) : (
-            <BarChart
-              points={byClass}
-              labelKey="className"
-              valueKey="collected"
-              color="var(--accent)"
-            />
+            <ClassBreakdownChart points={byClass} />
           )}
         </div>
       </div>
