@@ -450,4 +450,33 @@ CREATE TABLE `sms_log` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- ============================================================
+-- meetings
+-- ============================================================
+CREATE TABLE `meetings` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `parent_id` int(11) NOT NULL,
+  `teacher_id` int(11) NOT NULL,
+  `student_id` int(11) NOT NULL,
+  `topic` varchar(255) NOT NULL,
+  `message` text,
+  `preferred_date` date NOT NULL,
+  `preferred_time` varchar(10) NOT NULL,
+  `duration_minutes` int(11) NOT NULL DEFAULT 20,
+  `status` enum('pending','accepted','declined','rescheduled','completed','cancelled')
+            NOT NULL DEFAULT 'pending',
+  `scheduled_date` date DEFAULT NULL,
+  `scheduled_time` varchar(10) DEFAULT NULL,
+  `teacher_response` text,
+  `completed_notes` text,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `parent_status` (`parent_id`,`status`),
+  KEY `teacher_status` (`teacher_id`,`status`),
+  FOREIGN KEY (`parent_id`) REFERENCES `parents`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`teacher_id`) REFERENCES `teachers`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`student_id`) REFERENCES `students`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 COMMIT;

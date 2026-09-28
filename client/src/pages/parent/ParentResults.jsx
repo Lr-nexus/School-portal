@@ -5,56 +5,62 @@ import {
 } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../api/api';
+import { useParentContext } from '../../hooks/useParentContext';
 import PageHeader from '../../components/PageHeader';
 import StatCard from '../../components/StatCard';
 import Loader from '../../components/Loader';
+import ChildSelector from '../../components/ChildSelector';
 
 export default function ParentResults() {
+  const {
+    children, activeChild, activeChildId, setActiveChildId, loading,
+  } = useParentContext();
+
   const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loadingData, setLoadingData] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [session, setSession] = useState('');
   const [term, setTerm] = useState('');
   const navigate = useNavigate();
 
-  const load = async (s, t) => {
-    setLoading(true);
+  const load = async (childId, s, t) => {
+    if (!childId) return;
+    setLoadingData(true);
+    setErrorMsg('');
     try {
       const qs = new URLSearchParams();
       if (s) qs.append('session', s);
       if (t) qs.append('term', t);
-      const res = await api(
-        '/parents/me/child/results' + (qs.toString() ? '?' + qs.toString() : '')
-      );
+      const q = qs.toString() ? '?' + qs.toString() : '';
+      const res = await api(`/parents/me/children/${childId}/results${q}`);
       setData(res);
       setSession(res.current.session);
       setTerm(res.current.term);
     } catch (err) {
       setErrorMsg(err.message);
     } finally {
-      setLoading(false);
+      setLoadingData(false);
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    if (activeChildId) load(activeChildId);
+    // eslint-disable-next-line
+  }, [activeChildId]);
 
-  if (loading && !data) return <Loader />;
-  if (errorMsg) {
+  if (loading) return <Loader />;
+  if (!activeChild) {
     return (
       <div>
         <PageHeader title="Child Results" />
-        <div className="alert alert--error">
-          <FiAlertCircle size={16} /> {errorMsg}
-        </div>
+        <div className="card empty-state"><p>No child linked to your account.</p></div>
       </div>
     );
   }
-  if (!data) return <Loader />;
 
-  const hasResults = data.subjects.length > 0;
-  const childId = data.child.id;
+  const hasResults = data?.subjects?.length > 0;
+  const childId = activeChild.id;
 
-  /* Opens the report card page and triggers auto-download */
   const downloadPdf = () => {
     navigate(
       `/print/report-card/${childId}` +
@@ -67,76 +73,93 @@ export default function ParentResults() {
   return (
     <div>
       <PageHeader
-        title={`${data.child.name}'s Results`}
-        subtitle={`${data.child.className} · ${data.current.session || ''} · ${data.current.term || ''}`}
+        title={`${activeChild.name}'s Results`}
+        subtitle={data ? `${data.child.className} · ${data.current.session || ''} · ${data.current.term || ''}` : activeChild.className}
       >
-        <button
-          className="btn btn--ghost"
-          onClick={() => navigate(`/print/id-card/${childId}`)}
-          title="Open your child's printable ID card"
-        >
-          <FiCreditCard size={16} /> ID Card
-        </button>
-        <button
-          className="btn btn--ghost"
-          onClick={() =>
-            navigate(
-              `/print/report-card/${childId}?session=${encodeURIComponent(session)}&term=${encodeURIComponent(term)}`
-            )
-          }
-          disabled={!hasResults}
-          title="Open the report card for printing"
-        >
-          <FiPrinter size={16} /> Print Report Card
-        </button>
-        <button
-          className="btn btn--primary"
-          onClick={downloadPdf}
-          disabled={!hasResults}
-          title="Download your child's report card as PDF"
-        >
-          <FiDownload size={16} /> Download PDF
-        </button>
+        <ChildSelector
+          children={children}
+          value={activeChildId}
+          onChange={setActiveChildId}
+        />
+        {hasResults && (
+          <>
+            <button
+              className="btn btn--ghost"
+              onClick={() => navigate(`/print/id-card/${childId}`)}
+            >
+              <FiCreditCard size={16} /> ID Card
+            </button>
+            <button
+              className="btn btn--ghost"
+              onClick={() =>
+                navigate(
+                  `/print/report-card/${childId}?session=${encodeURIComponent(session)}&term=${encodeURIComponent(term)}`
+                )
+              }
+            >
+              <FiPrinter size={16} /> Print Report Card
+            </button>
+            <button className="btn btn--primary" onClick={downloadPdf}>
+              <FiDownload size={16} /> Download PDF
+            </button>
+          </>
+        )}
       </PageHeader>
 
-      {data.sessions.length > 0 && (
+      {errorMsg && (
+        <div className="alert alert--error">
+          <FiAlertCircle size={16} /> {errorMsg}
+        </div>
+      )}
+
+      {loadingData && !data && <Loader />}
+
+      {data && data.sessions.length > 0 && (
         <div className="card results-filter">
           <div className="results-filter__item">
             <label>
               <FiCalendar size={14} /> Session
-              <select value={session} onChange={(e) => load(e.target.value, term)}>
-                {data.sessions.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
+              <select
+                value={session}
+                onChange={(e) => {
+                  setSession(e.target.value);
+                  load(activeChildId, e.target.value, term);
+                }}
+              >
+                {data.sessions.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
             </label>
           </div>
           <div className="results-filter__item">
             <label>
               <FiCalendar size={14} /> Term
-              <select value={term} onChange={(e) => load(session, e.target.value)}>
-                {data.terms.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
+              <select
+                value={term}
+                onChange={(e) => {
+                  setTerm(e.target.value);
+                  load(activeChildId, session, e.target.value);
+                }}
+              >
+                {data.terms.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
             </label>
           </div>
         </div>
       )}
 
-      {!hasResults && (
+      {data && !hasResults && (
         <div className="card empty-state">
           <FiBarChart2 size={32} />
           <p>No results recorded for this term.</p>
         </div>
       )}
 
-      {hasResults && (
+      {data && hasResults && (
         <>
           <div className="stats-grid">
-            <StatCard label="Average"       value={`${data.average}%`}   color="#2563eb" />
-            <StatCard label="Overall Grade" value={data.overallGrade}     color="#16a34a" />
-            <StatCard label="Subjects"      value={data.subjects.length}  color="#7c3aed" />
+            <StatCard label="Average" value={`${data.average}%`} color="#2563eb" />
+            <StatCard label="Overall Grade" value={data.overallGrade} color="#16a34a" />
+            <StatCard label="Subjects" value={data.subjects.length} color="#7c3aed" />
           </div>
 
           <div className="card">

@@ -15,16 +15,19 @@ export default function Sidebar({ open, onClose }) {
 
   return (
     <aside className={`sidebar ${open ? 'sidebar--open' : ''}`}>
-      {/* Brand */}
       <div className="sidebar__brand">
-        <div className="sidebar__logo">BF</div>
+        <div className="sidebar__logo">
+          <img
+            src={`${process.env.PUBLIC_URL}/school-logo.png`}
+            alt="Bright Future"
+          />
+        </div>
         <div>
           <h2>Bright Future</h2>
           <span>Secondary School</span>
         </div>
       </div>
 
-      {/* Current user */}
       <div className="sidebar__user">
         <div className="avatar">{user?.name?.charAt(0) || 'U'}</div>
         <div>
@@ -33,7 +36,6 @@ export default function Sidebar({ open, onClose }) {
         </div>
       </div>
 
-      {/* Grouped navigation */}
       <nav className="sidebar__nav">
         {groups.map((group) => (
           <div className="sidebar__group" key={group.label}>
@@ -60,7 +62,6 @@ export default function Sidebar({ open, onClose }) {
         ))}
       </nav>
 
-      {/* Logout — pinned to the bottom */}
       <button className="logout-btn" onClick={handleLogout}>
         <FiLogOut size={16} />
         <span>Logout</span>

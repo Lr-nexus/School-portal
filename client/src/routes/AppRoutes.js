@@ -34,6 +34,8 @@ import TeacherAttendance from '../pages/teacher/TeacherAttendance';
 import TeacherTimetable from '../pages/teacher/TeacherTimetable';
 import TeacherGrades from '../pages/teacher/TeacherGrades';
 import AcademicTools from '../pages/teacher/AcademicTools';
+import TeacherBehaviour from '../pages/teacher/TeacherBehaviour';
+import TeacherMeetings from '../pages/teacher/TeacherMeetings';
 
 /* PARENT */
 import ParentHome from '../pages/parent/ParentHome';
@@ -42,6 +44,9 @@ import ParentFees from '../pages/parent/ParentFees';
 import ParentResults from '../pages/parent/ParentResults';
 import ParentAttendance from '../pages/parent/ParentAttendance';
 import ParentTimetable from '../pages/parent/ParentTimetable';
+import ParentBehaviour from '../pages/parent/ParentBehaviour';
+import ParentPayments from '../pages/parent/ParentPayments';
+import ParentMeetings from '../pages/parent/ParentMeetings';
 
 /* ADMIN */
 import AdminHome from '../pages/admin/AdminHome';
@@ -60,9 +65,6 @@ import AdminSMS from '../pages/admin/AdminSMS';
 import VideoRoom from '../pages/classroom/VideoRoom';
 import ReportCard from '../pages/print/ReportCard';
 import StudentIDCard from '../pages/print/StudentIDCard';
-
-import TeacherBehaviour from '../pages/teacher/TeacherBehaviour';
-import ParentBehaviour from '../pages/parent/ParentBehaviour';
 
 export default function AppRoutes() {
   return (
@@ -124,6 +126,7 @@ export default function AppRoutes() {
           <Route path="grades"        element={<TeacherGrades />} />
           <Route path="academic"      element={<AcademicTools />} />
           <Route path="behaviour"     element={<TeacherBehaviour />} />
+          <Route path="meetings"      element={<TeacherMeetings />} />
           <Route path="*"             element={<Navigate to="home" replace />} />
         </Route>
       </Route>
@@ -135,10 +138,12 @@ export default function AppRoutes() {
           <Route path="home"          element={<ParentHome />} />
           <Route path="calendar"      element={<Calendar />} />
           <Route path="fees"          element={<ParentFees />} />
+          <Route path="payments"      element={<ParentPayments />} />
           <Route path="results"       element={<ParentResults />} />
           <Route path="attendance"    element={<ParentAttendance />} />
           <Route path="timetable"     element={<ParentTimetable />} />
           <Route path="messages"      element={<Messages />} />
+          <Route path="meetings"      element={<ParentMeetings />} />
           <Route path="profile"       element={<ParentProfile />} />
           <Route path="announcements" element={<Announcements />} />
           <Route path="behaviour"     element={<ParentBehaviour />} />

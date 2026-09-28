@@ -1,49 +1,49 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   FiCreditCard, FiDownload, FiPrinter, FiCheck, FiX, FiFileText,
-  FiAlertCircle, FiClock, FiRefreshCw, FiDollarSign
+  FiAlertCircle, FiRefreshCw, FiDollarSign, FiClock,
 } from 'react-icons/fi';
+import { Link } from 'react-router-dom';
 import { api } from '../../api/api';
+import { useParentContext } from '../../hooks/useParentContext';
 import PageHeader from '../../components/PageHeader';
 import StatCard from '../../components/StatCard';
 import Loader from '../../components/Loader';
-
-const BASE_URL =
-  (process.env.REACT_APP_BACKEND_URL ||
-    process.env.REACT_APP_API_URL ||
-    'https://school-portal-1-xaio.onrender.com/api'
-  ).replace(/\/api\/?$/, '');
+import ChildSelector from '../../components/ChildSelector';
 
 const formatNaira = (n) => '₦' + Number(n || 0).toLocaleString('en-NG');
-
 const statusClass = (s) =>
   ({ Paid: 'pill--paid', Partial: 'pill--partial', Unpaid: 'pill--unpaid' }[s] || '');
 
 export default function ParentFees() {
-  const [data, setData] = useState(null);
+  const {
+    children, activeChild, activeChildId, setActiveChildId, loading,
+  } = useParentContext();
+
   const [fees, setFees] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingData, setLoadingData] = useState(false);
   const [message, setMessage] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [payModal, setPayModal] = useState(null);
   const [receiptModal, setReceiptModal] = useState(null);
 
-  const load = async () => {
+  const load = async (childId) => {
+    if (!childId) return;
+    setLoadingData(true);
     try {
-      const [me, feeData] = await Promise.all([
-        api('/parents/me'),
-        api('/parents/me/child/fees'),
-      ]);
-      setData(me);
-      setFees(feeData);
+      const data = await api(`/parents/me/children/${childId}/fees`);
+      setFees(data);
     } catch (err) {
       setErrorMsg(err.message);
     } finally {
-      setLoading(false);
+      setLoadingData(false);
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    if (activeChildId) load(activeChildId);
+    // eslint-disable-next-line
+  }, [activeChildId]);
 
   const summary = useMemo(() => {
     const total = fees.reduce((s, f) => s + Number(f.total), 0);
@@ -52,20 +52,20 @@ export default function ParentFees() {
   }, [fees]);
 
   const handlePayment = async ({ feeId, amount, method }) => {
-    const res = await api(`/parents/me/child/fees/${feeId}/pay`, {
+    const res = await api(`/parents/me/children/${activeChildId}/fees/${feeId}/pay`, {
       method: 'POST',
       body: JSON.stringify({ amount, method }),
     });
     setMessage('Payment successful — receipt available below');
     setPayModal(null);
-    await load();
+    await load(activeChildId);
     return res.fee;
   };
 
   const openReceipt = async (feeId) => {
     setReceiptModal({ loading: true });
     try {
-      const d = await api(`/parents/me/child/fees/${feeId}/receipt`);
+      const d = await api(`/parents/me/children/${activeChildId}/fees/${feeId}/receipt`);
       setReceiptModal({ data: d });
     } catch (err) {
       setReceiptModal(null);
@@ -74,14 +74,27 @@ export default function ParentFees() {
   };
 
   if (loading) return <Loader />;
+  if (!activeChild) {
+    return (
+      <div>
+        <PageHeader title="Fees & Receipts" />
+        <div className="card empty-state"><p>No child linked to your account.</p></div>
+      </div>
+    );
+  }
 
   return (
     <div>
       <PageHeader
         title="Fees & Receipts"
-        subtitle={data?.child ? `Fee records for ${data.child.name}` : 'Fee records'}
+        subtitle={`Fee records for ${activeChild.name}`}
       >
-        <button className="btn btn--ghost" onClick={load}>
+        <ChildSelector
+          children={children}
+          value={activeChildId}
+          onChange={setActiveChildId}
+        />
+        <button className="btn btn--ghost" onClick={() => load(activeChildId)}>
           <FiRefreshCw size={16} /> Refresh
         </button>
       </PageHeader>
@@ -91,7 +104,7 @@ export default function ParentFees() {
 
       <div className="stats-grid">
         <StatCard label="Total Billed" value={formatNaira(summary.total)} color="#2563eb" />
-        <StatCard label="Total Paid"   value={formatNaira(summary.paid)}  color="#16a34a" />
+        <StatCard label="Total Paid" value={formatNaira(summary.paid)} color="#16a34a" />
         <StatCard
           label="Outstanding"
           value={formatNaira(summary.outstanding)}
@@ -99,61 +112,73 @@ export default function ParentFees() {
         />
       </div>
 
-      {fees.length === 0 && (
+      {summary.outstanding > 0 && (
+        <div className="card fee-action-banner">
+          <div>
+            <strong>You have an outstanding balance</strong>
+            <p className="muted">Pay now to keep your child's account current.</p>
+          </div>
+          <Link to="/parent/payments" className="btn btn--ghost">
+            <FiClock size={16} /> Full History
+          </Link>
+        </div>
+      )}
+
+      {loadingData && !fees.length && <Loader />}
+
+      {!loadingData && fees.length === 0 && (
         <div className="card empty-state">
           <FiDollarSign size={32} />
           <p>No fee records yet.</p>
         </div>
       )}
 
-      {fees.map((fee) => (
-        <div className="card fee-card" key={fee.id}>
-          <div className="fee-card__head">
-            <div>
-              <h3>{fee.session} — {fee.term}</h3>
-              <small>Ref: {fee.reference} · Last update {fee.date || '—'}</small>
+      {fees.map((fee) => {
+        const pct = fee.total ? Math.min((fee.amountPaid / fee.total) * 100, 100) : 0;
+        return (
+          <div className="card fee-card" key={fee.id}>
+            <div className="fee-card__head">
+              <div>
+                <h3>{fee.session} — {fee.term}</h3>
+                <small>Ref: {fee.reference} · Last update {fee.date || '—'}</small>
+              </div>
+              <span className={`pill ${statusClass(fee.status)}`}>{fee.status}</span>
             </div>
-            <span className={`pill ${statusClass(fee.status)}`}>{fee.status}</span>
-          </div>
 
-          <table className="table">
-            <tbody>
-              {fee.items.map((item, i) => (
-                <tr key={i}>
-                  <td>{item.name}</td>
-                  <td className="right">{formatNaira(item.amount)}</td>
-                </tr>
-              ))}
-              <tr className="table__total"><td>Total</td><td className="right">{formatNaira(fee.total)}</td></tr>
-              <tr><td>Amount Paid</td><td className="right">{formatNaira(fee.amountPaid)}</td></tr>
-              <tr className="table__total"><td>Balance</td><td className="right">{formatNaira(fee.balance)}</td></tr>
-            </tbody>
-          </table>
+            <table className="table">
+              <tbody>
+                {fee.items.map((item, i) => (
+                  <tr key={i}>
+                    <td>{item.name}</td>
+                    <td className="right">{formatNaira(item.amount)}</td>
+                  </tr>
+                ))}
+                <tr className="table__total"><td>Total</td><td className="right">{formatNaira(fee.total)}</td></tr>
+                <tr><td>Amount Paid</td><td className="right">{formatNaira(fee.amountPaid)}</td></tr>
+                <tr className="table__total"><td>Balance</td><td className="right">{formatNaira(fee.balance)}</td></tr>
+              </tbody>
+            </table>
 
-          <div className="fee-progress">
-            <div className="fee-progress__track">
-              <div
-                className="fee-progress__fill"
-                style={{ width: `${Math.min((fee.amountPaid / fee.total) * 100, 100)}%` }}
-              />
+            <div className="fee-progress">
+              <div className="fee-progress__track">
+                <div className="fee-progress__fill" style={{ width: `${pct}%` }} />
+              </div>
+              <div className="fee-progress__label">{Math.round(pct)}% paid</div>
             </div>
-            <div className="fee-progress__label">
-              {Math.round((fee.amountPaid / fee.total) * 100)}% paid
-            </div>
-          </div>
 
-          <div className="fee-card__actions">
-            {fee.balance > 0 && (
-              <button className="btn btn--primary" onClick={() => setPayModal({ fee })}>
-                <FiCreditCard size={16} /> Pay Now
+            <div className="fee-card__actions">
+              {fee.balance > 0 && (
+                <button className="btn btn--primary" onClick={() => setPayModal({ fee })}>
+                  <FiCreditCard size={16} /> Pay Now
+                </button>
+              )}
+              <button className="btn btn--ghost" onClick={() => openReceipt(fee.id)}>
+                <FiFileText size={16} /> View Receipt
               </button>
-            )}
-            <button className="btn btn--ghost" onClick={() => openReceipt(fee.id)}>
-              <FiFileText size={16} /> View Receipt
-            </button>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
 
       {payModal && (
         <PayModal
@@ -174,9 +199,7 @@ export default function ParentFees() {
   );
 }
 
-/* ==================================================================
-   PAY MODAL
-   ================================================================== */
+/* Pay modal */
 function PayModal({ fee, onClose, onSubmit }) {
   const [amount, setAmount] = useState(fee.balance);
   const [method, setMethod] = useState('Card');
@@ -188,8 +211,7 @@ function PayModal({ fee, onClose, onSubmit }) {
     setError('');
     const value = Number(amount);
     if (!value || value <= 0) return setError('Enter a valid amount');
-    if (value > fee.balance) return setError(`Amount cannot exceed balance`);
-
+    if (value > fee.balance) return setError('Amount cannot exceed balance');
     setProcessing(true);
     try {
       await onSubmit({ feeId: fee.id, amount: value, method });
@@ -229,7 +251,6 @@ function PayModal({ fee, onClose, onSubmit }) {
               required disabled={processing} autoFocus
             />
           </label>
-
           <label>
             Payment Method
             <select value={method} onChange={(e) => setMethod(e.target.value)} disabled={processing}>
@@ -239,9 +260,10 @@ function PayModal({ fee, onClose, onSubmit }) {
               <option>Cash</option>
             </select>
           </label>
-
           <div className="modal__actions">
-            <button type="button" className="btn btn--ghost" onClick={onClose} disabled={processing}>Cancel</button>
+            <button type="button" className="btn btn--ghost" onClick={onClose} disabled={processing}>
+              Cancel
+            </button>
             <button className="btn btn--primary" disabled={processing}>
               {processing ? 'Processing…' : <>Pay {formatNaira(amount || 0)}</>}
             </button>
@@ -252,9 +274,7 @@ function PayModal({ fee, onClose, onSubmit }) {
   );
 }
 
-/* ==================================================================
-   RECEIPT MODAL
-   ================================================================== */
+/* Receipt modal */
 function ReceiptModal({ loading, data, onClose }) {
   if (loading) {
     return (
@@ -330,19 +350,16 @@ function ReceiptModal({ loading, data, onClose }) {
             <p>{data.school.phone} · {data.school.email}</p>
             <em>{data.school.motto}</em>
           </div>
-
           <div className="receipt-preview__meta">
             <div><span>Receipt No:</span> <strong>{data.receiptNo}</strong></div>
             <div><span>Date Paid:</span> <strong>{data.paidOn || '—'}</strong></div>
           </div>
-
           <div className="receipt-preview__student">
             <div><span>Student:</span> {data.student.name}</div>
             <div><span>Admission No:</span> {data.student.admissionNo}</div>
             <div><span>Class:</span> {data.student.className}</div>
             <div><span>Guardian:</span> {data.student.guardianName || '—'}</div>
           </div>
-
           <table className="table">
             <thead><tr><th>Description</th><th className="right">Amount</th></tr></thead>
             <tbody>
@@ -354,7 +371,6 @@ function ReceiptModal({ loading, data, onClose }) {
               <tr className="table__total"><td>Balance</td><td className="right">{formatNaira(data.balance)}</td></tr>
             </tbody>
           </table>
-
           <div className="receipt-preview__footer">
             <div><span>Method:</span> {data.method || '—'}</div>
             <div className="receipt-preview__stamp">

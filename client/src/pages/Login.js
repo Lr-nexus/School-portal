@@ -106,12 +106,17 @@ export default function Login() {
         <div className="login-hero__overlay" />
         <div className="login-hero__content">
           <div className="login-hero__brand">
-            <div className="login-hero__logo">BF</div>
+            <div className="login-hero__logo">
+              <img
+                src={`${process.env.PUBLIC_URL}/school-logo.png`}
+                alt="Bright Future"
+              />
+          </div>
             <div>
               <h1>Bright Future</h1>
               <p>Secondary School</p>
             </div>
-          </div>
+        </div>
 
           <div className="login-hero__tagline">
             <h2>Where Learning Meets&nbsp;Innovation</h2>
@@ -150,7 +155,12 @@ export default function Login() {
               <span className="login-form-panel__eyebrow-dot" />
               Secure portal access
             </div>
-            <div className="login-form-panel__logo-mobile">BF</div>
+            <div className="login-form-panel__logo-mobile">
+              <img
+                src={`${process.env.PUBLIC_URL}/school-logo.png`}
+                alt="Bright Future"
+              />
+            </div>
             <h2>Welcome back</h2>
             <p>Sign in to access your school portal</p>
           </div>
