@@ -206,6 +206,37 @@ router.get('/me/academic/gradebook', async (req, res) => {
   })));
 });
 
+router.get('/me/academic/progress', async (req, res) => {
+  const { className, subject } = req.query;
+  if (!className || !subject) {
+    return res.status(400).json({ message: 'className and subject are required' });
+  }
+  const ctx = await getTeacherContext(req.user.id);
+  if (!ctx) return res.status(404).json({ message: 'Teacher not found' });
+  if (!canTeach(ctx, className, subject)) {
+    return res.status(403).json({ message: 'You are not assigned to this class and subject' });
+  }
+
+  const [rows] = await pool.execute(
+    `SELECT r.session, r.term,
+            ROUND(AVG(COALESCE(r.ca, 0) + COALESCE(r.exam, 0))) AS average,
+            COUNT(DISTINCT r.student_id) AS student_count
+     FROM results r
+     INNER JOIN students s ON s.id = r.student_id
+     WHERE s.class_name = ? AND r.subject = ?
+     GROUP BY r.session, r.term
+     ORDER BY r.session ASC,
+       FIELD(r.term, 'First Term', 'Second Term', 'Third Term'), r.term ASC`,
+    [className, subject]
+  );
+  res.json(rows.map((row) => ({
+    session: row.session,
+    term: row.term,
+    average: Number(row.average || 0),
+    studentCount: Number(row.student_count || 0),
+  })));
+});
+
 router.put('/me/academic/gradebook', async (req, res) => {
   const { className, subject, session, term, entries } = req.body;
   if (!className || !subject || !session || !term || !Array.isArray(entries) || !entries.length) {

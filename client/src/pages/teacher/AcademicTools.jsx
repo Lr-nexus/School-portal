@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   FiBookOpen, FiCalendar, FiCheck, FiClipboard, FiPlus,
-  FiSave, FiTrash2,
+  FiSave, FiTrash2, FiTrendingUp,
 } from 'react-icons/fi';
 import { api } from '../../api/api';
 import { useTeacherProfile } from '../../hooks/useTeacherProfile';
@@ -9,6 +9,54 @@ import PageHeader from '../../components/PageHeader';
 import Loader from '../../components/Loader';
 
 const TERMS = ['First Term', 'Second Term', 'Third Term'];
+
+function ProgressChart({ points }) {
+  const chart = { left: 48, right: 620, top: 20, bottom: 174 };
+  const yFor = (value) => chart.top + ((100 - value) / 100) * (chart.bottom - chart.top);
+  const labelStep = Math.max(1, Math.ceil(points.length / 6));
+  const plotted = points.map((point, index) => ({
+    ...point,
+    x: points.length === 1
+      ? (chart.left + chart.right) / 2
+      : chart.left + (index / (points.length - 1)) * (chart.right - chart.left),
+    y: yFor(Math.max(0, Math.min(100, Number(point.average) || 0))),
+  }));
+
+  return (
+    <section className="card progress-chart">
+      <div className="progress-chart__heading">
+        <h3><FiTrendingUp size={16} /> {points[0].subject} progress</h3>
+        <span className="muted">Class average across terms</span>
+      </div>
+      <div className="progress-chart__canvas">
+        <svg viewBox="0 0 640 232" role="img" aria-label="Class average by academic term">
+          {[0, 50, 100].map((value) => (
+            <g key={value}>
+              <line x1={chart.left} x2={chart.right} y1={yFor(value)} y2={yFor(value)} className="progress-chart__grid" />
+              <text x="36" y={yFor(value) + 4} textAnchor="end" className="progress-chart__axis">{value}</text>
+            </g>
+          ))}
+          {plotted.length > 1 && (
+            <polyline points={plotted.map((point) => `${point.x},${point.y}`).join(' ')} className="progress-chart__line" />
+          )}
+          {plotted.map((point, index) => (
+            <g key={`${point.session}-${point.term}`}>
+              <circle cx={point.x} cy={point.y} r="4" className="progress-chart__point" />
+              <text x={point.x} y={point.y - 10} textAnchor="middle" className="progress-chart__value">{point.average}%</text>
+              {(index % labelStep === 0 || index === plotted.length - 1) && (
+                <text x={point.x} y="197" textAnchor="middle" className="progress-chart__label">
+                  <tspan x={point.x}>{point.session}</tspan>
+                  <tspan x={point.x} dy="13">{point.term}</tspan>
+                </text>
+              )}
+            </g>
+          ))}
+        </svg>
+      </div>
+      <p className="muted">{points.reduce((sum, point) => sum + point.studentCount, 0)} recorded grade entries across {points.length} term(s).</p>
+    </section>
+  );
+}
 
 function currentSession() {
   const now = new Date();
@@ -27,6 +75,7 @@ export default function AcademicTools() {
   const [dirtyIds, setDirtyIds] = useState([]);
   const [questions, setQuestions] = useState([]);
   const [lessons, setLessons] = useState([]);
+  const [progress, setProgress] = useState([]);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [questionForm, setQuestionForm] = useState({
@@ -66,9 +115,15 @@ export default function AcademicTools() {
           });
           const rows = await api(`/teachers/me/academic/questions?${query}`);
           if (active) setQuestions(rows);
-        } else {
+        } else if (tab === 'lessons') {
           const rows = await api('/teachers/me/academic/lessons');
           if (active) setLessons(rows);
+        } else {
+          const query = new URLSearchParams({
+            className: target.className, subject: target.subject,
+          });
+          const rows = await api(`/teachers/me/academic/progress?${query}`);
+          if (active) setProgress(rows.map((row) => ({ ...row, subject: target.subject })));
         }
       } catch (error) {
         if (active) setMessage(error.message);
@@ -242,6 +297,9 @@ export default function AcademicTools() {
             <button type="button" role="tab" aria-selected={tab === 'lessons'} className={`tab ${tab === 'lessons' ? 'tab--active' : ''}`} onClick={() => setTab('lessons')}>
               <FiCalendar size={16} /> Lesson Plans
             </button>
+            <button type="button" role="tab" aria-selected={tab === 'progress'} className={`tab ${tab === 'progress' ? 'tab--active' : ''}`} onClick={() => setTab('progress')}>
+              <FiTrendingUp size={16} /> Student Progress
+            </button>
           </div>
 
           {message && <div className="alert alert--info" role="status">{message}</div>}
@@ -356,6 +414,20 @@ export default function AcademicTools() {
                 ) : <p className="muted">No lesson plans for this class and subject.</p>}
               </section>
             </div>
+          )}
+
+          {tab === 'progress' && (
+            <section className="academic-panel">
+              {busy ? <Loader /> : progress.length ? (
+                <ProgressChart points={progress} />
+              ) : (
+                <div className="card empty-state">
+                  <FiTrendingUp size={30} />
+                  <p>No grade history for {target.className} · {target.subject} yet.</p>
+                  <p className="muted">Saved gradebook results will appear here by session and term.</p>
+                </div>
+              )}
+            </section>
           )}
         </>
       )}
