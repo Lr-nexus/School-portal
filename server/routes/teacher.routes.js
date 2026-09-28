@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const pool = require('../db');
 const { protect, allow } = require('../middleware/auth');
-const { getTeacherContext, teachablePairs } = require('../utils/teacherContext');
+const { getTeacherContext, teachablePairs, canTeach } = require('../utils/teacherContext');
 
 router.use(protect, allow('teacher'));
 

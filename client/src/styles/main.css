@@ -5889,3 +5889,423 @@ textarea { resize: vertical; min-height: 60px; }
   .behaviour-card { padding: 14px; }
   .behaviour-card__head { flex-direction: column; align-items: flex-start; }
 }
+
+/* ==========================================================================
+   ACADEMIC TOOLS — Gradebook / Question Bank / Lesson Plans / Progress
+   ========================================================================== */
+
+/* ---------- Toolbar ---------- */
+.academic-toolbar__target { flex: 1 1 260px; }
+
+.gradebook-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 14px 18px;
+}
+.gradebook-toolbar__left h3 {
+  font-size: 16px;
+  margin: 0 0 2px;
+  color: var(--text);
+}
+.gradebook-toolbar__left p { font-size: 12px; margin: 0; }
+.gradebook-toolbar__right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.gradebook-toolbar__session {
+  width: auto;
+  min-width: 110px;
+  margin-top: 0;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+.gradebook-toolbar__right select {
+  width: auto;
+  min-width: 130px;
+  margin-top: 0;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+.gradebook-search { min-width: 180px; margin: 0; }
+.gradebook-search input {
+  margin-top: 0;
+  padding: 8px 10px 8px 34px;
+  font-size: 13px;
+}
+
+/* ---------- Bulk fill ---------- */
+.gradebook-bulk {
+  padding: 16px 18px;
+  border-left: 4px solid var(--accent);
+}
+.gradebook-bulk h4 {
+  font-size: 14px;
+  margin-bottom: 4px;
+  color: var(--text);
+}
+.gradebook-bulk p {
+  font-size: 12px;
+  margin-bottom: 14px;
+}
+.gradebook-bulk__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 12px;
+  align-items: end;
+}
+.gradebook-bulk__row label { margin-bottom: 0; }
+.gradebook-bulk__actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* ---------- Stats strip ---------- */
+.gradebook-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.gradebook-stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: var(--shadow-sm);
+}
+.gradebook-stat--wide { grid-column: span 1; }
+.gradebook-stat__label {
+  display: block;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.gradebook-stat__value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- Table ---------- */
+.gradebook-card {
+  padding: 0;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.gradebook-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.gradebook-table th,
+.gradebook-table td {
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-2);
+  vertical-align: middle;
+}
+.gradebook-table thead th {
+  background: var(--surface-2);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  font-weight: 700;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.gradebook-table tbody tr:last-child td { border-bottom: none; }
+.gradebook-table__num {
+  width: 46px;
+  text-align: center !important;
+  color: var(--muted-2);
+  font-size: 12px;
+}
+.gradebook-table__input { width: 120px; }
+
+.gradebook-row--dirty {
+  background: rgba(245, 158, 11, 0.07);
+}
+[data-theme="dark"] .gradebook-row--dirty {
+  background: rgba(245, 158, 11, 0.1);
+}
+.gradebook-row--dirty td { background: transparent; }
+
+.gradebook-student {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.gradebook-student strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.gradebook-input {
+  width: 84px;
+  margin: 0;
+  padding: 7px 10px;
+  font-size: 13px;
+  text-align: center;
+  font-weight: 600;
+  border-radius: 8px;
+  background: var(--surface);
+}
+.gradebook-input:focus {
+  box-shadow: 0 0 0 3px var(--accent-ring);
+  border-color: var(--accent);
+}
+.gradebook-input::placeholder { color: var(--muted-2); font-weight: 400; }
+
+.gradebook-foot {
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--surface-2);
+  font-size: 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+.gradebook-foot kbd {
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 11px;
+  font-family: 'Courier New', monospace;
+  color: var(--text-2);
+}
+
+/* ---------- Question options input grid ---------- */
+.question-options-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.question-option-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+  transition: border-color .15s, background .15s;
+}
+.question-option-input--correct {
+  border-color: var(--green);
+  background: rgba(22, 163, 74, 0.06);
+}
+[data-theme="dark"] .question-option-input--correct {
+  background: rgba(34, 197, 94, 0.1);
+}
+.question-option-input input {
+  flex: 1;
+  margin: 0;
+  border: none;
+  background: transparent;
+  padding: 10px 12px 10px 0;
+  font-size: 13px;
+  box-shadow: none;
+}
+.question-option-input input:focus { box-shadow: none; }
+.question-option-input__mark {
+  width: 32px;
+  height: 32px;
+  margin: 5px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all .15s;
+}
+.question-option-input__mark:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.question-option-input__mark--on {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+}
+.question-option-input__mark--on:hover {
+  background: #15803d;
+  border-color: #15803d;
+  color: #fff;
+}
+
+/* ---------- Question list ---------- */
+.question-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 640px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.question-item {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+.question-item__head {
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.question-item__num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  min-width: 32px;
+  padding: 0 8px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+}
+.question-item__text {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  flex: 1;
+  min-width: 0;
+  line-height: 1.4;
+}
+.question-item__options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 12px;
+  padding-left: 44px;
+}
+.question-item__option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: var(--text-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+.question-item__option--correct {
+  background: rgba(22, 163, 74, 0.1);
+  border-color: rgba(22, 163, 74, 0.35);
+  color: var(--green);
+  font-weight: 600;
+}
+[data-theme="dark"] .question-item__option--correct {
+  background: rgba(34, 197, 94, 0.12);
+}
+.question-item__letter {
+  font-weight: 700;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.question-item__option--correct .question-item__letter { color: var(--green); }
+
+@media (max-width: 640px) {
+  .question-item__options { grid-template-columns: 1fr; padding-left: 0; }
+}
+
+/* ---------- Lesson list ---------- */
+.lesson-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.lesson-card {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: border-color .15s;
+}
+.lesson-card:hover { border-color: var(--border-strong); }
+.lesson-card__date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  border-radius: 10px;
+  padding: 8px 4px;
+  flex-shrink: 0;
+}
+.lesson-card__day {
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.5px;
+}
+.lesson-card__month {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-weight: 700;
+  margin-top: 2px;
+}
+.lesson-card__body {
+  min-width: 0;
+}
+.lesson-card__body h4 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 6px;
+}
+.lesson-card__body p {
+  font-size: 12.5px;
+  color: var(--text-2);
+  margin: 4px 0;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.lesson-card__body p strong { color: var(--text); }
+
+/* ---------- Gradebook bulk responsive ---------- */
+@media (max-width: 640px) {
+  .gradebook-toolbar { padding: 14px; }
+  .gradebook-toolbar__right { width: 100%; }
+  .gradebook-toolbar__right .btn { flex: 1; }
+  .gradebook-bulk__row { grid-template-columns: 1fr; }
+  .gradebook-input { width: 68px; padding: 6px 8px; font-size: 12.5px; }
+  .gradebook-table th,
+  .gradebook-table td { padding: 8px 10px; }
+}
