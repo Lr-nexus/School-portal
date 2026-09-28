@@ -6,6 +6,7 @@ import { useToast } from '../../context/ToastContext';
 import PageHeader from '../../components/PageHeader';
 import Loader from '../../components/Loader';
 import ProfilePhotoCard from '../ProfilePhotoCard';
+import ProfileAvatar from '../../components/ProfileAvatar';
 import ChangePasswordCard from '../../components/ChangePasswordCard';
 import NotificationSettings from '../../components/NotificationSettings';
 
@@ -92,7 +93,7 @@ export default function AdminProfile() {
 
       <div className="card profile-card">
         <div className="profile-card__head">
-          <div className="avatar avatar--lg">{profile.name.charAt(0)}</div>
+          <ProfileAvatar photo={profile.photo} name={profile.name} />
           <div>
             <h3>{profile.name}</h3>
             <p>{profile.title}</p>

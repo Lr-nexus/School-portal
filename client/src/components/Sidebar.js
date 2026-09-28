@@ -3,6 +3,12 @@ import { FiLogOut } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { navConfig } from '../config/navConfig';
 
+const BASE_URL =
+  (process.env.REACT_APP_BACKEND_URL ||
+    process.env.REACT_APP_API_URL ||
+    'https://school-portal-1-xaio.onrender.com/api'
+  ).replace(/\/api\/?$/, '');
+
 export default function Sidebar({ open, onClose }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -12,6 +18,12 @@ export default function Sidebar({ open, onClose }) {
     logout();
     navigate('/login', { replace: true });
   };
+
+  const photoSrc = user?.photo
+    ? user.photo.startsWith('http')
+      ? user.photo
+      : `${BASE_URL}${user.photo}`
+    : null;
 
   return (
     <aside className={`sidebar ${open ? 'sidebar--open' : ''}`}>
@@ -29,7 +41,13 @@ export default function Sidebar({ open, onClose }) {
       </div>
 
       <div className="sidebar__user">
-        <div className="avatar">{user?.name?.charAt(0) || 'U'}</div>
+        <div className="avatar">
+          {photoSrc ? (
+            <img src={photoSrc} alt={user?.name || ''} />
+          ) : (
+            user?.name?.charAt(0) || 'U'
+          )}
+        </div>
         <div>
           <p>{user?.name}</p>
           <span className="badge">{user?.role}</span>

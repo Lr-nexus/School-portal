@@ -49,31 +49,12 @@ router.post('/login', async (req, res) => {
     return res.status(400).json({ message: 'Email and password are required' });
   }
 
-  // ⭐ ADD THIS DEBUG BLOCK — temporarily
-  console.log('─── LOGIN ATTEMPT ───────────────');
-  console.log('  email:   ', email);
-  console.log('  password:', password);
-
   const [rows] = await pool.execute(
     'SELECT id, name, email, role FROM users WHERE email = ? AND password = ?',
     [email, password]
   );
 
-  console.log('  → matched rows:', rows.length);
-  if (rows.length) console.log('  → user:', rows[0]);
-
   if (!rows.length) {
-    // ⭐ ADD THIS — show what IS in the DB for this email (ignoring password)
-    const [anyUser] = await pool.execute(
-      'SELECT id, name, email, role, password FROM users WHERE email = ?',
-      [email]
-    );
-    console.log('  → email exists:', anyUser.length ? 'YES' : 'NO');
-    if (anyUser.length) {
-      console.log('  → stored password for this email:', JSON.stringify(anyUser[0].password));
-      console.log('  → you sent password:', JSON.stringify(password));
-    }
-
     return res.status(401).json({ message: 'Invalid email or password' });
   }
 
@@ -90,7 +71,9 @@ router.post('/login', async (req, res) => {
   });
 });
 
-/* CURRENT USER */
+/* ==================================================================
+   CURRENT USER — returns profile + photo for every role
+================================================================== */
 router.get('/me', protect, async (req, res) => {
   let profile = null;
 
@@ -106,6 +89,7 @@ router.get('/me', protect, async (req, res) => {
         className: s.class_name, email: s.email, gender: s.gender,
         dob: s.dob, guardianName: s.guardian_name,
         guardianPhone: s.guardian_phone, address: s.address, house: s.house,
+        photo: s.photo || null,
       };
     }
   } else if (req.user.role === 'teacher') {
@@ -121,6 +105,7 @@ router.get('/me', protect, async (req, res) => {
         id: t.id, name: t.name, staffNo: t.staff_no, email: t.email,
         phone: t.phone, subjects, formClass: t.form_class,
         qualification: t.qualification, address: t.address, joined: t.joined,
+        photo: t.photo || null,
       };
     }
   } else if (req.user.role === 'admin') {
@@ -133,6 +118,20 @@ router.get('/me', protect, async (req, res) => {
       profile = {
         id: a.id, name: a.name, title: a.title, email: a.email,
         phone: a.phone, office: a.office, joined: a.joined,
+        photo: a.photo || null,
+      };
+    }
+  } else if (req.user.role === 'parent') {
+    const [rows] = await pool.execute(
+      'SELECT * FROM parents WHERE user_id = ?',
+      [req.user.id]
+    );
+    if (rows.length) {
+      const p = rows[0];
+      profile = {
+        id: p.id, name: p.name, email: p.email, phone: p.phone,
+        relationship: p.relationship, address: p.address,
+        photo: p.photo || null,
       };
     }
   }
@@ -148,7 +147,9 @@ router.get('/me', protect, async (req, res) => {
   });
 });
 
-/* CHANGE PASSWORD */
+/* ==================================================================
+   CHANGE PASSWORD
+================================================================== */
 router.patch('/me/password', protect, async (req, res) => {
   const { currentPassword, newPassword } = req.body;
 

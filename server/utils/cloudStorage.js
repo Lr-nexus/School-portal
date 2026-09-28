@@ -1,6 +1,6 @@
 /* ------------------------------------------------------------------
-   File storage — Upstash Blob.
-   Keeps the same external API as before:
+   File storage — Cloudinary.
+   Same external API as before:
      uploadFile(buffer, filename, folder)
      deleteFile(urlOrKey)
 ------------------------------------------------------------------- */
@@ -8,94 +8,111 @@
 const path = require('path');
 const fs = require('fs');
 
-let bucket = null;
+let cloudinary = null;
 let configured = false;
 
 try {
-  const { Bucket } = require('@upstash/blob');
-  if (process.env.UPSTASH_BLOB_TOKEN) {
-    bucket = Bucket.fromEnv();   // reads UPSTASH_BLOB_TOKEN
+  cloudinary = require('cloudinary').v2;
+
+  if (
+    process.env.CLOUDINARY_CLOUD_NAME &&
+    process.env.CLOUDINARY_API_KEY &&
+    process.env.CLOUDINARY_API_SECRET
+  ) {
+    cloudinary.config({
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      api_secret: process.env.CLOUDINARY_API_SECRET,
+    });
     configured = true;
-    console.log('📦 Upstash Blob storage enabled');
+    console.log(`📦 Cloudinary storage enabled → ${process.env.CLOUDINARY_CLOUD_NAME}`);
   } else {
-    console.log('📦 Upstash Blob disabled — UPSTASH_BLOB_TOKEN not set');
+    cloudinary = null;
+    console.log('📦 Cloudinary disabled — CLOUDINARY_* env vars not set');
   }
 } catch (e) {
-  console.log('📦 Upstash Blob disabled — @upstash/blob not installed');
+  cloudinary = null;
+  console.log('📦 Cloudinary disabled — cloudinary package not installed');
 }
 
-/* Local fallback folder — used only when Upstash isn't configured */
+/* Local fallback folder — used only when Cloudinary isn't configured */
 const LOCAL_DIR = path.join(__dirname, '..', 'uploads');
 if (!fs.existsSync(LOCAL_DIR)) fs.mkdirSync(LOCAL_DIR, { recursive: true });
-
-function safeName(filename) {
-  const base = String(filename || 'file').replace(/[^a-zA-Z0-9._-]/g, '_');
-  const stamp = Date.now();
-  const rand = Math.round(Math.random() * 1e6);
-  return `${stamp}-${rand}-${base}`;
+if (!configured) {
+  console.log(`📦 Using local disk storage → ${LOCAL_DIR}`);
 }
 
 /**
- * Upload a buffer to Upstash Blob.
+ * Upload a buffer to Cloudinary.
  * @param {Buffer} buffer
  * @param {string} filename
  * @param {string} folder — 'avatars', 'notes', etc.
  * @returns {Promise<{url, publicId, provider}>}
  */
 async function uploadFile(buffer, filename, folder = 'misc') {
-  const key = `${folder}/${safeName(filename)}`;
-
-  if (configured && bucket) {
-    try {
-      const blob = await bucket.put(key, buffer);
-      return {
-        url: blob.url,
-        publicId: key,       // used later for deleteFile
-        provider: 'upstash',
-      };
-    } catch (err) {
-      console.error('Upstash upload failed:', err.message);
-      // Fall through to local disk so uploads don't crash
-    }
+  if (configured && cloudinary) {
+    return new Promise((resolve, reject) => {
+      const baseName = String(filename || 'file').replace(/\.[^.]*$/, '');
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          folder: `school-portal/${folder}`,
+          public_id: `${Date.now()}-${baseName}`,
+          resource_type: 'auto',
+        },
+        (err, result) => {
+          if (err) {
+            console.error('Cloudinary upload failed:', err.message);
+            // fall through to local on error
+            return reject(err);
+          }
+          resolve({
+            url: result.secure_url,
+            publicId: result.public_id,   // used for deleteFile
+            provider: 'cloudinary',
+          });
+        }
+      );
+      stream.end(buffer);
+    });
   }
 
   /* Local disk fallback */
-  const name = safeName(filename);
+  const safeName = `${Date.now()}-${String(filename || 'file').replace(/[^a-zA-Z0-9._-]/g, '_')}`;
   const subdir = path.join(LOCAL_DIR, folder);
   if (!fs.existsSync(subdir)) fs.mkdirSync(subdir, { recursive: true });
-  fs.writeFileSync(path.join(subdir, name), buffer);
+  fs.writeFileSync(path.join(subdir, safeName), buffer);
 
   return {
-    url: `/uploads/${folder}/${name}`,
-    publicId: `${folder}/${name}`,
+    url: `/uploads/${folder}/${safeName}`,
+    publicId: `${folder}/${safeName}`,
     provider: 'local',
   };
 }
 
 /**
- * Delete a file. Pass the publicId we returned from uploadFile.
+ * Delete a file from Cloudinary or local disk.
+ * Accepts either the publicId we stored or a full Cloudinary URL.
  */
 async function deleteFile(publicIdOrUrl) {
   if (!publicIdOrUrl) return;
 
-  /* Upstash path */
-  if (configured && bucket && !publicIdOrUrl.startsWith('/uploads/')) {
-    // If we were given a full URL, turn it back into a key
-    let key = publicIdOrUrl;
-    if (/^https?:\/\//.test(publicIdOrUrl)) {
+  /* Cloudinary path */
+  if (configured && cloudinary && !publicIdOrUrl.startsWith('/uploads/')) {
+    let publicId = publicIdOrUrl;
+
+    // If it's a full Cloudinary URL, extract the public ID
+    const m = String(publicIdOrUrl).match(
+      /res\.cloudinary\.com\/[^/]+\/(?:image|raw|video)\/upload\/(?:v\d+\/)?(.+?)(?:\.[a-z0-9]+)?$/i
+    );
+    if (m) publicId = m[1];
+
+    if (publicId.startsWith('school-portal/')) {
       try {
-        const u = new URL(publicIdOrUrl);
-        // Upstash public URLs look like:
-        //   https://xxxx.blob.upstash.io/avatars/xxx.jpg
-        // The key is everything after the host
-        key = u.pathname.replace(/^\/+/, '');
-      } catch { /* fall through */ }
-    }
-    try {
-      await bucket.delete(key);
-      return;
-    } catch (err) {
-      console.warn('Upstash delete failed:', err.message);
+        await cloudinary.uploader.destroy(publicId);
+        return;
+      } catch (err) {
+        console.warn('Cloudinary delete failed:', err.message);
+      }
     }
   }
 
@@ -103,7 +120,7 @@ async function deleteFile(publicIdOrUrl) {
   let rel = null;
   if (publicIdOrUrl.startsWith('/uploads/')) {
     rel = publicIdOrUrl.replace(/^\/uploads\//, '');
-  } else if (!/^https?:\/\//.test(publicIdOrUrl)) {
+  } else if (!/^https?:\/\//.test(publicIdOrUrl) && !publicIdOrUrl.startsWith('school-portal/')) {
     rel = publicIdOrUrl.replace(/^\/+/, '');
   }
   if (rel) {
@@ -114,4 +131,9 @@ async function deleteFile(publicIdOrUrl) {
   }
 }
 
-module.exports = { uploadFile, deleteFile, LOCAL_DIR, provider: configured ? 'upstash' : 'local' };
+module.exports = {
+  uploadFile,
+  deleteFile,
+  LOCAL_DIR,
+  provider: configured ? 'cloudinary' : 'local',
+};
