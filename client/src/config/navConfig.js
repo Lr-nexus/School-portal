@@ -20,6 +20,7 @@ export const navConfig = {
       { to: '/student/timetable',   label: 'Timetable',   icon: FiClock },
       { to: '/student/attendance',  label: 'Attendance',  icon: FiCheckSquare },
       { to: '/student/classes',     label: 'Classes',     icon: FiBook },
+      { to: '/library', label: 'Library', icon: FiBook },
     ]},
     { label: 'Assessments', items: [
       { to: '/student/results', label: 'Results',         icon: FiBarChart2 },
@@ -42,6 +43,7 @@ export const navConfig = {
       { to: '/teacher/notes',       label: 'Notes',         icon: FiFileText },
       { to: '/teacher/timetable',   label: 'Timetable',     icon: FiClock },
       { to: '/teacher/attendance',  label: 'Attendance',    icon: FiCheckSquare },
+      { to: '/library', label: 'Library', icon: FiBook },
       { to: '/teacher/students',    label: 'My Students',   icon: FiUsers },
       { to: '/teacher/behaviour',   label: 'Behaviour Log', icon: FiUserCheck },
     ]},
@@ -77,6 +79,7 @@ export const navConfig = {
       { to: '/parent/messages',      label: 'Messages',        icon: FiMessageCircle },
       { to: '/parent/meetings',      label: 'Teacher Meetings', icon: FiClock },
       { to: '/parent/announcements', label: 'Announcements',   icon: FiBell },
+      { to: '/library', label: 'Library', icon: FiBook },
     ]},
   ],
 
@@ -104,6 +107,7 @@ export const navConfig = {
         { to: '/admin/lms',       label: 'Performance',  icon: FiEdit3 },
         { to: '/admin/classroom', label: 'Live Classes', icon: FiVideo },
         { to: '/admin/analytics', label: 'Analytics',    icon: FiTrendingUp },
+        { to: '/library', label: 'Library', icon: FiBook },
       ],
     },
     {

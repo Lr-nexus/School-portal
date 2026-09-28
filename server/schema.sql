@@ -550,4 +550,57 @@ CREATE TABLE `audit_log` (
   FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- ============================================================
+-- library_resources
+-- ============================================================
+CREATE TABLE `library_resources` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `title` varchar(255) NOT NULL,
+  `type` enum('book','pdf','article','video','link','past_question') NOT NULL DEFAULT 'book',
+  `subject` varchar(100) DEFAULT NULL,
+  `class_name` varchar(50) DEFAULT NULL,
+  `author` varchar(255) DEFAULT NULL,
+  `description` text,
+  `url` varchar(500) DEFAULT NULL,
+  `cover_url` varchar(500) DEFAULT NULL,
+  `uploaded_by` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `subject_class` (`subject`,`class_name`),
+  KEY `type` (`type`),
+  FOREIGN KEY (`uploaded_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- library_bookmarks
+-- ============================================================
+CREATE TABLE `library_bookmarks` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `resource_id` int(11) NOT NULL,
+  `list` enum('reading','favourite','archive') NOT NULL DEFAULT 'reading',
+  `progress` int(11) NOT NULL DEFAULT 0,
+  `notes` text,
+  `added_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_user_resource` (`user_id`,`resource_id`),
+  KEY `user_list` (`user_id`,`list`),
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`resource_id`) REFERENCES `library_resources`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- onboarding_state
+-- ============================================================
+CREATE TABLE `onboarding_state` (
+  `user_id` int(11) NOT NULL,
+  `tour_completed` tinyint(1) NOT NULL DEFAULT 0,
+  `tour_completed_at` datetime DEFAULT NULL,
+  `dismissed_tips` text,
+  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`user_id`),
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 COMMIT;

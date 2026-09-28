@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import NotificationBell from './NotificationBell';
 import GlobalSearch from './GlobalSearch';
+import { FiMenu, FiUser, FiLogOut, FiChevronDown, FiSun, FiMoon, FiCommand } from 'react-icons/fi';
 
 const BASE_URL =
   (process.env.REACT_APP_BACKEND_URL ||

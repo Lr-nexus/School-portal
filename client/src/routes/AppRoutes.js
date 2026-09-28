@@ -70,6 +70,8 @@ import VideoRoom from '../pages/classroom/VideoRoom';
 import ReportCard from '../pages/print/ReportCard';
 import StudentIDCard from '../pages/print/StudentIDCard';
 
+import Library from '../pages/Library';
+
 export default function AppRoutes() {
   return (
     <Routes>
@@ -82,6 +84,11 @@ export default function AppRoutes() {
       <Route element={<ProtectedRoute roles={['student', 'teacher', 'admin', 'parent']} />}>
         <Route path="/print/report-card/:studentId" element={<ReportCard />} />
         <Route path="/print/id-card/:studentId" element={<StudentIDCard />} />
+      </Route>
+
+      {/* Shared pages available to every authenticated user */}
+      <Route element={<ProtectedRoute roles={['student', 'teacher', 'admin', 'parent']} />}>
+        <Route path="/library" element={<Library />} />
       </Route>
 
       {/* STUDENT */}
@@ -102,6 +109,7 @@ export default function AppRoutes() {
           <Route path="messages"      element={<Messages />} />
           <Route path="announcements" element={<Announcements />} />
           <Route path="grades"        element={<StudentGrades />} />
+          <Route path="library" element={<Library />} />
           <Route path="*"             element={<Navigate to="home" replace />} />
         </Route>
       </Route>
@@ -131,6 +139,7 @@ export default function AppRoutes() {
           <Route path="academic"      element={<AcademicTools />} />
           <Route path="behaviour"     element={<TeacherBehaviour />} />
           <Route path="meetings"      element={<TeacherMeetings />} />
+          <Route path="library" element={<Library />} />
           <Route path="*"             element={<Navigate to="home" replace />} />
         </Route>
       </Route>
@@ -151,6 +160,7 @@ export default function AppRoutes() {
           <Route path="profile"       element={<ParentProfile />} />
           <Route path="announcements" element={<Announcements />} />
           <Route path="behaviour"     element={<ParentBehaviour />} />
+          <Route path="library" element={<Library />} />
           <Route path="*"             element={<Navigate to="home" replace />} />
         </Route>
       </Route>
@@ -178,6 +188,7 @@ export default function AppRoutes() {
           <Route path="bulk-export"       element={<AdminBulkExport />} />
           <Route path="backup"            element={<AdminBackup />} />
           <Route path="audit-log"         element={<AdminAuditLog />} />
+          <Route path="library" element={<Library />} />
           <Route path="*"             element={<Navigate to="home" replace />} />
         </Route>
       </Route>
