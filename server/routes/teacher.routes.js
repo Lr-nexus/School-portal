@@ -157,6 +157,193 @@ function pctToGrade(pct) {
 }
 
 /* ==========================================================================
+   ⭐ NEW — My Students' Grades  (used by /teacher/grades)
+   ========================================================================== */
+router.get('/me/grades', async (req, res) => {
+  try {
+    const ctx = await getTeacherContext(req.user.id);
+    if (!ctx) return res.status(404).json({ message: 'Teacher not found' });
+
+    // 1. Every class this teacher touches
+    const classSet = new Set();
+    if (ctx.formClass) classSet.add(ctx.formClass);
+    ctx.assignments.forEach((a) => classSet.add(a.className));
+    const classNames = Array.from(classSet);
+
+    if (!classNames.length) {
+      return res.json({ students: [], quizzes: [], assignments: [], classNames: [] });
+    }
+
+    const classPlaceholders = classNames.map(() => '?').join(',');
+
+    // 2. Students in those classes
+    const [students] = await pool.execute(
+      `SELECT id, name, class_name, admission_no, gender
+       FROM students
+       WHERE class_name IN (${classPlaceholders})
+       ORDER BY class_name, name`,
+      classNames
+    );
+
+    // 3. Quizzes owned by this teacher
+    const [quizzes] = await pool.execute(
+      `SELECT id, title, subject, class_name, due_date
+       FROM quizzes WHERE teacher_id = ?`,
+      [ctx.teacherId]
+    );
+
+    // 4. Submissions for those quizzes
+    let quizSubs = [];
+    if (quizzes.length) {
+      const qph = quizzes.map(() => '?').join(',');
+      [quizSubs] = await pool.execute(
+        `SELECT id, quiz_id, student_id, score, total, date
+         FROM quiz_submissions
+         WHERE quiz_id IN (${qph})`,
+        quizzes.map((q) => q.id)
+      );
+    }
+
+    // 5. Assignments owned by this teacher
+    const [assignments] = await pool.execute(
+      `SELECT id, title, subject, class_name, total_marks, due_date
+       FROM assignments WHERE teacher_id = ?`,
+      [ctx.teacherId]
+    );
+
+    // 6. Submissions for those assignments
+    let assignSubs = [];
+    if (assignments.length) {
+      const aph = assignments.map(() => '?').join(',');
+      [assignSubs] = await pool.execute(
+        `SELECT id, assignment_id, student_id, score, feedback, submitted_at, graded_at
+         FROM assignment_submissions
+         WHERE assignment_id IN (${aph})`,
+        assignments.map((a) => a.id)
+      );
+    }
+
+    const quizById = Object.fromEntries(quizzes.map((q) => [q.id, q]));
+    const assignById = Object.fromEntries(assignments.map((a) => [a.id, a]));
+
+    // 7. Per-student rows
+    const studentRows = students.map((s) => {
+      const myQuizSubs = quizSubs.filter((qs) => qs.student_id === s.id);
+      const myAssignSubs = assignSubs.filter((as) => as.student_id === s.id);
+
+      const quizGrades = myQuizSubs.map((qs) => {
+        const q = quizById[qs.quiz_id];
+        const pct = qs.total ? Math.round((qs.score / qs.total) * 100) : 0;
+        return {
+          title: q?.title || 'Quiz',
+          subject: q?.subject || '—',
+          score: qs.score,
+          total: qs.total,
+          percentage: pct,
+          grade: pctToGrade(pct),
+          date: qs.date,
+        };
+      });
+
+      const assignmentGrades = myAssignSubs.map((as) => {
+        const a = assignById[as.assignment_id];
+        const graded = as.score !== null && as.score !== undefined;
+        const totalMarks = a?.total_marks || 0;
+        const pct = graded && totalMarks
+          ? Math.round((as.score / totalMarks) * 100)
+          : null;
+        return {
+          title: a?.title || 'Assignment',
+          subject: a?.subject || '—',
+          score: as.score,
+          totalMarks,
+          percentage: pct,
+          grade: pct !== null ? pctToGrade(pct) : '—',
+          graded,
+          feedback: as.feedback || '',
+        };
+      });
+
+      const gradedAssignments = assignmentGrades.filter((a) => a.graded);
+      const quizPcts = quizGrades.map((q) => q.percentage);
+      const assignPcts = gradedAssignments.map((a) => a.percentage);
+      const allPcts = [...quizPcts, ...assignPcts];
+
+      const avg = (arr) =>
+        arr.length ? Math.round(arr.reduce((sum, x) => sum + x, 0) / arr.length) : 0;
+
+      return {
+        id: s.id,
+        name: s.name,
+        className: s.class_name,
+        admissionNo: s.admission_no,
+        gender: s.gender || '',
+        summary: {
+          quizAverage: avg(quizPcts),
+          assignmentAverage: avg(assignPcts),
+          overallAverage: avg(allPcts),
+          quizzesTaken: quizGrades.length,
+          assignmentsSubmitted: assignmentGrades.length,
+          assignmentsGraded: gradedAssignments.length,
+        },
+        quizGrades,
+        assignmentGrades,
+      };
+    });
+
+    // 8. Quiz list summary
+    const quizSummary = quizzes.map((q) => {
+      const subs = quizSubs.filter((qs) => qs.quiz_id === q.id);
+      const pcts = subs.map((qs) => (qs.total ? (qs.score / qs.total) * 100 : 0));
+      const averageScore = pcts.length
+        ? Math.round(pcts.reduce((s, x) => s + x, 0) / pcts.length)
+        : 0;
+      return {
+        id: q.id,
+        title: q.title,
+        subject: q.subject,
+        className: q.class_name,
+        submissions: subs.length,
+        averageScore,
+        dueDate: q.due_date,
+      };
+    });
+
+    // 9. Assignment list summary
+    const assignSummary = assignments.map((a) => {
+      const subs = assignSubs.filter((as) => as.assignment_id === a.id);
+      const graded = subs.filter((as) => as.score !== null && as.score !== undefined);
+      const pcts = graded.map((as) =>
+        a.total_marks ? (as.score / a.total_marks) * 100 : 0
+      );
+      const averageScore = pcts.length
+        ? Math.round(pcts.reduce((s, x) => s + x, 0) / pcts.length)
+        : 0;
+      return {
+        id: a.id,
+        title: a.title,
+        subject: a.subject,
+        className: a.class_name,
+        submissions: subs.length,
+        graded: graded.length,
+        averageScore,
+        dueDate: a.due_date,
+      };
+    });
+
+    res.json({
+      students: studentRows,
+      quizzes: quizSummary,
+      assignments: assignSummary,
+      classNames,
+    });
+  } catch (err) {
+    console.error('Teacher grades failed:', err);
+    res.status(500).json({ message: err.message || 'Failed to load grades' });
+  }
+});
+
+/* ==========================================================================
    GRADEBOOK
    ========================================================================== */
 router.get('/me/academic/gradebook', async (req, res) => {

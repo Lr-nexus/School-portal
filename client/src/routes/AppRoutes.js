@@ -21,6 +21,7 @@ import StudentAssignments from '../pages/student/StudentAssignments';
 import StudentAttendance from '../pages/student/StudentAttendance';
 import StudentTimetable from '../pages/student/StudentTimetable';
 import StudentGrades from '../pages/student/StudentGrades';
+import StudentFees from '../pages/student/StudentFees';
 
 /* TEACHER */
 import TeacherHome from '../pages/teacher/TeacherHome';
@@ -111,7 +112,8 @@ export default function AppRoutes() {
           <Route path="messages"      element={<Messages />} />
           <Route path="announcements" element={<Announcements />} />
           <Route path="grades"        element={<StudentGrades />} />
-          <Route path="library" element={<Library />} />
+          <Route path="fees"          element={<StudentFees />} />
+          <Route path="library"       element={<Library />} />
           <Route path="*"             element={<Navigate to="home" replace />} />
         </Route>
       </Route>
@@ -141,7 +143,7 @@ export default function AppRoutes() {
           <Route path="academic"      element={<AcademicTools />} />
           <Route path="behaviour"     element={<TeacherBehaviour />} />
           <Route path="meetings"      element={<TeacherMeetings />} />
-          <Route path="library" element={<Library />} />
+          <Route path="library"       element={<Library />} />
           <Route path="*"             element={<Navigate to="home" replace />} />
         </Route>
       </Route>
@@ -162,7 +164,7 @@ export default function AppRoutes() {
           <Route path="profile"       element={<ParentProfile />} />
           <Route path="announcements" element={<Announcements />} />
           <Route path="behaviour"     element={<ParentBehaviour />} />
-          <Route path="library" element={<Library />} />
+          <Route path="library"       element={<Library />} />
           <Route path="*"             element={<Navigate to="home" replace />} />
         </Route>
       </Route>
@@ -190,7 +192,7 @@ export default function AppRoutes() {
           <Route path="bulk-export"       element={<AdminBulkExport />} />
           <Route path="backup"            element={<AdminBackup />} />
           <Route path="audit-log"         element={<AdminAuditLog />} />
-          <Route path="library" element={<Library />} />
+          <Route path="library"       element={<Library />} />
           <Route path="*"             element={<Navigate to="home" replace />} />
         </Route>
       </Route>

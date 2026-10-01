@@ -20,12 +20,15 @@ export const navConfig = {
       { to: '/student/timetable',   label: 'Timetable',   icon: FiClock },
       { to: '/student/attendance',  label: 'Attendance',  icon: FiCheckSquare },
       { to: '/student/classes',     label: 'Classes',     icon: FiBook },
-      { to: '/library', label: 'Library', icon: FiBook },
+      { to: '/library',             label: 'Library',     icon: FiBook },
     ]},
     { label: 'Assessments', items: [
       { to: '/student/results', label: 'Results',         icon: FiBarChart2 },
       { to: '/student/lms',     label: 'Tests & Quizzes', icon: FiEdit3 },
       { to: '/student/grades',  label: 'My Grades',       icon: FiAward },
+    ]},
+    { label: 'Finance', items: [
+      { to: '/student/fees', label: 'Fees & Receipts', icon: FiCreditCard },
     ]},
     { label: 'Communication', items: [
       { to: '/student/messages',      label: 'Messages',      icon: FiMessageCircle },
@@ -83,7 +86,7 @@ export const navConfig = {
     ]},
   ],
 
-    admin: [
+  admin: [
     {
       label: 'Overview',
       items: [
