@@ -36,6 +36,23 @@ const upload = multer({
   },
 });
 
+/* ------------------------------------------------------------------
+   Helper: after creating an assignment, save it as a reusable
+   template. Silent failure — creation is the priority.
+------------------------------------------------------------------ */
+async function saveAssignmentTemplate(teacherId, title, subject, className, description, totalMarks, assignmentId) {
+  try {
+    await pool.execute(
+      `INSERT INTO assignment_templates
+        (teacher_id, title, subject, class_name, description, total_marks, source_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [teacherId, title, subject, className, description || '', Number(totalMarks) || 10, assignmentId]
+    );
+  } catch (err) {
+    console.error('Save assignment template failed:', err.message);
+  }
+}
+
 /* ---------- LIST ---------- */
 router.get('/', async (req, res) => {
   let query = 'SELECT * FROM assignments';
@@ -111,7 +128,7 @@ router.get('/:id', async (req, res) => {
   res.json({ ...a, submissions: subs });
 });
 
-/* ---------- CREATE (class teacher OR subject teacher) ---------- */
+/* ---------- CREATE ---------- */
 router.post('/', allow('teacher'), async (req, res) => {
   const { title, subject, description, dueDate, totalMarks, className } = req.body;
   if (!title || !subject || !className) {
@@ -137,6 +154,12 @@ router.post('/', allow('teacher'), async (req, res) => {
       dueDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       Number(totalMarks) || 10,
     ]
+  );
+
+  // ⭐ Save as reusable template
+  await saveAssignmentTemplate(
+    ctx.teacherId, title, subject, className, description,
+    totalMarks || 10, result.insertId
   );
 
   await notifyClassStudents(className, {

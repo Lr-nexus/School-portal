@@ -145,9 +145,15 @@ CREATE TABLE `question_bank` (
   `question` text NOT NULL,
   `options` text NOT NULL,
   `answer` tinyint(3) unsigned NOT NULL,
+  `source_type` enum('manual','quiz','assignment') NOT NULL DEFAULT 'manual',
+  `source_id` int(11) DEFAULT NULL,
+  `source_name` varchar(255) DEFAULT NULL,
+  `usage_count` int(11) NOT NULL DEFAULT 0,
+  `last_used_at` datetime DEFAULT NULL,
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `teacher_subject` (`teacher_id`,`class_name`,`subject`),
+  KEY `teacher_source` (`teacher_id`,`source_type`,`source_id`),
   FOREIGN KEY (`teacher_id`) REFERENCES `teachers`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -601,6 +607,26 @@ CREATE TABLE `onboarding_state` (
   `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`user_id`),
   FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- assignment_templates
+-- ============================================================
+CREATE TABLE `assignment_templates` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `teacher_id` int(11) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `subject` varchar(100) NOT NULL,
+  `class_name` varchar(50) NOT NULL,
+  `description` text,
+  `total_marks` int(11) DEFAULT 10,
+  `source_id` int(11) DEFAULT NULL,
+  `usage_count` int(11) NOT NULL DEFAULT 0,
+  `last_used_at` datetime DEFAULT NULL,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `teacher_subject_class` (`teacher_id`,`subject`,`class_name`),
+  FOREIGN KEY (`teacher_id`) REFERENCES `teachers`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 COMMIT;

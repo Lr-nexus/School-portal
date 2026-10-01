@@ -14,6 +14,36 @@ const upload = multer({
   },
 });
 
+/* ------------------------------------------------------------------
+   Helper: after creating a quiz, mirror every question into the bank
+   so it can be reused later. Silent failure — quiz creation is the
+   priority.
+------------------------------------------------------------------ */
+async function archiveQuestionsToBank(teacherId, className, subject, quizId, quizTitle, questions) {
+  if (!Array.isArray(questions) || !questions.length) return;
+  try {
+    for (const q of questions) {
+      if (!q.question) continue;
+      await pool.execute(
+        `INSERT INTO question_bank
+          (teacher_id, class_name, subject, question, options, answer,
+           source_type, source_id, source_name)
+         VALUES (?, ?, ?, ?, ?, ?, 'quiz', ?, ?)`,
+        [
+          teacherId, className, subject,
+          String(q.question).trim(),
+          JSON.stringify(q.options || []),
+          Number(q.answer) || 0,
+          quizId,
+          quizTitle || null,
+        ]
+      );
+    }
+  } catch (err) {
+    console.error('Archive questions to bank failed:', err.message);
+  }
+}
+
 /* ==========================================================================
    STUDENT ENDPOINTS
    ========================================================================== */
@@ -93,7 +123,7 @@ router.post('/quizzes/:id/submit', protect, allow('student'), async (req, res) =
 
 /* ==========================================================================
    TEACHER — MANUAL quiz creation
-   Now takes className + subject from the request, validates against ctx.
+   Now archives every question to the bank
    ========================================================================== */
 router.post('/quizzes', protect, allow('teacher'), async (req, res) => {
   const { title, subject, className, duration, dueDate, questions } = req.body;
@@ -131,12 +161,19 @@ router.post('/quizzes', protect, allow('teacher'), async (req, res) => {
     ]
   );
 
+  // ⭐ Archive to bank
+  await archiveQuestionsToBank(
+    ctx.teacherId, className, subject,
+    result.insertId, title, formattedQuestions
+  );
+
   const [rows] = await pool.execute('SELECT * FROM quizzes WHERE id = ?', [result.insertId]);
   res.status(201).json({ message: 'Quiz created', quiz: rows[0] });
 });
 
 /* ==========================================================================
    TEACHER — BULK quiz creation
+   Also archives to bank
    ========================================================================== */
 router.post('/quizzes/bulk', protect, allow('teacher'), upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
@@ -228,6 +265,12 @@ router.post('/quizzes/bulk', protect, allow('teacher'), upload.single('file'), a
       dueDate || new Date().toISOString().split('T')[0],
       JSON.stringify(questions),
     ]
+  );
+
+  // ⭐ Archive to bank
+  await archiveQuestionsToBank(
+    ctx.teacherId, className, subject,
+    result.insertId, title, questions
   );
 
   const [inserted] = await pool.execute('SELECT * FROM quizzes WHERE id = ?', [result.insertId]);

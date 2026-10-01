@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import {
   FiPlus, FiEdit3, FiClipboard, FiUpload, FiDownload,
-  FiX, FiAlertCircle, FiCheck, FiFileText,
+  FiX, FiAlertCircle, FiCheck, FiFileText, FiSearch, FiBookOpen,
 } from 'react-icons/fi';
 import { api } from '../../api/api';
 import { useTeacherProfile } from '../../hooks/useTeacherProfile';
@@ -78,16 +78,12 @@ export default function TeacherLMS() {
   const [quizzes, setQuizzes] = useState([]);
   const [message, setMessage] = useState('');
   const [tab, setTab] = useState('manual');
-
-  // Shared target (which class+subject this quiz is for)
   const [target, setTarget] = useState({ className: '', subject: '' });
+  const [bankModalOpen, setBankModalOpen] = useState(false);
 
   useEffect(() => {
     if (!target.className && targets.length) {
-      setTarget({
-        className: targets[0].className,
-        subject: targets[0].subject,
-      });
+      setTarget({ className: targets[0].className, subject: targets[0].subject });
     }
   }, [targets, target.className]);
 
@@ -121,7 +117,6 @@ export default function TeacherLMS() {
         </div>
       )}
 
-      {/* ------- Shared target picker ------- */}
       {!noTargets && (
         <div className="card">
           <h3><FiClipboard size={16} /> Quiz target</h3>
@@ -147,38 +142,34 @@ export default function TeacherLMS() {
       )}
 
       <div className="tabs">
-        <button
-          type="button"
+        <button type="button"
           className={`tab ${tab === 'manual' ? 'tab--active' : ''}`}
-          onClick={() => { setTab('manual'); setMessage(''); }}
-        >
+          onClick={() => { setTab('manual'); setMessage(''); }}>
           <FiEdit3 size={16} /> Build Manually
         </button>
-        <button
-          type="button"
+        <button type="button"
           className={`tab ${tab === 'paste' ? 'tab--active' : ''}`}
-          onClick={() => { setTab('paste'); setMessage(''); }}
-        >
+          onClick={() => { setTab('paste'); setMessage(''); }}>
           <FiClipboard size={16} /> Paste Questions
         </button>
-        <button
-          type="button"
+        <button type="button"
           className={`tab ${tab === 'bulk' ? 'tab--active' : ''}`}
-          onClick={() => { setTab('bulk'); setMessage(''); }}
-        >
+          onClick={() => { setTab('bulk'); setMessage(''); }}>
           <FiUpload size={16} /> Bulk Import
         </button>
       </div>
 
       {tab === 'manual' && (
-        <ManualTab target={target} noTargets={noTargets} setMessage={setMessage} onCreated={load} />
+        <ManualTab
+          target={target}
+          noTargets={noTargets}
+          setMessage={setMessage}
+          onCreated={load}
+          onOpenBank={() => setBankModalOpen(true)}
+        />
       )}
-      {tab === 'paste' && (
-        <PasteTab target={target} noTargets={noTargets} setMessage={setMessage} onCreated={load} />
-      )}
-      {tab === 'bulk' && (
-        <BulkTab target={target} noTargets={noTargets} setMessage={setMessage} onCreated={load} />
-      )}
+      {tab === 'paste' && <PasteTab target={target} noTargets={noTargets} setMessage={setMessage} onCreated={load} />}
+      {tab === 'bulk'  && <BulkTab  target={target} noTargets={noTargets} setMessage={setMessage} onCreated={load} />}
 
       <div className="card" style={{ marginTop: 20 }}>
         <h3>My Quizzes ({quizzes.length})</h3>
@@ -202,16 +193,23 @@ export default function TeacherLMS() {
           </tbody>
         </table>
       </div>
+
+      {bankModalOpen && (
+        <PickFromBankModal
+          onClose={() => setBankModalOpen(false)}
+        />
+      )}
     </div>
   );
 }
 
-/* ---------------- Manual ---------------- */
-function ManualTab({ target, noTargets, setMessage, onCreated }) {
+/* ---------------- Manual tab ---------------- */
+function ManualTab({ target, noTargets, setMessage, onCreated, onOpenBank }) {
   const [form, setForm] = useState({
     title: '', duration: 10, dueDate: '',
     questions: [{ ...emptyQuestion, options: ['', '', '', ''] }],
   });
+  const [bankPickerOpen, setBankPickerOpen] = useState(false);
 
   const updateQuestion = (i, field, value) => {
     const qs = [...form.questions];
@@ -230,6 +228,18 @@ function ManualTab({ target, noTargets, setMessage, onCreated }) {
     setForm({ ...form, questions: form.questions.filter((_, idx) => idx !== i) });
   };
 
+  const insertFromBank = (items) => {
+    const incoming = items.map((item) => ({
+      id: Date.now() + Math.random(),
+      question: item.question,
+      options: [...item.options],
+      answer: item.answer,
+      _bankId: item.id,
+    }));
+    setForm({ ...form, questions: [...form.questions, ...incoming] });
+    setBankPickerOpen(false);
+  };
+
   const submit = async (e) => {
     e.preventDefault();
     if (noTargets) return setMessage('No teaching assignments');
@@ -244,24 +254,32 @@ function ManualTab({ target, noTargets, setMessage, onCreated }) {
           className: target.className,
           duration: form.duration,
           dueDate: form.dueDate,
-          questions: form.questions,
+          questions: form.questions.map((q) => ({
+            question: q.question, options: q.options, answer: q.answer,
+          })),
         }),
       });
       setMessage('Quiz created successfully');
       setForm({ ...form, title: '', questions: [{ ...emptyQuestion, options: ['', '', '', ''] }] });
       await onCreated();
-    } catch (err) {
-      setMessage(err.message);
-    }
+    } catch (err) { setMessage(err.message); }
   };
 
   return (
     <div className="card">
-      <h3>Build a Quiz</h3>
+      <div className="table-head">
+        <h3>Build a Quiz</h3>
+        <button type="button" className="btn btn--ghost btn--sm"
+          onClick={() => setBankPickerOpen(true)} disabled={noTargets}>
+          <FiBookOpen size={14} /> Pick from Bank
+        </button>
+      </div>
       <form onSubmit={submit}>
         <div className="form-grid">
           <label>Title *
-            <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required disabled={noTargets} />
+            <input value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              required disabled={noTargets} />
           </label>
           <label>Duration (mins)
             <input type="number" value={form.duration}
@@ -277,7 +295,10 @@ function ManualTab({ target, noTargets, setMessage, onCreated }) {
         {form.questions.map((q, qi) => (
           <div className="card card--inner" key={qi}>
             <div className="lms-question-head">
-              <strong>Question {qi + 1}</strong>
+              <strong>
+                Question {qi + 1}
+                {q._bankId && <span className="chip chip--rich" style={{ marginLeft: 8 }}>From bank</span>}
+              </strong>
               {form.questions.length > 1 && (
                 <button type="button" className="btn btn--ghost btn--sm" onClick={() => removeQuestion(qi)}>
                   <FiX size={14} /> Remove
@@ -287,7 +308,8 @@ function ManualTab({ target, noTargets, setMessage, onCreated }) {
 
             <label>Question text
               <input value={q.question}
-                onChange={(e) => updateQuestion(qi, 'question', e.target.value)} required disabled={noTargets} />
+                onChange={(e) => updateQuestion(qi, 'question', e.target.value)}
+                required disabled={noTargets} />
             </label>
 
             <div className="form-grid">
@@ -314,11 +336,133 @@ function ManualTab({ target, noTargets, setMessage, onCreated }) {
           <button className="btn btn--primary" disabled={noTargets}>Publish Quiz</button>
         </div>
       </form>
+
+      {bankPickerOpen && (
+        <PickFromBankModal
+          onClose={() => setBankPickerOpen(false)}
+          onPick={insertFromBank}
+        />
+      )}
     </div>
   );
 }
 
-/* ---------------- Paste ---------------- */
+/* ---------------- Pick from Bank Modal ---------------- */
+function PickFromBankModal({ onClose, onPick }) {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState([]);
+  const [search, setSearch] = useState('');
+  const [source, setSource] = useState('all');
+  const [err, setErr] = useState('');
+
+  useEffect(() => {
+    setLoading(true);
+    const params = new URLSearchParams();
+    if (search) params.set('q', search);
+    if (source !== 'all') params.set('source', source);
+    api(`/teachers/me/academic/questions?${params.toString()}`)
+      .then(setItems)
+      .catch((e) => setErr(e.message))
+      .finally(() => setLoading(false));
+  }, [search, source]);
+
+  const toggle = (id) =>
+    setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  const confirm = () => {
+    const chosen = items.filter((it) => selected.includes(it.id));
+    if (!chosen.length) return;
+    onPick(chosen);
+  };
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal modal--wide" onClick={(e) => e.stopPropagation()}>
+        <div className="modal__head">
+          <div>
+            <h3><FiBookOpen size={18} /> Pick questions from your bank</h3>
+            <p className="muted">Auto-saved from every quiz you've ever created</p>
+          </div>
+          <button className="btn btn--ghost" onClick={onClose}><FiX size={16} /></button>
+        </div>
+
+        {err && <div className="alert alert--error">{err}</div>}
+
+        <div className="filters-bar" style={{ marginBottom: 12 }}>
+          <div className="filters-bar__search">
+            <FiSearch size={14} />
+            <input placeholder="Search questions…" value={search}
+              onChange={(e) => setSearch(e.target.value)} autoFocus />
+          </div>
+          <div className="filters-bar__select">
+            <select value={source} onChange={(e) => setSource(e.target.value)}>
+              <option value="all">All sources</option>
+              <option value="manual">Manually added</option>
+              <option value="quiz">From quizzes</option>
+            </select>
+          </div>
+        </div>
+
+        {loading ? (
+          <Loader />
+        ) : items.length === 0 ? (
+          <div className="empty-state">
+            <FiBookOpen size={32} />
+            <p>No questions saved yet.</p>
+            <p className="muted" style={{ fontSize: 13 }}>
+              Every quiz you create automatically saves its questions here.
+            </p>
+          </div>
+        ) : (
+          <div className="bank-picker-list">
+            {items.map((item) => {
+              const isSelected = selected.includes(item.id);
+              return (
+                <button
+                  type="button"
+                  key={item.id}
+                  className={`bank-picker-item ${isSelected ? 'bank-picker-item--selected' : ''}`}
+                  onClick={() => toggle(item.id)}
+                >
+                  <span className="bank-picker-item__check">
+                    {isSelected ? <FiCheck size={12} /> : ''}
+                  </span>
+                  <div className="bank-picker-item__body">
+                    <strong>{item.question}</strong>
+                    <div className="bank-picker-item__meta">
+                      {item.className} · {item.subject}
+                      {item.sourceName && ` · from "${item.sourceName}"`}
+                    </div>
+                    <div className="bank-picker-item__options">
+                      {item.options.map((o, i) => (
+                        <span key={i} className={i === item.answer ? 'correct' : ''}>
+                          {String.fromCharCode(65 + i)}. {o}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="modal__actions">
+          <span className="muted" style={{ marginRight: 'auto', fontSize: 12 }}>
+            {selected.length} selected
+          </span>
+          <button className="btn btn--ghost" onClick={onClose}>Cancel</button>
+          <button className="btn btn--primary" onClick={confirm} disabled={!selected.length}>
+            <FiPlus size={16} /> Add {selected.length || ''} to quiz
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- Paste tab (unchanged) ---------------- */
 function PasteTab({ target, noTargets, setMessage, onCreated }) {
   const [form, setForm] = useState({ title: '', duration: 10, dueDate: '', raw: '' });
   const [preview, setPreview] = useState(null);
@@ -373,7 +517,8 @@ Answer: B`}</pre>
       <form onSubmit={submit}>
         <div className="form-grid">
           <label>Quiz Title *
-            <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required disabled={noTargets} />
+            <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
+              required disabled={noTargets} />
           </label>
           <label>Duration (mins)
             <input type="number" value={form.duration}
@@ -442,7 +587,7 @@ Answer: B`}</pre>
   );
 }
 
-/* ---------------- Bulk ---------------- */
+/* ---------------- Bulk tab (unchanged) ---------------- */
 function BulkTab({ target, noTargets, setMessage, onCreated }) {
   const [form, setForm] = useState({ title: '', duration: 10, dueDate: '' });
   const [file, setFile] = useState(null);
@@ -507,7 +652,8 @@ function BulkTab({ target, noTargets, setMessage, onCreated }) {
       <form onSubmit={submit}>
         <div className="form-grid">
           <label>Quiz Title *
-            <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required disabled={noTargets} />
+            <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
+              required disabled={noTargets} />
           </label>
           <label>Duration (mins)
             <input type="number" value={form.duration}
@@ -522,9 +668,7 @@ function BulkTab({ target, noTargets, setMessage, onCreated }) {
         <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv"
           onChange={handleFile} className="file-drop" disabled={noTargets} />
 
-        {file && (
-          <div className="bulk-file-chip"><FiFileText size={14} /> {file.name}</div>
-        )}
+        {file && <div className="bulk-file-chip"><FiFileText size={14} /> {file.name}</div>}
 
         <div className="enroll-card__actions" style={{ marginTop: 12 }}>
           <button type="button" className="btn btn--ghost" onClick={downloadTemplate}>

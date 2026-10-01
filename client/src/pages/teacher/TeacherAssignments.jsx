@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   FiPlus, FiClipboard, FiTrash2, FiEye, FiX,
   FiCheckCircle, FiDownload, FiCheck, FiAlertCircle,
+  FiFileText, FiSearch,
 } from 'react-icons/fi';
 import { api } from '../../api/api';
 import { useTeacherProfile } from '../../hooks/useTeacherProfile';
@@ -27,6 +28,7 @@ export default function TeacherAssignments() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [active, setActive] = useState(null);
+  const [templateModalOpen, setTemplateModalOpen] = useState(false);
 
   const load = () =>
     api('/assignments')
@@ -43,7 +45,6 @@ export default function TeacherAssignments() {
     setForm({ ...form, [e.target.name]: e.target.value });
 
   const openForm = () => {
-    // Default pick: first teaching target
     const first = targets[0];
     setForm({
       ...emptyForm,
@@ -53,24 +54,31 @@ export default function TeacherAssignments() {
     setShowForm(true);
   };
 
+  const loadTemplate = (tpl) => {
+    setForm({
+      title: tpl.title,
+      subject: tpl.subject,
+      className: tpl.className || targets[0]?.className || '',
+      description: tpl.description || '',
+      dueDate: '',
+      totalMarks: tpl.totalMarks || 10,
+    });
+    setTemplateModalOpen(false);
+    setShowForm(true);
+    api(`/teachers/me/academic/assignment-templates/${tpl.id}/reuse`, { method: 'POST' }).catch(() => {});
+  };
+
   const submit = async (e) => {
     e.preventDefault();
     if (!targets.length) return setMessage('You have no teaching assignments');
-    if (!form.className || !form.subject) {
-      return setMessage('Pick a class and subject');
-    }
+    if (!form.className || !form.subject) return setMessage('Pick a class and subject');
 
     try {
-      await api('/assignments', {
-        method: 'POST',
-        body: JSON.stringify(form),
-      });
+      await api('/assignments', { method: 'POST', body: JSON.stringify(form) });
       setMessage('Assignment posted successfully');
       closeForm();
       await load();
-    } catch (err) {
-      setMessage(err.message);
-    }
+    } catch (err) { setMessage(err.message); }
   };
 
   const remove = async (id) => {
@@ -80,9 +88,7 @@ export default function TeacherAssignments() {
       setMessage('Assignment deleted');
       if (active?.id === id) close();
       await load();
-    } catch (err) {
-      setMessage(err.message);
-    }
+    } catch (err) { setMessage(err.message); }
   };
 
   const openAssignment = async (id) => {
@@ -122,6 +128,15 @@ export default function TeacherAssignments() {
               : `Subject teacher · ${targets.length} assignment${targets.length === 1 ? '' : 's'}`
         }
       >
+        {!showForm && (
+          <button
+            className="btn btn--ghost"
+            onClick={() => setTemplateModalOpen(true)}
+            disabled={noTargets}
+          >
+            <FiFileText size={16} /> Load Template
+          </button>
+        )}
         <button
           className="btn btn--primary"
           onClick={() => (showForm ? closeForm() : openForm())}
@@ -173,26 +188,18 @@ export default function TeacherAssignments() {
             </label>
 
             <label>Total Marks
-              <input
-                type="number" name="totalMarks" min="1"
-                value={form.totalMarks} onChange={handleChange}
-              />
+              <input type="number" name="totalMarks" min="1"
+                value={form.totalMarks} onChange={handleChange} />
             </label>
 
             <label className="form-grid__full">Instructions
-              <textarea
-                rows="3" name="description"
-                value={form.description} onChange={handleChange}
-              />
+              <textarea rows="4" name="description"
+                value={form.description} onChange={handleChange} />
             </label>
 
             <div className="form-grid__full form-grid__actions">
-              <button type="button" className="btn btn--ghost" onClick={closeForm}>
-                Cancel
-              </button>
-              <button className="btn btn--primary">
-                <FiPlus size={16} /> Post Assignment
-              </button>
+              <button type="button" className="btn btn--ghost" onClick={closeForm}>Cancel</button>
+              <button className="btn btn--primary"><FiPlus size={16} /> Post Assignment</button>
             </div>
           </form>
         </div>
@@ -231,14 +238,10 @@ export default function TeacherAssignments() {
                   {active.total_marks} marks
                 </p>
               </div>
-              <button className="btn btn--ghost" onClick={close} title="Close">
-                <FiX size={16} />
-              </button>
+              <button className="btn btn--ghost" onClick={close}><FiX size={16} /></button>
             </div>
 
-            {active.description && (
-              <p style={{ marginBottom: 14 }}>{active.description}</p>
-            )}
+            {active.description && <p style={{ marginBottom: 14 }}>{active.description}</p>}
 
             <h4 className="modal__section-title">
               Submissions ({active.submissions?.length || 0})
@@ -254,9 +257,7 @@ export default function TeacherAssignments() {
               />
             ))}
 
-            {!active.submissions?.length && (
-              <p className="muted">No submissions yet.</p>
-            )}
+            {!active.submissions?.length && <p className="muted">No submissions yet.</p>}
 
             <DiscussionPanel assignmentId={active.id} />
 
@@ -266,10 +267,108 @@ export default function TeacherAssignments() {
           </div>
         </div>
       )}
+
+      {templateModalOpen && (
+        <TemplatePickerModal
+          onClose={() => setTemplateModalOpen(false)}
+          onPick={loadTemplate}
+        />
+      )}
     </div>
   );
 }
 
+/* ---------- Template Picker Modal ---------- */
+function TemplatePickerModal({ onClose, onPick }) {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [err, setErr] = useState('');
+
+  useEffect(() => {
+    setLoading(true);
+    const params = new URLSearchParams();
+    if (search) params.set('q', search);
+    api(`/teachers/me/academic/assignment-templates?${params.toString()}`)
+      .then(setItems)
+      .catch((e) => setErr(e.message))
+      .finally(() => setLoading(false));
+  }, [search]);
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal modal--wide" onClick={(e) => e.stopPropagation()}>
+        <div className="modal__head">
+          <div>
+            <h3><FiFileText size={18} /> Load an assignment template</h3>
+            <p className="muted">Every assignment you've created is saved here automatically</p>
+          </div>
+          <button className="btn btn--ghost" onClick={onClose}><FiX size={16} /></button>
+        </div>
+
+        {err && <div className="alert alert--error">{err}</div>}
+
+        <div className="filters-bar" style={{ marginBottom: 12 }}>
+          <div className="filters-bar__search">
+            <FiSearch size={14} />
+            <input
+              placeholder="Search templates…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              autoFocus
+            />
+          </div>
+        </div>
+
+        {loading ? (
+          <Loader />
+        ) : items.length === 0 ? (
+          <div className="empty-state">
+            <FiFileText size={32} />
+            <p>No templates yet.</p>
+            <p className="muted" style={{ fontSize: 13 }}>
+              Every assignment you create is saved as a reusable template.
+            </p>
+          </div>
+        ) : (
+          <div className="template-picker-list">
+            {items.map((tpl) => (
+              <button
+                type="button"
+                key={tpl.id}
+                className="template-picker-item"
+                onClick={() => onPick(tpl)}
+              >
+                <div className="template-picker-item__head">
+                  <strong>{tpl.title}</strong>
+                  {tpl.fromAssignment && (
+                    <span className="source-badge source-badge--assignment">From Task</span>
+                  )}
+                </div>
+                <div className="template-picker-item__meta">
+                  {tpl.className} · {tpl.subject} · {tpl.totalMarks} marks
+                  {tpl.usageCount > 0 && ` · used ${tpl.usageCount}×`}
+                </div>
+                {tpl.description && (
+                  <p className="template-picker-item__body">
+                    {tpl.description.slice(0, 140)}
+                    {tpl.description.length > 140 ? '…' : ''}
+                  </p>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className="modal__actions">
+          <button className="btn btn--ghost" onClick={onClose}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Submission row (unchanged) ---------- */
 function SubmissionRow({ submission, totalMarks, onGrade, onDownload }) {
   const [score, setScore] = useState(submission.score ?? '');
   const [feedback, setFeedback] = useState(submission.feedback || '');
@@ -286,9 +385,7 @@ function SubmissionRow({ submission, totalMarks, onGrade, onDownload }) {
       setTimeout(() => setSaved(false), 2000);
     } catch (ex) {
       setErr(ex.message || 'Failed to save');
-    } finally {
-      setBusy(false);
-    }
+    } finally { setBusy(false); }
   };
 
   return (
@@ -311,28 +408,18 @@ function SubmissionRow({ submission, totalMarks, onGrade, onDownload }) {
       {submission.text && <p className="submission__text">{submission.text}</p>}
 
       {submission.file_url && (
-        <button
-          type="button"
-          className="btn btn--ghost"
-          onClick={() => onDownload(submission.file_url, submission.original_name)}
-        >
+        <button type="button" className="btn btn--ghost"
+          onClick={() => onDownload(submission.file_url, submission.original_name)}>
           <FiDownload size={14} /> {submission.original_name}
         </button>
       )}
 
       <form className="submission__grade" onSubmit={submit}>
-        <input
-          type="number" min="0" max={totalMarks}
+        <input type="number" min="0" max={totalMarks}
           placeholder={`Score / ${totalMarks}`}
-          value={score}
-          onChange={(e) => setScore(e.target.value)}
-          required
-        />
-        <input
-          placeholder="Feedback (optional)"
-          value={feedback}
-          onChange={(e) => setFeedback(e.target.value)}
-        />
+          value={score} onChange={(e) => setScore(e.target.value)} required />
+        <input placeholder="Feedback (optional)"
+          value={feedback} onChange={(e) => setFeedback(e.target.value)} />
         <button className="btn btn--primary" disabled={busy}>
           {saved
             ? <><FiCheck size={14} /> Saved</>
