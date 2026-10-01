@@ -12,7 +12,9 @@
     "set-passwords": "node scripts/set-passwords.js",
     "fix-db": "node scripts/migrate.js && node scripts/upgrade.js",
     "init-db": "node init.js",
-    "seed": "node seed.js"
+    "seed": "node seed.js",
+    "seed-extra": "node seed-extra.js",
+    "seed-demo": "node seed-demo.js"
   },
   "dependencies": {
     "cloudinary": "^2.5.1",
