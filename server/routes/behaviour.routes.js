@@ -2,6 +2,7 @@ const router = require('express').Router();
 const pool = require('../db');
 const { protect, allow } = require('../middleware/auth');
 const { notify } = require('../utils/notify');
+const { getTeacherContext } = require('../utils/teacherContext');
 
 router.use(protect);
 
@@ -19,14 +20,9 @@ router.post('/', allow('teacher'), async (req, res) => {
   const validType = ['positive', 'negative', 'neutral'].includes(type)
     ? type : 'positive';
 
-  const [tRows] = await pool.execute(
-    'SELECT id, name FROM teachers WHERE user_id = ?',
-    [req.user.id]
-  );
-  if (!tRows.length) return res.status(404).json({ message: 'Teacher not found' });
-  const teacher = tRows[0];
+  const ctx = await getTeacherContext(req.user.id);
+  if (!ctx) return res.status(404).json({ message: 'Teacher not found' });
 
-  // Verify the student is in a class this teacher owns
   const [studentRows] = await pool.execute(
     `SELECT s.id, s.name, s.class_name, s.user_id, s.parent_id
      FROM students s
@@ -38,12 +34,13 @@ router.post('/', allow('teacher'), async (req, res) => {
   }
   const student = studentRows[0];
 
-  const [clsRows] = await pool.execute(
-    'SELECT id FROM classes WHERE name = ? AND teacher_id = ?',
-    [student.class_name, teacher.id]
-  );
-  if (!clsRows.length) {
-    return res.status(403).json({ message: 'You do not teach this student' });
+  const isFormTeacher = ctx.formClass === student.class_name;
+  const isAssigned = ctx.assignments.some((a) => a.className === student.class_name);
+
+  if (!isFormTeacher && !isAssigned) {
+    return res.status(403).json({
+      message: `You are not assigned to ${student.class_name}. Ask the admin to link you to this class.`,
+    });
   }
 
   const [result] = await pool.execute(
@@ -51,20 +48,20 @@ router.post('/', allow('teacher'), async (req, res) => {
        (student_id, teacher_id, type, title, note, date)
      VALUES (?, ?, ?, ?, ?, ?)`,
     [
-      studentId, teacher.id, validType, title.trim(),
+      studentId, ctx.teacherId, validType, title.trim(),
       String(note || '').trim(),
       date || new Date().toISOString().split('T')[0],
     ]
   );
 
-  // Notify student + parent
+  /* Notify student + parent */
   try {
     if (student.user_id) {
       await notify({
         userId: student.user_id,
         type: 'behaviour',
         title: validType === 'positive' ? 'New positive note' : 'New behaviour note',
-        body: `${teacher.name}: ${title}`,
+        body: `${ctx.name}: ${title}`,
         link: '/student/home',
       });
     }
@@ -78,7 +75,7 @@ router.post('/', allow('teacher'), async (req, res) => {
           userId: pRows[0].user_id,
           type: 'behaviour',
           title: `${student.name} — behaviour update`,
-          body: `${teacher.name}: ${title}`,
+          body: `${ctx.name}: ${title}`,
           link: '/parent/behaviour',
         });
       }
@@ -96,14 +93,10 @@ router.post('/', allow('teacher'), async (req, res) => {
 
 /* ============================================================
    TEACHER — list all my behaviour notes
-   GET /api/behaviour/mine
    ============================================================ */
 router.get('/mine', allow('teacher'), async (req, res) => {
-  const [tRows] = await pool.execute(
-    'SELECT id FROM teachers WHERE user_id = ?',
-    [req.user.id]
-  );
-  if (!tRows.length) return res.json([]);
+  const ctx = await getTeacherContext(req.user.id);
+  if (!ctx) return res.json([]);
 
   const [rows] = await pool.execute(
     `SELECT br.*, s.name AS student_name, s.admission_no, s.class_name
@@ -111,7 +104,7 @@ router.get('/mine', allow('teacher'), async (req, res) => {
      JOIN students s ON s.id = br.student_id
      WHERE br.teacher_id = ?
      ORDER BY br.date DESC, br.id DESC`,
-    [tRows[0].id]
+    [ctx.teacherId]
   );
 
   res.json(rows.map((r) => ({
@@ -131,33 +124,28 @@ router.get('/mine', allow('teacher'), async (req, res) => {
 });
 
 /* ============================================================
-   TEACHER — students in my class (for the "add note" dropdown)
-   GET /api/behaviour/students
+   TEACHER — students the teacher can log notes for
+   Includes form class + every class the teacher is assigned to.
    ============================================================ */
 router.get('/students', allow('teacher'), async (req, res) => {
-  const [tRows] = await pool.execute(
-    'SELECT id, form_class FROM teachers WHERE user_id = ?',
-    [req.user.id]
-  );
-  if (!tRows.length) return res.json([]);
+  const ctx = await getTeacherContext(req.user.id);
+  if (!ctx) return res.json([]);
 
-  const [classRows] = await pool.execute(
-    'SELECT name FROM classes WHERE teacher_id = ?',
-    [tRows[0].id]
-  );
-  const classNames = classRows.map((c) => c.name);
-  if (tRows[0].form_class && !classNames.includes(tRows[0].form_class)) {
-    classNames.push(tRows[0].form_class);
-  }
-  if (!classNames.length) return res.json([]);
+  const classNames = new Set();
+  if (ctx.formClass) classNames.add(ctx.formClass);
+  ctx.assignments.forEach((a) => classNames.add(a.className));
 
-  const ph = classNames.map(() => '?').join(',');
+  if (!classNames.size) return res.json([]);
+
+  const list = Array.from(classNames);
+  const ph = list.map(() => '?').join(',');
   const [rows] = await pool.execute(
     `SELECT id, name, admission_no, class_name FROM students
      WHERE class_name IN (${ph})
      ORDER BY class_name, name`,
-    classNames
+    list
   );
+
   res.json(rows.map((r) => ({
     id: r.id,
     name: r.name,
@@ -170,15 +158,12 @@ router.get('/students', allow('teacher'), async (req, res) => {
    DELETE a behaviour note (only the author)
    ============================================================ */
 router.delete('/:id', allow('teacher'), async (req, res) => {
-  const [tRows] = await pool.execute(
-    'SELECT id FROM teachers WHERE user_id = ?',
-    [req.user.id]
-  );
-  if (!tRows.length) return res.status(404).json({ message: 'Teacher not found' });
+  const ctx = await getTeacherContext(req.user.id);
+  if (!ctx) return res.status(404).json({ message: 'Teacher not found' });
 
   const [rows] = await pool.execute(
     'SELECT id FROM behaviour_reports WHERE id = ? AND teacher_id = ?',
-    [req.params.id, tRows[0].id]
+    [req.params.id, ctx.teacherId]
   );
   if (!rows.length) return res.status(404).json({ message: 'Report not found' });
 

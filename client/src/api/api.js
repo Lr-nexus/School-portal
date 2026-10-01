@@ -9,7 +9,11 @@ const STORAGE_KEY = 'user';
 
 function currentUser() {
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
+    // ⭐ Check BOTH stores — "remember me" writes to localStorage,
+    //   a normal login writes to sessionStorage.
+    const raw =
+      localStorage.getItem(STORAGE_KEY) ||
+      sessionStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;

@@ -1,4 +1,8 @@
 /* ==========================================================================
+   SCHOOL PORTAL — MAIN STYLESHEET
+   ========================================================================== */
+
+/* ==========================================================================
    1. DESIGN TOKENS
    ========================================================================== */
 
@@ -208,7 +212,6 @@ a:hover { color: var(--accent-2); }
 }
 .page-header__actions .btn { white-space: nowrap; }
 
-/* Back link — used above PageHeader on detail views */
 .back-link {
   display: inline-flex;
   align-items: center;
@@ -247,7 +250,6 @@ a:hover { color: var(--accent-2); }
   transition: background .2s ease;
 }
 
-/* ---------------- Brand ---------------- */
 .sidebar__brand {
   display: flex;
   align-items: center;
@@ -267,7 +269,6 @@ a:hover { color: var(--accent-2); }
   overflow: hidden;
   flex-shrink: 0;
 }
-
 .sidebar__logo img {
   width: 100%;
   height: 100%;
@@ -276,11 +277,9 @@ a:hover { color: var(--accent-2); }
   max-width: 100%;
   max-height: 100%;
 }
-
 .sidebar__brand h2 { font-size: 15px; color: #fff; }
 .sidebar__brand span { font-size: 11px; color: var(--sidebar-muted); }
 
-/* ---------------- Current user ---------------- */
 .sidebar__user {
   display: flex;
   align-items: center;
@@ -310,7 +309,6 @@ a:hover { color: var(--accent-2); }
   color: #fff;
 }
 
-/* ---------------- Avatars (shared) ---------------- */
 .avatar {
   width: 38px;
   height: 38px;
@@ -330,8 +328,12 @@ a:hover { color: var(--accent-2); }
   object-fit: cover;
   border-radius: 50%;
 }
+.avatar--group {
+  background: linear-gradient(135deg, #7c3aed, #2563eb);
+  color: #fff;
+}
+.avatar--group svg { stroke-width: 2; }
 
-/* ---------------- Nav — scrollable, hidden scrollbar ---------------- */
 .sidebar__nav {
   flex: 1;
   display: flex;
@@ -341,8 +343,6 @@ a:hover { color: var(--accent-2); }
   overflow-x: hidden;
   padding-right: 2px;
   margin-right: -4px;
-
-  /* Hide the scrollbar track (Firefox + IE/Edge) */
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
@@ -352,7 +352,6 @@ a:hover { color: var(--accent-2); }
   height: 0;
 }
 
-/* ---------------- Groups ---------------- */
 .sidebar__group {
   display: flex;
   flex-direction: column;
@@ -374,7 +373,6 @@ a:hover { color: var(--accent-2); }
   user-select: none;
 }
 
-/* ---------------- Nav items ---------------- */
 .nav-item {
   display: flex;
   align-items: center;
@@ -406,7 +404,6 @@ a:hover { color: var(--accent-2); }
 }
 .nav-item__icon svg { stroke-width: 2; }
 
-/* ---------------- Logout ---------------- */
 .logout-btn {
   margin-top: 12px;
   padding: 11px;
@@ -426,11 +423,6 @@ a:hover { color: var(--accent-2); }
 }
 .logout-btn:hover { background: rgba(220, 38, 38, .28); color: #fecaca; }
 .logout-btn svg { flex-shrink: 0; }
-
-/* ---------------- Mobile drawer ---------------- */
-@media (max-width: 768px) {
-  .sidebar { width: 272px; }
-}
 
 /* ==========================================================================
    6. TOPBAR
@@ -479,6 +471,27 @@ a:hover { color: var(--accent-2); }
 .topbar__icon-btn:hover {
   background: var(--surface-3);
   border-color: var(--border);
+}
+
+.topbar__kbd-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 5px 9px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 8px;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .15s;
+}
+.topbar__kbd-hint:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
 }
 
 /* ==========================================================================
@@ -588,6 +601,20 @@ a:hover { color: var(--accent-2); }
   font-weight: 600;
   color: #fff;
 }
+.welcome-banner__chip--clickable {
+  cursor: pointer;
+  font: inherit;
+  transition: background .15s, border-color .15s, transform .12s;
+}
+.welcome-banner__chip--clickable:hover {
+  background: rgba(255, 255, 255, .28);
+  transform: translateY(-1px);
+}
+.welcome-banner__chip--active {
+  background: rgba(255, 255, 255, .38) !important;
+  border-color: rgba(255, 255, 255, .6) !important;
+  font-weight: 700;
+}
 .welcome-banner__empty {
   font-size: 13px;
   opacity: .75;
@@ -623,6 +650,27 @@ a:hover { color: var(--accent-2); }
 .table-wrap { overflow-x: auto; border-radius: var(--radius-md); }
 .table-wrap .table { min-width: 640px; }
 
+.table-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.table-head h3 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.table-head__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 /* ==========================================================================
    10. BUTTONS
    ========================================================================== */
@@ -655,7 +703,37 @@ a:hover { color: var(--accent-2); }
 .btn--sm { padding: 6px 12px; font-size: 12px; gap: 6px; }
 .btn--sm svg { flex-shrink: 0; }
 
-/* Grouped action buttons (report card / ID card) */
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+}
+.btn-link:hover { color: var(--accent); }
+.btn-link--danger:hover { color: var(--red); }
+
+.icon-button {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.icon-button:hover:not(:disabled) { color: var(--red); border-color: var(--red); }
+.icon-button:disabled { opacity: .5; cursor: not-allowed; }
+
 .action-group {
   display: inline-flex;
   align-items: center;
@@ -667,6 +745,19 @@ a:hover { color: var(--accent-2); }
 }
 .action-group .btn { border-radius: 8px; }
 [data-theme="dark"] .action-group { background: var(--surface); }
+
+.checkbox-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color .15s;
+}
+.checkbox-btn:hover { color: var(--accent); }
 
 /* ==========================================================================
    11. FORMS
@@ -734,7 +825,6 @@ textarea { resize: vertical; min-height: 60px; }
 }
 .form-field-readonly__value svg { color: var(--accent); flex-shrink: 0; }
 
-/* Password field with toggle */
 .password-field {
   position: relative;
   display: flex;
@@ -760,7 +850,6 @@ textarea { resize: vertical; min-height: 60px; }
 .password-toggle:hover { background: var(--surface-3); color: var(--text-2); }
 [data-theme="dark"] .password-toggle:hover { background: var(--surface-2); }
 
-/* File drop */
 .file-drop {
   margin-top: 0;
   padding: 20px 18px;
@@ -790,7 +879,6 @@ textarea { resize: vertical; min-height: 60px; }
   border-color: var(--border-strong);
 }
 
-/* Filters bar */
 .filters-bar { display: flex; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
 .filters-bar__search { flex: 1; min-width: 220px; position: relative; }
 .filters-bar__search input { margin-top: 0; padding-left: 38px; }
@@ -830,7 +918,7 @@ textarea { resize: vertical; min-height: 60px; }
 }
 
 /* ==========================================================================
-   13. PILLS / BADGES / CHIPS
+   13. PILLS / BADGES / CHIPS / GRADES
    ========================================================================== */
 
 .pill {
@@ -868,7 +956,6 @@ textarea { resize: vertical; min-height: 60px; }
   font-weight: 700;
   animation: handPulse 1.4s ease-in-out infinite;
 }
-
 [data-theme="dark"] .pill--paid    { background: rgba(34, 197, 94, .18);  color: #86efac; }
 [data-theme="dark"] .pill--partial { background: rgba(245, 158, 11, .18); color: #fcd34d; }
 [data-theme="dark"] .pill--unpaid  { background: rgba(239, 68, 68, .18);  color: #fca5a5; }
@@ -933,8 +1020,26 @@ textarea { resize: vertical; min-height: 60px; }
 [data-theme="dark"] .chip--pdf { background: rgba(239, 68, 68, .18); color: #fca5a5; }
 [data-theme="dark"] .chip--rich { background: rgba(96, 165, 250, .18); color: #bfdbfe; }
 
+.source-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+}
+.source-badge--manual     { background: rgba(37, 99, 235, .12);  color: var(--accent-text); }
+.source-badge--quiz       { background: rgba(124, 58, 237, .12); color: #6d28d9; }
+.source-badge--assignment { background: rgba(22, 163, 74, .12);  color: var(--green); }
+[data-theme="dark"] .source-badge--manual     { background: rgba(96, 165, 250, .18); color: #bfdbfe; }
+[data-theme="dark"] .source-badge--quiz       { background: rgba(167, 139, 250, .18); color: #ddd6fe; }
+[data-theme="dark"] .source-badge--assignment { background: rgba(34, 197, 94, .18);  color: #86efac; }
+
 /* ==========================================================================
-   14. QUICK ACTIONS
+   14. QUICK ACTIONS & TEACHER CONTACT
    ========================================================================== */
 
 .quick-actions { display: flex; flex-direction: column; gap: 8px; }
@@ -982,7 +1087,7 @@ textarea { resize: vertical; min-height: 60px; }
 .teacher-contact__row svg { color: var(--muted); flex-shrink: 0; }
 
 /* ==========================================================================
-   15. INLINE ANNOUNCEMENTS (dashboard card)
+   15. INLINE ANNOUNCEMENTS
    ========================================================================== */
 
 .announcement {
@@ -1152,7 +1257,7 @@ textarea { resize: vertical; min-height: 60px; }
 .user-menu__item--danger:hover { background: rgba(220, 38, 38, .08); }
 
 /* ==========================================================================
-   18. NOTIFICATIONS
+   18. NOTIFICATIONS BELL
    ========================================================================== */
 
 .notif { position: relative; }
@@ -1260,14 +1365,10 @@ textarea { resize: vertical; min-height: 60px; }
 .notif__item-del:hover { color: var(--red); }
 
 /* ==========================================================================
-   19. LOGIN — Split-screen
+   19. LOGIN — SPLIT-SCREEN
    ========================================================================== */
 
-/* ⭐ Login page is ALWAYS light — the user's theme preference does not
-   reach this page. All tokens are redeclared here so nothing inherits
-   the dark theme from <html data-theme="dark">. */
 .login-split {
-  /* Force light tokens */
   --bg:            #f4f6fb;
   --bg-2:          #eef2f9;
   --surface:       #ffffff;
@@ -1293,7 +1394,6 @@ textarea { resize: vertical; min-height: 60px; }
   --red:           #dc2626;
   --amber:         #f59e0b;
 
-  /* Tells the browser to render native form controls in light mode */
   color-scheme: light;
 
   display: grid;
@@ -1301,9 +1401,33 @@ textarea { resize: vertical; min-height: 60px; }
   min-height: 100vh;
   background: var(--bg);
   color: var(--text);
+  position: relative;
 }
 
-/* ---------------- LEFT: hero (design element, always dark by nature) ---------------- */
+/* Floating theme toggle */
+.login-theme-toggle {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 5;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-2);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  box-shadow: var(--shadow-md);
+  transition: transform .15s, background .15s;
+}
+.login-theme-toggle:hover {
+  transform: scale(1.05);
+  background: var(--surface-3);
+}
+
+/* Hero (left) */
 .login-hero {
   position: relative;
   overflow: hidden;
@@ -1355,7 +1479,6 @@ textarea { resize: vertical; min-height: 60px; }
   overflow: hidden;
   flex-shrink: 0;
 }
-
 .login-hero__logo img {
   width: 100%;
   height: 100%;
@@ -1435,7 +1558,7 @@ textarea { resize: vertical; min-height: 60px; }
   opacity: .8;
 }
 
-/* ---------------- RIGHT: form panel (glassmorphic, light) ---------------- */
+/* Form panel (right) */
 .login-form-panel {
   display: flex;
   align-items: center;
@@ -1488,7 +1611,6 @@ textarea { resize: vertical; min-height: 60px; }
   overflow: hidden;
   margin-bottom: 16px;
 }
-
 .login-form-panel__logo-mobile img {
   width: 100%;
   height: 100%;
@@ -1525,9 +1647,7 @@ textarea { resize: vertical; min-height: 60px; }
   box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.02);
   transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
 }
-.login-form input::placeholder {
-  color: #94a3b8;
-}
+.login-form input::placeholder { color: #94a3b8; }
 .login-form input:focus {
   border-color: rgba(37, 99, 235, 0.45);
   box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
@@ -1542,7 +1662,6 @@ textarea { resize: vertical; min-height: 60px; }
   box-shadow: 0 10px 20px rgba(37, 99, 235, 0.18);
 }
 
-/* Password field with eye toggle */
 .login-password-wrap { position: relative; }
 .login-password-wrap input { padding-right: 44px !important; }
 .login-password-toggle {
@@ -1566,7 +1685,6 @@ textarea { resize: vertical; min-height: 60px; }
   color: var(--text-2);
 }
 
-/* Password row + remember me + forgot link */
 .login-form__row {
   display: flex;
   justify-content: space-between;
@@ -1674,7 +1792,7 @@ textarea { resize: vertical; min-height: 60px; }
   text-align: center;
 }
 
-/* Compact 2x2 demo grid */
+/* Compact demo grid — 5 items, last one spans the row */
 .login-demo__btns--grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1690,6 +1808,9 @@ textarea { resize: vertical; min-height: 60px; }
 .login-demo__btns--grid button span {
   font-size: 10.5px;
   white-space: nowrap;
+}
+.login-demo__btns--grid > button:nth-child(5) {
+  grid-column: 1 / -1;
 }
 
 /* Trust badges */
@@ -1718,7 +1839,6 @@ textarea { resize: vertical; min-height: 60px; }
   line-height: 1.6;
 }
 
-/* Nicer error alert on login */
 .login-form-panel .alert {
   border-radius: 12px;
   animation: shakeIn .28s ease-out;
@@ -1729,6 +1849,49 @@ textarea { resize: vertical; min-height: 60px; }
   50%  { transform: translateX(4px); }
   75%  { transform: translateX(-2px); }
   100% { transform: translateX(0); }
+}
+
+/* Dark variant of the login page */
+.login-split[data-login-theme="dark"] {
+  --bg:            #0a0f1c;
+  --surface:       #101a2f;
+  --surface-2:     #16233a;
+  --surface-3:     #1c2c47;
+
+  --text:          #e6edf6;
+  --text-2:        #cbd5e1;
+  --muted:         #8a9ab5;
+  --muted-2:       #64748b;
+
+  --border:        #1e2a44;
+  --border-strong: #2f3e5c;
+
+  --accent-soft:   #172554;
+  --accent-text:   #bfdbfe;
+
+  color-scheme: dark;
+  background: var(--bg);
+  color: var(--text);
+}
+.login-split[data-login-theme="dark"] .login-form-panel {
+  background: linear-gradient(180deg, #0f172a 0%, #0a0f1c 100%);
+}
+.login-split[data-login-theme="dark"] .login-form-panel__inner {
+  background: rgba(16, 26, 47, 0.82);
+  border-color: rgba(148, 163, 184, 0.14);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.5);
+}
+.login-split[data-login-theme="dark"] .login-form input {
+  color: #e6edf6;
+  background: rgba(15, 23, 42, 0.5);
+  border-color: var(--border);
+}
+.login-split[data-login-theme="dark"] .login-form input::placeholder {
+  color: #64748b;
+}
+.login-split[data-login-theme="dark"] .login-form input:focus {
+  border-color: rgba(96, 165, 250, 0.5);
+  box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.1);
 }
 
 /* ==========================================================================
@@ -1798,7 +1961,6 @@ textarea { resize: vertical; min-height: 60px; }
   justify-content: center;
 }
 
-/* Profile photo uploader */
 .photo-uploader {
   display: flex;
   align-items: center;
@@ -1908,7 +2070,6 @@ textarea { resize: vertical; min-height: 60px; }
 .comment-form input { flex: 1; margin-bottom: 0; }
 .comment-form .btn { padding: 10px 14px; }
 
-/* Rich content viewer */
 .rich-content {
   font-size: 14px;
   line-height: 1.7;
@@ -2074,21 +2235,6 @@ textarea { resize: vertical; min-height: 60px; }
   gap: 12px;
   margin-top: 6px;
 }
-.btn-link {
-  background: none;
-  border: none;
-  color: var(--muted);
-  cursor: pointer;
-  font: inherit;
-  font-size: 11px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 0;
-}
-.btn-link:hover { color: var(--accent); }
-.btn-link--danger:hover { color: var(--red); }
-
 .discussion__form {
   padding-top: 12px;
   border-top: 1px dashed var(--border);
@@ -2179,7 +2325,7 @@ textarea { resize: vertical; min-height: 60px; }
 .participant__info .badge { align-self: flex-start; font-size: 10px; }
 
 /* ==========================================================================
-   26. VIDEO ROOM (always dark)
+   26. VIDEO ROOM
    ========================================================================== */
 
 .video-room {
@@ -2213,7 +2359,6 @@ textarea { resize: vertical; min-height: 60px; }
   animation: spin 0.9s linear infinite;
 }
 
-/* Generic spinning icon (used on "Preparing…" buttons) */
 .spin { animation: spin 0.9s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -2267,7 +2412,6 @@ textarea { resize: vertical; min-height: 60px; }
   to   { opacity: 1; transform: translate(-50%, 0); }
 }
 
-/* Raised hands bar */
 .raised-hands-bar {
   display: flex;
   align-items: center;
@@ -2314,7 +2458,6 @@ textarea { resize: vertical; min-height: 60px; }
 }
 .raised-hands-bar__chip:disabled { opacity: 1; }
 
-/* Video grid */
 .video-grid {
   flex: 1;
   padding: 18px;
@@ -2535,7 +2678,7 @@ textarea { resize: vertical; min-height: 60px; }
 .lms-preview__tick { font-size: 11px; opacity: .8; margin-left: 4px; }
 
 /* ==========================================================================
-   29. MISC
+   29. MISC (loader, empty-state)
    ========================================================================== */
 
 .loader {
@@ -2574,6 +2717,7 @@ textarea { resize: vertical; min-height: 60px; }
   margin-bottom: 18px;
   border-bottom: 1px solid var(--border);
   padding-bottom: 0;
+  flex-wrap: wrap;
 }
 .tab {
   display: inline-flex;
@@ -2919,42 +3063,8 @@ textarea { resize: vertical; min-height: 60px; }
 [data-theme="dark"] .bulk-stat--failed { background: rgba(239, 68, 68, .1); }
 
 /* ==========================================================================
-   35. BULK ACTIONS — checkboxes & selection
+   35. BULK ACTIONS — selection bar, import results
    ========================================================================== */
-
-.table-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 14px;
-  flex-wrap: wrap;
-}
-.table-head h3 {
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.table-head__actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.checkbox-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 2px;
-  color: var(--muted);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: color .15s;
-}
-.checkbox-btn:hover { color: var(--accent); }
 
 .row--selected { background: var(--accent-soft) !important; }
 .row--selected:hover {
@@ -3101,7 +3211,6 @@ textarea { resize: vertical; min-height: 60px; }
 }
 .enroll-section-title:first-of-type { margin-top: 0; }
 
-/* Teacher type picker */
 .teacher-type-toggle {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -3132,7 +3241,6 @@ textarea { resize: vertical; min-height: 60px; }
 .teacher-type-tile strong { font-size: 14px; }
 .teacher-type-tile .muted { font-size: 12px; line-height: 1.4; }
 
-/* Assignments editor (subject teachers) */
 .assignments-editor {
   display: flex;
   flex-direction: column;
@@ -3522,7 +3630,6 @@ textarea { resize: vertical; min-height: 60px; }
   flex-wrap: wrap;
 }
 
-/* Fee publish modal */
 .fee-items-editor {
   display: flex;
   flex-direction: column;
@@ -3750,7 +3857,7 @@ textarea { resize: vertical; min-height: 60px; }
 .results-filter__item select { margin-top: 0; }
 
 /* ==========================================================================
-   43. ATTENDANCE — Teacher
+   43. TEACHER ATTENDANCE
    ========================================================================== */
 
 .attendance-toolbar {
@@ -3820,7 +3927,7 @@ textarea { resize: vertical; min-height: 60px; }
 .status-bg-excused { background: rgba(37, 99, 235, .05); }
 
 /* ==========================================================================
-   44. SUBJECT TILES & CLASSMATES (Student → My Class)
+   44. SUBJECT TILES & CLASSMATES
    ========================================================================== */
 
 .subject-grid {
@@ -3894,12 +4001,11 @@ textarea { resize: vertical; min-height: 60px; }
 }
 
 /* ==========================================================================
-   45. WEEKLY TIMETABLE (Student & Parent view)
+   45. WEEKLY TIMETABLE
    ========================================================================== */
 
 .timetable-wrap { display: flex; flex-direction: column; gap: 18px; }
 
-/* ----- Meta bar ----- */
 .timetable-meta {
   display: flex;
   align-items: center;
@@ -3938,7 +4044,6 @@ textarea { resize: vertical; min-height: 60px; }
 }
 .timetable-meta__stat { display: flex; align-items: center; gap: 5px; }
 
-/* ----- Weekly grid (desktop) ----- */
 .timetable-grid {
   display: grid;
   grid-template-columns: 86px repeat(5, minmax(130px, 1fr));
@@ -3955,7 +4060,6 @@ textarea { resize: vertical; min-height: 60px; }
   background: var(--border-strong);
   border-radius: 4px;
 }
-
 .timetable-grid__head {
   font-size: 11px;
   font-weight: 700;
@@ -3967,7 +4071,6 @@ textarea { resize: vertical; min-height: 60px; }
   background: var(--surface-2);
   border-radius: 8px;
 }
-
 .timetable-grid__time {
   display: flex;
   flex-direction: column;
@@ -3991,7 +4094,6 @@ textarea { resize: vertical; min-height: 60px; }
   color: var(--muted);
   font-weight: 600;
 }
-
 .timetable-grid__cell {
   display: flex;
   flex-direction: column;
@@ -4019,7 +4121,6 @@ textarea { resize: vertical; min-height: 60px; }
   box-shadow: none;
   border-color: var(--border);
 }
-
 .timetable-grid__subject {
   font-size: 13px;
   font-weight: 700;
@@ -4040,7 +4141,6 @@ textarea { resize: vertical; min-height: 60px; }
   text-align: center;
 }
 
-/* ----- Stacked mobile view ----- */
 .timetable-stack { display: none; flex-direction: column; gap: 14px; }
 .timetable-stack__day {
   background: var(--surface);
@@ -4090,7 +4190,6 @@ textarea { resize: vertical; min-height: 60px; }
   color: var(--muted);
 }
 
-/* ----- Empty state ----- */
 .timetable-empty {
   text-align: center;
   padding: 60px 24px;
@@ -4100,7 +4199,7 @@ textarea { resize: vertical; min-height: 60px; }
 .timetable-empty p { font-size: 15px; margin-bottom: 6px; }
 
 /* ==========================================================================
-   46. TEACHER TIMETABLE — Editable grid
+   46. TEACHER TIMETABLE — EDITABLE GRID
    ========================================================================== */
 
 .timetable-editor-grid {
@@ -4114,7 +4213,6 @@ textarea { resize: vertical; min-height: 60px; }
   box-shadow: var(--shadow-sm);
   overflow-x: auto;
 }
-
 .timetable-editor-grid__corner {
   display: grid;
   place-items: center;
@@ -4124,7 +4222,6 @@ textarea { resize: vertical; min-height: 60px; }
   border-radius: 8px;
   font-size: 14px;
 }
-
 .timetable-editor-grid__head {
   display: grid;
   place-items: center;
@@ -4137,7 +4234,6 @@ textarea { resize: vertical; min-height: 60px; }
   background: var(--surface-2);
   border-radius: 8px;
 }
-
 .timetable-editor-grid__time {
   display: flex;
   flex-direction: column;
@@ -4160,7 +4256,6 @@ textarea { resize: vertical; min-height: 60px; }
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-
 .timetable-editor-grid__cell {
   display: flex;
   flex-direction: column;
@@ -4224,20 +4319,6 @@ textarea { resize: vertical; min-height: 60px; }
   color: var(--accent);
 }
 
-@media (max-width: 900px) {
-  .timetable-editor-grid {
-    grid-template-columns: 70px repeat(5, minmax(110px, 1fr));
-    padding: 10px;
-    gap: 4px;
-  }
-  .timetable-editor-grid__cell {
-    min-height: 68px;
-    padding: 8px;
-  }
-  .timetable-editor-grid__subject { font-size: 12px; }
-  .timetable-editor-grid__range { font-size: 9.5px; }
-}
-
 /* ==========================================================================
    47. CALENDAR
    ========================================================================== */
@@ -4249,7 +4330,6 @@ textarea { resize: vertical; min-height: 60px; }
   padding: 20px;
   box-shadow: var(--shadow-sm);
 }
-
 .calendar-head {
   display: flex;
   align-items: center;
@@ -4295,7 +4375,6 @@ textarea { resize: vertical; min-height: 60px; }
   gap: 20px;
   align-items: start;
 }
-
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -4310,7 +4389,6 @@ textarea { resize: vertical; min-height: 60px; }
   padding: 6px 0 10px;
   font-weight: 700;
 }
-
 .calendar-cell {
   aspect-ratio: 1;
   background: var(--surface);
@@ -4354,7 +4432,6 @@ textarea { resize: vertical; min-height: 60px; }
   box-shadow: 0 4px 12px var(--accent-ring);
 }
 .calendar-cell--selected .calendar-cell__num { color: #fff; }
-
 .calendar-cell__num {
   font-size: 13px;
   font-weight: 600;
@@ -4380,7 +4457,6 @@ textarea { resize: vertical; min-height: 60px; }
   font-weight: 700;
   line-height: 1;
 }
-
 .calendar-panel {
   background: var(--surface-2);
   border: 1px solid var(--border);
@@ -4459,7 +4535,7 @@ textarea { resize: vertical; min-height: 60px; }
 }
 
 /* ==========================================================================
-   48. PRINT PAGES (Report Card · ID Card · sticky toolbar)
+   48. PRINT PAGES (report card, ID card, toolbar)
    ========================================================================== */
 
 .print-page {
@@ -4468,33 +4544,26 @@ textarea { resize: vertical; min-height: 60px; }
   padding: 20px;
 }
 
-/* ---- Sticky print toolbar ---- */
 .print-toolbar {
   position: sticky;
   top: 12px;
   z-index: 30;
-
   max-width: 900px;
   margin: 0 auto 20px;
-
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
-
   background: rgba(255, 255, 255, .88);
   backdrop-filter: saturate(180%) blur(10px);
   -webkit-backdrop-filter: saturate(180%) blur(10px);
-
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 10px 14px;
-
   box-shadow:
     0 4px 14px rgba(15, 23, 42, .08),
     0 1px 0 rgba(255, 255, 255, .6) inset;
-
   transition: box-shadow .2s ease, transform .2s ease;
 }
 [data-theme="dark"] .print-toolbar {
@@ -4535,7 +4604,6 @@ textarea { resize: vertical; min-height: 60px; }
 }
 .print-toolbar__right .btn { white-space: nowrap; }
 
-/* ---------- Report Card ---------- */
 .report-card {
   max-width: 900px;
   margin: 0 auto;
@@ -4668,7 +4736,6 @@ textarea { resize: vertical; min-height: 60px; }
   margin-top: 12px;
 }
 
-/* ---------- ID Card ---------- */
 .id-sheet {
   display: grid;
   gap: 24px;
@@ -4767,7 +4834,6 @@ textarea { resize: vertical; min-height: 60px; }
   height: calc(100vh - 180px);
   min-height: 500px;
 }
-
 .messages-sidebar {
   border-right: 1px solid var(--border);
   display: flex;
@@ -4808,6 +4874,12 @@ textarea { resize: vertical; min-height: 60px; }
 }
 .messages-conv:hover { background: var(--surface-3); }
 .messages-conv--active { background: var(--accent-soft); }
+.messages-conv--group {
+  background: linear-gradient(90deg, rgba(124, 58, 237, .04), transparent);
+}
+.messages-conv--group.messages-conv--active {
+  background: linear-gradient(90deg, rgba(124, 58, 237, .12), var(--accent-soft));
+}
 
 .messages-conv__body { flex: 1; min-width: 0; }
 .messages-conv__row {
@@ -4923,6 +4995,25 @@ textarea { resize: vertical; min-height: 60px; }
 }
 .msg--mine .msg__time { text-align: right; }
 
+.msg__ticks {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  color: rgba(255, 255, 255, .55);
+  vertical-align: middle;
+}
+.msg--mine .msg__ticks { color: rgba(255, 255, 255, .55); }
+.msg__ticks--read { color: #67e8f9; }
+
+.msg__sender {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 2px;
+  padding: 0 4px;
+  text-transform: capitalize;
+}
+
 .messages-chat__input {
   display: flex;
   gap: 8px;
@@ -4997,7 +5088,6 @@ textarea { resize: vertical; min-height: 60px; }
   font-size: 12px;
   flex-shrink: 0;
 }
-
 .analytics-bar {
   height: 10px;
   background: var(--surface-3);
@@ -5017,7 +5107,7 @@ textarea { resize: vertical; min-height: 60px; }
 }
 
 /* ==========================================================================
-   51. SMS META ROW
+   51. SMS META
    ========================================================================== */
 
 .sms-meta {
@@ -5032,7 +5122,7 @@ textarea { resize: vertical; min-height: 60px; }
 .sms-meta .btn-link { font-size: 12px; color: var(--accent); }
 
 /* ==========================================================================
-   52. QUIZ TIMER (Student LMS)
+   52. QUIZ TIMER
    ========================================================================== */
 
 .quiz-timer {
@@ -5063,7 +5153,6 @@ textarea { resize: vertical; min-height: 60px; }
   0%, 100% { box-shadow: var(--shadow-md); }
   50%      { box-shadow: 0 0 0 6px rgba(220, 38, 38, .12); }
 }
-
 .quiz-timer__icon {
   width: 38px;
   height: 38px;
@@ -5082,7 +5171,6 @@ textarea { resize: vertical; min-height: 60px; }
   background: rgba(220, 38, 38, .15);
   color: var(--red);
 }
-
 .quiz-timer__info { flex: 1; min-width: 0; }
 .quiz-timer__label {
   font-size: 11px;
@@ -5102,7 +5190,6 @@ textarea { resize: vertical; min-height: 60px; }
 }
 .quiz-timer--warning .quiz-timer__value { color: #b45309; }
 .quiz-timer--danger .quiz-timer__value { color: var(--red); }
-
 .quiz-timer__bar {
   flex: 0 0 140px;
   height: 8px;
@@ -5124,324 +5211,10 @@ textarea { resize: vertical; min-height: 60px; }
 }
 .quiz-timer__submit { flex-shrink: 0; }
 
-@media (max-width: 640px) {
-  .quiz-timer { flex-wrap: wrap; padding: 12px 14px; }
-  .quiz-timer__bar { flex: 1 1 100%; order: 3; }
-  .quiz-timer__value { font-size: 20px; }
-}
-
 /* ==========================================================================
-   53. RESPONSIVE
+   53. GRADES — Student & Teacher (expandable student cards)
    ========================================================================== */
 
-@media (max-width: 1024px) {
-  .login-split { grid-template-columns: 1fr; }
-  .login-hero {
-    padding: 40px 24px;
-    min-height: 380px;
-    align-items: flex-start;
-  }
-  .login-hero__content { max-width: 100%; }
-  .login-hero__tagline h2 { font-size: 26px; }
-  .login-hero__features { display: none; }
-  .login-hero__stats {
-    grid-template-columns: repeat(4, 1fr);
-    padding: 14px 0;
-  }
-  .login-hero__stat strong { font-size: 18px; }
-  .login-form-panel { padding: 32px 20px 40px; }
-  .login-form-panel__logo-mobile { display: grid; }
-}
-
-@media (max-width: 1000px) {
-  .enroll-grid { grid-template-columns: 1fr; }
-}
-
-@media (max-width: 900px) {
-  .grid-2 { grid-template-columns: 1fr; }
-  .calendar-body { grid-template-columns: 1fr; }
-  .calendar-panel { position: static; margin-top: 4px; }
-  .timetable-grid { display: none; }
-  .timetable-stack { display: flex; }
-}
-
-@media (max-width: 768px) {
-  .sidebar {
-    position: fixed;
-    left: 0;
-    top: 0;
-    transform: translateX(-100%);
-    transition: transform .25s ease;
-    z-index: 40;
-    box-shadow: var(--shadow-lg);
-  }
-  .sidebar--open { transform: translateX(0); }
-  .overlay { display: block; }
-  .menu-btn { display: inline-flex; }
-  .layout__content { padding: 16px; }
-  .topbar { padding: 12px 16px; }
-
-  .print-toolbar {
-    top: 8px;
-    padding: 10px;
-  }
-  .print-toolbar__center {
-    order: 3;
-    flex: 1 1 100%;
-    justify-content: stretch;
-    margin-top: 4px;
-  }
-  .print-toolbar__center select { flex: 1; }
-  .print-toolbar__right {
-    flex: 1;
-    justify-content: flex-end;
-  }
-
-  .attendance-row__buttons { width: 100%; }
-  .calendar-cell { aspect-ratio: auto; min-height: 60px; padding: 6px; }
-  .calendar-cell__num { font-size: 12px; }
-
-  .messages-layout { grid-template-columns: 1fr; height: auto; }
-  .messages-sidebar {
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-    max-height: 260px;
-  }
-  .messages-chat { min-height: 400px; }
-}
-
-@media (max-width: 640px) {
-  .login-hero {
-    min-height: 280px;
-    padding: 28px 20px;
-  }
-  .login-hero__tagline h2 { font-size: 22px; }
-  .login-hero__tagline p  { font-size: 13px; }
-  .login-hero__stats {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-    padding: 12px 0;
-  }
-  .login-hero__footer { display: none; }
-  .login-form-panel { padding: 28px 20px 36px; }
-  .login-form-panel__head h2 { font-size: 22px; }
-  .login-trust { gap: 12px; }
-
-  .class-card__meta { flex-direction: column; gap: 4px; }
-  .class-teacher__contacts { margin-left: 0; width: 100%; }
-
-  .receipt-preview { padding: 16px; }
-  .receipt-preview__meta,
-  .receipt-preview__student { grid-template-columns: 1fr; }
-
-  .page-header {
-    align-items: stretch;
-    gap: 12px;
-  }
-  .page-header h2 { font-size: 19px; }
-  .page-header__actions { width: 100%; }
-  .page-header__actions .btn { flex: 1 1 auto; }
-
-  .teacher-type-toggle { grid-template-columns: 1fr; }
-  .assignment-row { grid-template-columns: 1fr; }
-
-  .fee-item-row { grid-template-columns: 1fr; }
-  .fee-batch__amounts { width: 100%; justify-content: space-between; }
-  .fee-batch__amounts > div { text-align: left; }
-
-  .results-filter { flex-direction: column; align-items: stretch; }
-  .photo-uploader { justify-content: center; text-align: center; }
-  .photo-uploader__info { text-align: center; }
-
-  .analytics-row { grid-template-columns: 1fr 60px; }
-  .analytics-bar { grid-column: 1 / -1; }
-
-  .calendar-wrap { padding: 14px; }
-  .calendar-dot { width: 5px; height: 5px; }
-  .calendar-head__legend { display: none; }
-}
-
-@media (max-width: 600px) {
-  .user-menu__name,
-  .topbar__date { display: none; }
-  .modal { padding: 16px; }
-
-/* =====================================================================
-   ACADEMIC TOOLS + STUDENT PROGRESS
-   ===================================================================== */
-
-.academic-toolbar {
-  display: flex;
-  align-items: flex-end;
-  gap: 14px;
-  flex-wrap: wrap;
-  padding: 14px 16px 2px;
-  margin-bottom: 16px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-}
-.academic-toolbar label { flex: 1 1 170px; margin-bottom: 12px; }
-.academic-toolbar label:first-child { flex-grow: 2; }
-.academic-tabs { margin-bottom: 16px; }
-.academic-panel { padding: 18px; }
-.academic-panel > h3,
-.academic-panel__heading h3 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 6px;
-}
-.academic-panel__heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 14px;
-}
-.academic-panel__heading p { margin: 0; font-size: 13px; }
-.academic-gradebook { min-width: 640px; }
-.academic-gradebook th,
-.academic-gradebook td { vertical-align: middle; }
-.academic-gradebook td input {
-  width: 86px;
-  min-width: 72px;
-  margin: 0;
-  padding: 7px 8px;
-  border-radius: 7px;
-}
-.academic-columns {
-  display: grid;
-  grid-template-columns: minmax(260px, .85fr) minmax(0, 1.4fr);
-  align-items: start;
-  gap: 16px;
-}
-.academic-form label { margin-bottom: 12px; }
-.academic-form h3 { margin-bottom: 16px; }
-.academic-form > button { margin-top: 2px; }
-.academic-list { display: flex; flex-direction: column; }
-.academic-list__item {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--border);
-}
-.academic-list__item:first-child { padding-top: 4px; }
-.academic-list__item:last-child { border-bottom: 0; padding-bottom: 0; }
-.academic-list__item > div { min-width: 0; }
-.academic-list__item ol { padding-left: 22px; margin: 8px 0 0; color: var(--text-2); font-size: 13px; }
-.academic-list__item li { padding: 2px 0; }
-.academic-answer { color: var(--green); font-weight: 700; }
-.academic-list__date { color: var(--accent); font-size: 12px; font-weight: 700; }
-.academic-list__item h4 { margin: 5px 0 8px; }
-.academic-list__item p { margin: 5px 0; color: var(--text-2); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
-.icon-button {
-  display: inline-grid;
-  place-items: center;
-  flex: 0 0 36px;
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  color: var(--muted);
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  cursor: pointer;
-}
-.icon-button:hover:not(:disabled) { color: var(--red); border-color: var(--red); }
-.icon-button:disabled { opacity: .5; cursor: not-allowed; }
-
-.progress-chart { margin: 16px 0; padding: 18px; }
-.progress-chart__heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-.progress-chart__heading h3 { display: flex; align-items: center; gap: 8px; margin: 0; }
-.progress-chart__heading > span { font-size: 12px; }
-.progress-chart__canvas { width: 100%; overflow-x: auto; }
-.progress-chart__canvas svg { display: block; width: 100%; min-width: 520px; }
-.progress-chart__grid { stroke: var(--border); stroke-width: 1; }
-.progress-chart__axis,
-.progress-chart__label { fill: var(--muted); font-size: 10px; }
-.progress-chart__value { fill: var(--text); font-size: 11px; font-weight: 700; }
-.progress-chart__line { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
-.progress-chart__point { fill: var(--surface); stroke: var(--accent); stroke-width: 3; }
-
-@media (max-width: 760px) {
-  .academic-columns { grid-template-columns: 1fr; }
-  .academic-panel__heading { align-items: flex-start; flex-direction: column; }
-}
-
-@media (max-width: 520px) {
-  .academic-toolbar { gap: 0 12px; padding-inline: 12px; }
-  .academic-toolbar label { flex-basis: 100%; }
-  .academic-panel { padding: 14px; }
-  .progress-chart { padding: 14px; }
-  .progress-chart__heading { align-items: flex-start; flex-direction: column; }
-}
-  .card { padding: 16px; }
-}
-
-@media (max-width: 500px) {
-  .profile-form__actions { flex-direction: column-reverse; }
-  .profile-form__actions .btn { width: 100%; }
-}
-
-@media (max-width: 420px) {
-  .login-demo__btns--grid { grid-template-columns: 1fr; }
-}
-
-/* ==========================================================================
-   54. PRINT
-   ========================================================================== */
-
-@media print {
-  /* Hide chrome */
-  .sidebar,
-  .topbar,
-  .page-header__actions,
-  .print-toolbar,
-  .no-print { display: none !important; }
-
-  /* Layout reset */
-  body { background: #fff; }
-  .layout__content { padding: 0; }
-  .card { box-shadow: none; border: 1px solid #ddd; }
-
-  /* Report head */
-  .report-head { background: #f4f6fb !important; color: #000 !important; }
-  .report-head__avatar { background: #e2e8f0; color: #000; }
-
-  /* Print pages */
-  .print-page { padding: 0; background: #fff; }
-  .report-card {
-    box-shadow: none;
-    border-radius: 0;
-    padding: 0;
-    max-width: 100%;
-  }
-  .id-sheet { gap: 20px; }
-  .id-card {
-    box-shadow: none;
-    border: 1px solid #0b1220;
-  }
-  .report-card__table .grade {
-    background: transparent !important;
-    color: #0b1220 !important;
-    border: 1px solid #94a3b8;
-  }
-}
-
-/* ==========================================================================
-   GRADES — Student & Teacher
-   ========================================================================== */
-
-/* ---------- Teacher: per-student expandable cards ---------- */
 .grade-student-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -5459,7 +5232,6 @@ textarea { resize: vertical; min-height: 60px; }
   border-color: var(--accent);
   box-shadow: 0 4px 16px var(--accent-ring);
 }
-
 .grade-student-card__head {
   display: flex;
   align-items: center;
@@ -5475,7 +5247,6 @@ textarea { resize: vertical; min-height: 60px; }
   transition: background .15s;
 }
 .grade-student-card__head:hover { background: var(--surface-2); }
-
 .grade-student-card__info {
   flex: 1;
   min-width: 0;
@@ -5492,7 +5263,6 @@ textarea { resize: vertical; min-height: 60px; }
   text-overflow: ellipsis;
 }
 .grade-student-card__info span { font-size: 12px; }
-
 .grade-student-card__stats {
   display: flex;
   gap: 20px;
@@ -5521,18 +5291,15 @@ textarea { resize: vertical; min-height: 60px; }
   color: var(--accent) !important;
   font-size: 15px !important;
 }
-
 .grade-student-card__chevron {
   color: var(--muted);
   flex-shrink: 0;
 }
-
 .grade-student-card__body {
   padding: 4px 18px 18px;
   background: var(--surface-2);
   border-top: 1px solid var(--border);
 }
-
 .grade-student-card__meta {
   display: flex;
   align-items: center;
@@ -5568,7 +5335,6 @@ textarea { resize: vertical; min-height: 60px; }
   color: var(--accent);
   margin-bottom: 10px;
 }
-
 .grade-detail-section .table {
   background: var(--surface);
   border-radius: 10px;
@@ -5580,28 +5346,8 @@ textarea { resize: vertical; min-height: 60px; }
   font-size: 12.5px;
 }
 
-@media (max-width: 640px) {
-  .grade-student-card__head {
-    flex-wrap: wrap;
-    padding: 12px 14px;
-  }
-  .grade-student-card__stats {
-    order: 3;
-    flex-basis: 100%;
-    justify-content: space-between;
-    padding-top: 10px;
-    border-top: 1px dashed var(--border);
-    margin-top: 4px;
-  }
-  .grade-student-card__stats > div {
-    text-align: left;
-  }
-  .grade-student-card__body { padding: 4px 14px 14px; }
-  .grade-detail-section .table-wrap { overflow-x: auto; }
-}
-
 /* ==========================================================================
-   TOASTS
+   54. TOASTS
    ========================================================================== */
 
 .toast-container {
@@ -5615,7 +5361,6 @@ textarea { resize: vertical; min-height: 60px; }
   pointer-events: none;
   max-width: calc(100vw - 40px);
 }
-
 .toast {
   display: flex;
   align-items: center;
@@ -5632,12 +5377,10 @@ textarea { resize: vertical; min-height: 60px; }
   pointer-events: auto;
   animation: toastSlideIn .25s ease-out;
 }
-
 @keyframes toastSlideIn {
   from { opacity: 0; transform: translateX(20px); }
   to   { opacity: 1; transform: translateX(0); }
 }
-
 .toast__icon { flex-shrink: 0; }
 .toast__msg  { flex: 1; min-width: 0; line-height: 1.4; }
 .toast__close {
@@ -5660,136 +5403,8 @@ textarea { resize: vertical; min-height: 60px; }
 .toast--info    { border-left: 4px solid var(--accent); }
 .toast--info    .toast__icon { color: var(--accent); }
 
-@media (max-width: 500px) {
-  .toast-container {
-    top: 12px;
-    right: 12px;
-    left: 12px;
-    max-width: none;
-  }
-  .toast { max-width: none; }
-}
-
 /* ==========================================================================
-   LOGIN — dark variant + theme toggle
-   ========================================================================== */
-
-/* Floating theme toggle on the login page */
-.login-theme-toggle {
-  position: absolute;
-  top: 18px;
-  right: 18px;
-  z-index: 5;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text-2);
-  cursor: pointer;
-  display: grid;
-  place-items: center;
-  box-shadow: var(--shadow-md);
-  transition: transform .15s, background .15s;
-}
-.login-theme-toggle:hover {
-  transform: scale(1.05);
-  background: var(--surface-3);
-}
-
-/* The login page needs position: relative so the toggle anchors to it */
-.login-split { position: relative; }
-
-/* ⭐ Dark variant of the login page */
-.login-split[data-login-theme="dark"] {
-  --bg:            #0a0f1c;
-  --surface:       #101a2f;
-  --surface-2:     #16233a;
-  --surface-3:     #1c2c47;
-
-  --text:          #e6edf6;
-  --text-2:        #cbd5e1;
-  --muted:         #8a9ab5;
-  --muted-2:       #64748b;
-
-  --border:        #1e2a44;
-  --border-strong: #2f3e5c;
-
-  --accent-soft:   #172554;
-  --accent-text:   #bfdbfe;
-
-  color-scheme: dark;
-  background: var(--bg);
-  color: var(--text);
-}
-
-.login-split[data-login-theme="dark"] .login-form-panel {
-  background: linear-gradient(180deg, #0f172a 0%, #0a0f1c 100%);
-}
-
-.login-split[data-login-theme="dark"] .login-form-panel__inner {
-  background: rgba(16, 26, 47, 0.82);
-  border-color: rgba(148, 163, 184, 0.14);
-  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.5);
-}
-
-.login-split[data-login-theme="dark"] .login-form input {
-  color: #e6edf6;
-  background: rgba(15, 23, 42, 0.5);
-  border-color: var(--border);
-}
-.login-split[data-login-theme="dark"] .login-form input::placeholder {
-  color: #64748b;
-}
-.login-split[data-login-theme="dark"] .login-form input:focus {
-  border-color: rgba(96, 165, 250, 0.5);
-  box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.1);
-}
-
-/* ==========================================================================
-   MESSAGES — group chat + read receipts (Batch 2)
-   ========================================================================== */
-
-/* Group avatar override */
-.avatar--group {
-  background: linear-gradient(135deg, #7c3aed, #2563eb);
-  color: #fff;
-}
-.avatar--group svg { stroke-width: 2; }
-
-/* Group conversation row */
-.messages-conv--group {
-  background: linear-gradient(90deg, rgba(124, 58, 237, .04), transparent);
-}
-.messages-conv--group.messages-conv--active {
-  background: linear-gradient(90deg, rgba(124, 58, 237, .12), var(--accent-soft));
-}
-
-/* Read receipts */
-.msg__ticks {
-  display: inline-flex;
-  align-items: center;
-  margin-left: 6px;
-  color: rgba(255, 255, 255, .55);
-  vertical-align: middle;
-}
-.msg--mine .msg__ticks { color: rgba(255, 255, 255, .55); }
-.msg__ticks--read {
-  color: #67e8f9;
-}
-
-/* Sender name on other people's group messages */
-.msg__sender {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--accent);
-  margin-bottom: 2px;
-  padding: 0 4px;
-  text-transform: capitalize;
-}
-
-/* ==========================================================================
-   BEHAVIOUR — timeline + cards (Batch 2)
+   55. BEHAVIOUR — timeline & cards
    ========================================================================== */
 
 .behaviour-timeline {
@@ -5798,7 +5413,6 @@ textarea { resize: vertical; min-height: 60px; }
   gap: 10px;
   margin-top: 8px;
 }
-
 .behaviour-card {
   display: flex;
   align-items: flex-start;
@@ -5814,7 +5428,6 @@ textarea { resize: vertical; min-height: 60px; }
   border-color: var(--border-strong);
   box-shadow: var(--shadow-md);
 }
-
 .behaviour-card__icon {
   width: 40px;
   height: 40px;
@@ -5835,9 +5448,7 @@ textarea { resize: vertical; min-height: 60px; }
   background: rgba(100, 116, 139, .12);
   color: var(--muted);
 }
-
 .behaviour-card__body { flex: 1; min-width: 0; }
-
 .behaviour-card__head {
   display: flex;
   align-items: center;
@@ -5850,7 +5461,6 @@ textarea { resize: vertical; min-height: 60px; }
   font-size: 14px;
   color: var(--text);
 }
-
 .behaviour-pill {
   display: inline-flex;
   align-items: center;
@@ -5873,7 +5483,6 @@ textarea { resize: vertical; min-height: 60px; }
   background: var(--surface-3);
   color: var(--muted);
 }
-
 .behaviour-card__meta {
   display: flex;
   gap: 14px;
@@ -5887,7 +5496,6 @@ textarea { resize: vertical; min-height: 60px; }
   align-items: center;
   gap: 4px;
 }
-
 .behaviour-card__note {
   font-size: 13px;
   color: var(--text-2);
@@ -5895,7 +5503,6 @@ textarea { resize: vertical; min-height: 60px; }
   margin-top: 6px;
   white-space: pre-wrap;
 }
-
 .behaviour-card__del {
   background: none;
   border: none;
@@ -5908,18 +5515,84 @@ textarea { resize: vertical; min-height: 60px; }
 }
 .behaviour-card__del:hover { color: var(--red); background: rgba(220, 38, 38, .08); }
 
-@media (max-width: 640px) {
-  .behaviour-card { padding: 14px; }
-  .behaviour-card__head { flex-direction: column; align-items: flex-start; }
-}
-
 /* ==========================================================================
-   ACADEMIC TOOLS — Gradebook / Question Bank / Lesson Plans / Progress
+   56. ACADEMIC TOOLS — Gradebook, Question Bank, Lesson Plans, Progress
    ========================================================================== */
 
-/* ---------- Toolbar ---------- */
+.academic-toolbar {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 14px 16px 2px;
+  margin-bottom: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.academic-toolbar label { flex: 1 1 170px; margin-bottom: 12px; }
+.academic-toolbar label:first-child { flex-grow: 2; }
 .academic-toolbar__target { flex: 1 1 260px; }
 
+.academic-tabs { margin-bottom: 16px; }
+.academic-panel { padding: 18px; }
+.academic-panel > h3,
+.academic-panel__heading h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px;
+}
+.academic-panel__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.academic-panel__heading p { margin: 0; font-size: 13px; }
+
+.academic-columns {
+  display: grid;
+  grid-template-columns: minmax(260px, .85fr) minmax(0, 1.4fr);
+  align-items: start;
+  gap: 16px;
+}
+.academic-form label { margin-bottom: 12px; }
+.academic-form h3 { margin-bottom: 16px; }
+.academic-form > button { margin-top: 2px; }
+
+.academic-gradebook { min-width: 640px; }
+.academic-gradebook th,
+.academic-gradebook td { vertical-align: middle; }
+.academic-gradebook td input {
+  width: 86px;
+  min-width: 72px;
+  margin: 0;
+  padding: 7px 8px;
+  border-radius: 7px;
+}
+
+.academic-list { display: flex; flex-direction: column; }
+.academic-list__item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+.academic-list__item:first-child { padding-top: 4px; }
+.academic-list__item:last-child { border-bottom: 0; padding-bottom: 0; }
+.academic-list__item > div { min-width: 0; }
+.academic-list__item ol { padding-left: 22px; margin: 8px 0 0; color: var(--text-2); font-size: 13px; }
+.academic-list__item li { padding: 2px 0; }
+.academic-answer { color: var(--green); font-weight: 700; }
+.academic-list__date { color: var(--accent); font-size: 12px; font-weight: 700; }
+.academic-list__item h4 { margin: 5px 0 8px; }
+.academic-list__item p { margin: 5px 0; color: var(--text-2); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+
+/* ---------- Gradebook toolbar ---------- */
 .gradebook-toolbar {
   display: flex;
   justify-content: space-between;
@@ -5988,7 +5661,7 @@ textarea { resize: vertical; min-height: 60px; }
   align-items: center;
 }
 
-/* ---------- Stats strip ---------- */
+/* ---------- Gradebook stats ---------- */
 .gradebook-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
@@ -6002,7 +5675,6 @@ textarea { resize: vertical; min-height: 60px; }
   padding: 12px 14px;
   box-shadow: var(--shadow-sm);
 }
-.gradebook-stat--wide { grid-column: span 1; }
 .gradebook-stat__label {
   display: block;
   font-size: 10.5px;
@@ -6022,7 +5694,7 @@ textarea { resize: vertical; min-height: 60px; }
   text-overflow: ellipsis;
 }
 
-/* ---------- Table ---------- */
+/* ---------- Gradebook table ---------- */
 .gradebook-card {
   padding: 0;
   overflow: hidden;
@@ -6113,7 +5785,7 @@ textarea { resize: vertical; min-height: 60px; }
   color: var(--text-2);
 }
 
-/* ---------- Question options input grid ---------- */
+/* ---------- Question options editor ---------- */
 .question-options-grid {
   display: flex;
   flex-direction: column;
@@ -6196,10 +5868,10 @@ textarea { resize: vertical; min-height: 60px; }
   padding: 14px 16px;
 }
 .question-item__head {
-  display: flex;
-  justify-content: flex-start;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   gap: 12px;
+  align-items: flex-start;
   margin-bottom: 10px;
 }
 .question-item__num {
@@ -6221,9 +5893,26 @@ textarea { resize: vertical; min-height: 60px; }
   font-size: 14px;
   font-weight: 600;
   color: var(--text);
-  flex: 1;
   min-width: 0;
   line-height: 1.4;
+}
+.question-item__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.question-item__usage {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10.5px;
+  color: var(--muted);
+  font-weight: 600;
+  padding: 2px 6px;
+  background: var(--surface-3);
+  border-radius: 20px;
 }
 .question-item__options {
   display: grid;
@@ -6257,12 +5946,15 @@ textarea { resize: vertical; min-height: 60px; }
   flex-shrink: 0;
 }
 .question-item__option--correct .question-item__letter { color: var(--green); }
-
-@media (max-width: 640px) {
-  .question-item__options { grid-template-columns: 1fr; padding-left: 0; }
+.question-item__meta {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+  font-size: 11.5px;
+  color: var(--muted);
 }
 
-/* ---------- Lesson list ---------- */
+/* ---------- Lesson plans list ---------- */
 .lesson-list {
   display: flex;
   flex-direction: column;
@@ -6304,9 +5996,7 @@ textarea { resize: vertical; min-height: 60px; }
   font-weight: 700;
   margin-top: 2px;
 }
-.lesson-card__body {
-  min-width: 0;
-}
+.lesson-card__body { min-width: 0; }
 .lesson-card__body h4 {
   font-size: 14px;
   font-weight: 700;
@@ -6322,42 +6012,30 @@ textarea { resize: vertical; min-height: 60px; }
 }
 .lesson-card__body p strong { color: var(--text); }
 
-/* ---------- Gradebook bulk responsive ---------- */
-@media (max-width: 640px) {
-  .gradebook-toolbar { padding: 14px; }
-  .gradebook-toolbar__right { width: 100%; }
-  .gradebook-toolbar__right .btn { flex: 1; }
-  .gradebook-bulk__row { grid-template-columns: 1fr; }
-  .gradebook-input { width: 68px; padding: 6px 8px; font-size: 12.5px; }
-  .gradebook-table th,
-  .gradebook-table td { padding: 8px 10px; }
+/* ---------- Progress chart (SVG fallback) ---------- */
+.progress-chart { margin: 16px 0; padding: 18px; }
+.progress-chart__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
 }
+.progress-chart__heading h3 { display: flex; align-items: center; gap: 8px; margin: 0; }
+.progress-chart__heading > span { font-size: 12px; }
+.progress-chart__canvas { width: 100%; overflow-x: auto; }
+.progress-chart__canvas svg { display: block; width: 100%; min-width: 520px; }
+.progress-chart__grid { stroke: var(--border); stroke-width: 1; }
+.progress-chart__axis,
+.progress-chart__label { fill: var(--muted); font-size: 10px; }
+.progress-chart__value { fill: var(--text); font-size: 11px; font-weight: 700; }
+.progress-chart__line { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.progress-chart__point { fill: var(--surface); stroke: var(--accent); stroke-width: 3; }
 
 /* ==========================================================================
-   BATCH 4 — Parent features + Logo
+   57. CHILD SELECTOR & MEETINGS
    ========================================================================== */
 
-/* ---------- Logo swap in Sidebar ---------- */
-
-/* ---------- Logo swap on Login ---------- */
-
-/* ---------- Welcome banner chips (clickable) ---------- */
-.welcome-banner__chip--clickable {
-  cursor: pointer;
-  font: inherit;
-  transition: background .15s, border-color .15s, transform .12s;
-}
-.welcome-banner__chip--clickable:hover {
-  background: rgba(255, 255, 255, .28);
-  transform: translateY(-1px);
-}
-.welcome-banner__chip--active {
-  background: rgba(255, 255, 255, .38) !important;
-  border-color: rgba(255, 255, 255, .6) !important;
-  font-weight: 700;
-}
-
-/* ---------- Child selector ---------- */
 .child-selector { position: relative; }
 .child-selector--single {
   display: inline-flex;
@@ -6470,7 +6148,6 @@ textarea { resize: vertical; min-height: 60px; }
 .child-selector__item-info span { font-size: 11px; color: var(--muted); }
 .child-selector__item svg { color: var(--accent); flex-shrink: 0; }
 
-/* ---------- Fee action banner (fees page) ---------- */
 .fee-action-banner {
   display: flex;
   align-items: center;
@@ -6483,13 +6160,11 @@ textarea { resize: vertical; min-height: 60px; }
 .fee-action-banner strong { display: block; font-size: 14px; color: var(--text); }
 .fee-action-banner p { font-size: 12px; margin: 4px 0 0; }
 
-/* ---------- Meeting list & cards ---------- */
 .meeting-list {
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
-
 .meeting-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -6502,7 +6177,6 @@ textarea { resize: vertical; min-height: 60px; }
   border-color: var(--border-strong);
   box-shadow: var(--shadow-md);
 }
-
 .meeting-card__head {
   display: flex;
   justify-content: space-between;
@@ -6527,7 +6201,6 @@ textarea { resize: vertical; min-height: 60px; }
   color: var(--text);
   margin: 0;
 }
-
 .meeting-status {
   display: inline-flex;
   align-items: center;
@@ -6538,7 +6211,6 @@ textarea { resize: vertical; min-height: 60px; }
   letter-spacing: .4px;
   text-transform: uppercase;
 }
-
 .meeting-card__meta {
   display: flex;
   flex-direction: column;
@@ -6554,7 +6226,6 @@ textarea { resize: vertical; min-height: 60px; }
   gap: 5px;
   justify-content: flex-end;
 }
-
 .meeting-card__body {
   display: flex;
   flex-direction: column;
@@ -6598,7 +6269,6 @@ textarea { resize: vertical; min-height: 60px; }
   font-size: 12.5px;
 }
 .meeting-card__contacts a:hover { color: var(--accent); }
-
 .meeting-card__note {
   margin: 0;
   padding: 10px 14px;
@@ -6623,7 +6293,6 @@ textarea { resize: vertical; min-height: 60px; }
   background: var(--surface-3);
   color: var(--text);
 }
-
 .meeting-card__actions {
   display: flex;
   gap: 8px;
@@ -6634,7 +6303,6 @@ textarea { resize: vertical; min-height: 60px; }
   flex-wrap: wrap;
 }
 
-/* Meeting action summary (in modal) */
 .meeting-action-summary {
   display: flex;
   flex-direction: column;
@@ -6658,21 +6326,10 @@ textarea { resize: vertical; min-height: 60px; }
 }
 .meeting-action-summary strong { color: var(--text); }
 
-@media (max-width: 640px) {
-  .meeting-card__head { flex-direction: column; }
-  .meeting-card__meta { text-align: left; }
-  .meeting-card__meta > span { justify-content: flex-start; }
-  .meeting-card__label { flex-basis: 100%; }
-  .meeting-card__actions { flex-direction: column-reverse; }
-  .meeting-card__actions .btn { width: 100%; }
-  .child-selector__info strong { max-width: 140px; }
-}
-
 /* ==========================================================================
-   BATCH 5 — Notifications & Automation
+   58. NOTIFICATION SETTINGS & DUE-SOON CARD
    ========================================================================== */
 
-/* ---------- Settings card ---------- */
 .notification-settings .settings-block {
   padding: 14px 0;
   border-bottom: 1px solid var(--border);
@@ -6732,7 +6389,6 @@ textarea { resize: vertical; min-height: 60px; }
   font-size: 13px;
 }
 
-/* ---------- Toggle switch ---------- */
 .toggle {
   position: relative;
   display: inline-block;
@@ -6774,7 +6430,6 @@ textarea { resize: vertical; min-height: 60px; }
 }
 .toggle input:disabled + .toggle__slider { opacity: .55; cursor: not-allowed; }
 
-/* ---------- Due soon card ---------- */
 .due-soon-card {
   border-left: 4px solid var(--amber);
 }
@@ -6878,22 +6533,10 @@ textarea { resize: vertical; min-height: 60px; }
   border-radius: 20px;
 }
 
-@media (max-width: 640px) {
-  .due-soon-item {
-    grid-template-columns: 48px 1fr;
-    row-gap: 6px;
-  }
-  .due-soon-item__due { grid-column: 2; }
-  .settings-block__head { flex-wrap: wrap; }
-  .settings-block__action { width: 100%; margin-top: 10px; margin-left: 50px; }
-  .settings-block__sub { margin-left: 0; }
-}
-
 /* ==========================================================================
-   BATCH 6 — Admin tools
+   59. ADMIN TOOLS — audit log, financial, backup, bulk PDF
    ========================================================================== */
 
-/* ---------- Audit log ---------- */
 .audit-table { font-size: 12.5px; }
 .audit-table th,
 .audit-table td { padding: 10px 12px; }
@@ -6907,7 +6550,6 @@ textarea { resize: vertical; min-height: 60px; }
   font-weight: 800;
   letter-spacing: 0.4px;
 }
-
 .audit-path code {
   font-size: 11.5px;
   background: var(--surface-3);
@@ -6917,7 +6559,6 @@ textarea { resize: vertical; min-height: 60px; }
   color: var(--text-2);
   word-break: break-all;
 }
-
 .audit-status {
   display: inline-flex;
   align-items: center;
@@ -6927,10 +6568,10 @@ textarea { resize: vertical; min-height: 60px; }
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
-.audit-status--success { background: rgba(22,163,74,.12); color: var(--green); }
-.audit-status--redirect { background: rgba(37,99,235,.12); color: var(--accent); }
-.audit-status--client { background: rgba(245,158,11,.14); color: #b45309; }
-.audit-status--server { background: rgba(220,38,38,.12); color: var(--red); }
+.audit-status--success  { background: rgba(22,163,74,.12);  color: var(--green); }
+.audit-status--redirect { background: rgba(37,99,235,.12);  color: var(--accent); }
+.audit-status--client   { background: rgba(245,158,11,.14); color: #b45309; }
+.audit-status--server   { background: rgba(220,38,38,.12);  color: var(--red); }
 
 .audit-table-head {
   display: flex;
@@ -7003,13 +6644,6 @@ textarea { resize: vertical; min-height: 60px; }
   word-break: break-word;
 }
 
-@media (max-width: 640px) {
-  .audit-summary-grid { grid-template-columns: 1fr; }
-  .audit-table-head { flex-direction: column; align-items: stretch; }
-  .audit-pagination { justify-content: flex-end; }
-}
-
-/* ---------- Financial reports ---------- */
 .fin-bars { display: flex; flex-direction: column; gap: 10px; padding: 4px 0; }
 .fin-bar-row {
   display: grid;
@@ -7080,12 +6714,6 @@ textarea { resize: vertical; min-height: 60px; }
   transition: width .4s ease;
 }
 
-@media (max-width: 640px) {
-  .fin-bar-row { grid-template-columns: 1fr; gap: 6px; }
-  .fin-bar-row__value { text-align: left; }
-}
-
-/* ---------- Backup page ---------- */
 .backup-hero {
   display: flex;
   align-items: flex-start;
@@ -7122,7 +6750,6 @@ textarea { resize: vertical; min-height: 60px; }
 }
 .backup-hero__action { flex-shrink: 0; }
 
-/* ---------- Bulk PDF export ---------- */
 .bulk-pdf-card {
   display: flex;
   flex-direction: column;
@@ -7150,10 +6777,9 @@ textarea { resize: vertical; min-height: 60px; }
 .bulk-pdf-tips strong { color: var(--text); }
 
 /* ==========================================================================
-   BATCH 7 — Delight (command palette, shortcuts, tour, library, offline)
+   60. COMMAND PALETTE, SHORTCUTS, TOUR, OFFLINE
    ========================================================================== */
 
-/* ---------- Command palette ---------- */
 .cmd-backdrop {
   position: fixed;
   inset: 0;
@@ -7166,7 +6792,6 @@ textarea { resize: vertical; min-height: 60px; }
   padding: 12vh 16px 16px;
   animation: fadeIn .15s ease-out;
 }
-
 .cmd-panel {
   width: min(620px, 100%);
   background: var(--surface);
@@ -7176,7 +6801,6 @@ textarea { resize: vertical; min-height: 60px; }
   overflow: hidden;
   animation: modalIn .18s ease-out;
 }
-
 .cmd-input-row {
   display: flex;
   align-items: center;
@@ -7246,7 +6870,6 @@ textarea { resize: vertical; min-height: 60px; }
   background: var(--accent);
   color: #fff;
 }
-
 .cmd-item__icon {
   width: 28px;
   height: 28px;
@@ -7276,7 +6899,6 @@ textarea { resize: vertical; min-height: 60px; }
   color: var(--accent);
   flex-shrink: 0;
 }
-
 .cmd-foot {
   display: flex;
   gap: 16px;
@@ -7304,32 +6926,6 @@ textarea { resize: vertical; min-height: 60px; }
   color: var(--text-2);
 }
 
-/* ---------- Shortcuts hint in Topbar ---------- */
-.topbar__kbd-hint {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  padding: 5px 9px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  border-radius: 8px;
-  color: var(--muted);
-  font: inherit;
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all .15s;
-}
-.topbar__kbd-hint:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-soft);
-}
-@media (max-width: 768px) {
-  .topbar__kbd-hint { display: none; }
-}
-
-/* ---------- Shortcuts modal ---------- */
 .shortcuts-modal { width: min(520px, 100%); }
 .shortcuts-grid {
   display: grid;
@@ -7372,7 +6968,6 @@ textarea { resize: vertical; min-height: 60px; }
   text-align: center;
 }
 
-/* ---------- Onboarding tour ---------- */
 .tour-backdrop {
   position: fixed;
   inset: 0;
@@ -7396,7 +6991,6 @@ textarea { resize: vertical; min-height: 60px; }
   0%, 100% { box-shadow: 0 0 0 4px rgba(37, 99, 235, .25), 0 0 0 9999px rgba(15, 23, 42, .72); }
   50%      { box-shadow: 0 0 0 10px rgba(37, 99, 235, .12), 0 0 0 9999px rgba(15, 23, 42, .72); }
 }
-
 .tour-card {
   position: fixed;
   z-index: 9999;
@@ -7454,7 +7048,6 @@ textarea { resize: vertical; min-height: 60px; }
   border-top: 1px solid var(--border);
 }
 
-/* ---------- Offline badge ---------- */
 .offline-badge {
   position: fixed;
   bottom: 20px;
@@ -7477,7 +7070,10 @@ textarea { resize: vertical; min-height: 60px; }
   box-shadow: 0 8px 20px rgba(22, 163, 74, .35);
 }
 
-/* ---------- Library ---------- */
+/* ==========================================================================
+   61. LIBRARY — cards, covers, viewer
+   ========================================================================== */
+
 .library-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -7507,14 +7103,6 @@ textarea { resize: vertical; min-height: 60px; }
   align-items: center;
   justify-content: center;
 }
-.library-card__cover img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.library-card__cover-placeholder {
-  color: var(--muted);
-}
 .library-card__type {
   position: absolute;
   top: 10px;
@@ -7528,6 +7116,20 @@ textarea { resize: vertical; min-height: 60px; }
   text-transform: uppercase;
   letter-spacing: 0.4px;
   backdrop-filter: blur(4px);
+}
+.library-card__play {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  text-shadow: 0 2px 8px rgba(0,0,0,.5);
+  background: rgba(0,0,0,.18);
+  transition: background .15s;
+  pointer-events: none;
+}
+.library-card:hover .library-card__play {
+  background: rgba(0,0,0,.32);
 }
 .library-card__body {
   flex: 1;
@@ -7577,6 +7179,44 @@ textarea { resize: vertical; min-height: 60px; }
   align-items: center;
 }
 
+/* Cover wrapper — fill the parent, image scales to fit */
+.library-cover {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.library-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.library-cover--card { aspect-ratio: 16 / 10; }
+.library-cover--detail {
+  width: 140px;
+  height: 200px;
+  border-radius: 10px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, .12);
+  flex-shrink: 0;
+}
+.library-cover__fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--muted);
+  width: 100%;
+  height: 100%;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  font-weight: 700;
+}
+.library-cover__fallback svg { color: var(--accent); }
+
 .progress-mini {
   display: flex;
   align-items: center;
@@ -7603,12 +7243,75 @@ textarea { resize: vertical; min-height: 60px; }
   font-variant-numeric: tabular-nums;
 }
 
-@media (max-width: 520px) {
-  .library-grid { grid-template-columns: 1fr; }
+/* Resource viewer (in detail modal) */
+.resource-viewer {
+  margin-bottom: 18px;
+}
+.resource-viewer__embed {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+  border: 1px solid var(--border);
+}
+.resource-viewer__embed iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+.resource-viewer__pdf {
+  width: 100%;
+  height: 65vh;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.resource-viewer__pdf iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+.resource-viewer__desc {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-2);
+  margin: 14px 0 0;
+}
+.resource-viewer__note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-ring);
+  border-radius: 10px;
+  color: var(--accent-text);
+  font-size: 13px;
+  line-height: 1.5;
+  margin-top: 14px;
+}
+.resource-viewer__note svg { flex-shrink: 0; margin-top: 2px; }
+.resource-viewer--book {
+  margin-top: 4px;
+}
+.resource-viewer__book-grid {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.resource-viewer__book-info {
+  flex: 1;
+  min-width: 220px;
 }
 
 /* ==========================================================================
-   RECHARTS
+   62. RECHARTS
    ========================================================================== */
 
 .recharts-wrap {
@@ -7616,125 +7319,37 @@ textarea { resize: vertical; min-height: 60px; }
   min-height: 260px;
   margin-top: 4px;
 }
-
-/* Axis labels inherit text color from the theme */
 .recharts-cartesian-axis-tick-value {
   fill: var(--muted);
 }
-
-/* Grid lines blend with the theme */
 .recharts-cartesian-grid line {
   stroke: var(--border);
 }
-
-/* Legend text */
 .recharts-legend-item-text {
   color: var(--text-2) !important;
   font-size: 12px;
 }
-
-/* Recharts tooltip overrides */
 .recharts-default-tooltip {
   background: var(--surface) !important;
   border: 1px solid var(--border) !important;
   border-radius: 10px !important;
 }
-
-/* Focus ring removal — recharts uses SVG focus outlines */
 .recharts-wrapper:focus,
 .recharts-surface:focus {
   outline: none;
 }
-
-/* Progress chart wrapper — keeps the card padding consistent */
 .progress-chart .recharts-wrap {
   padding: 4px 0 0;
 }
-
-/* Dark mode: adjust grid contrast slightly */
 [data-theme="dark"] .recharts-cartesian-grid line {
   stroke: var(--border-strong);
   opacity: 0.6;
 }
 
-@media (max-width: 640px) {
-  .recharts-wrap {
-    min-height: 220px;
-  }
-}
-
 /* ==========================================================================
-   BATCH 8 — Reusable content library
+   63. CONTENT LIBRARY — templates & bank picker
    ========================================================================== */
 
-/* Source badges on bank items */
-.source-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  border-radius: 20px;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  white-space: nowrap;
-}
-.source-badge--manual {
-  background: rgba(37, 99, 235, .12);
-  color: var(--accent-text);
-}
-.source-badge--quiz {
-  background: rgba(124, 58, 237, .12);
-  color: #6d28d9;
-}
-.source-badge--assignment {
-  background: rgba(22, 163, 74, .12);
-  color: var(--green);
-}
-[data-theme="dark"] .source-badge--manual {
-  background: rgba(96, 165, 250, .18); color: #bfdbfe;
-}
-[data-theme="dark"] .source-badge--quiz {
-  background: rgba(167, 139, 250, .18); color: #ddd6fe;
-}
-[data-theme="dark"] .source-badge--assignment {
-  background: rgba(34, 197, 94, .18); color: #86efac;
-}
-
-/* Question item head — new action cluster */
-.question-item__head {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 12px;
-  align-items: flex-start;
-}
-.question-item__actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-.question-item__usage {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  font-size: 10.5px;
-  color: var(--muted);
-  font-weight: 600;
-  padding: 2px 6px;
-  background: var(--surface-3);
-  border-radius: 20px;
-}
-.question-item__meta {
-  margin-top: 10px;
-  padding-top: 8px;
-  border-top: 1px dashed var(--border);
-  font-size: 11.5px;
-  color: var(--muted);
-}
-
-/* Assignment templates list (Academic Tools) */
 .template-list {
   display: flex;
   flex-direction: column;
@@ -7787,7 +7402,6 @@ textarea { resize: vertical; min-height: 60px; }
   border-top: 1px dashed var(--border);
 }
 
-/* Bank picker (modal in TeacherLMS) */
 .bank-picker-list {
   display: flex;
   flex-direction: column;
@@ -7870,7 +7484,6 @@ textarea { resize: vertical; min-height: 60px; }
   color: #86efac;
 }
 
-/* Template picker (modal in TeacherAssignments) */
 .template-picker-list {
   display: flex;
   flex-direction: column;
@@ -7925,7 +7538,157 @@ textarea { resize: vertical; min-height: 60px; }
   white-space: pre-wrap;
 }
 
+/* ==========================================================================
+   64. RESPONSIVE
+   ========================================================================== */
+
+@media (max-width: 1024px) {
+  .login-split { grid-template-columns: 1fr; }
+  .login-hero {
+    padding: 40px 24px;
+    min-height: 380px;
+    align-items: flex-start;
+  }
+  .login-hero__content { max-width: 100%; }
+  .login-hero__tagline h2 { font-size: 26px; }
+  .login-hero__features { display: none; }
+  .login-hero__stats {
+    grid-template-columns: repeat(4, 1fr);
+    padding: 14px 0;
+  }
+  .login-hero__stat strong { font-size: 18px; }
+  .login-form-panel { padding: 32px 20px 40px; }
+  .login-form-panel__logo-mobile { display: grid; }
+}
+
+@media (max-width: 1000px) {
+  .enroll-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 900px) {
+  .grid-2 { grid-template-columns: 1fr; }
+  .calendar-body { grid-template-columns: 1fr; }
+  .calendar-panel { position: static; margin-top: 4px; }
+  .timetable-grid { display: none; }
+  .timetable-stack { display: flex; }
+  .timetable-editor-grid {
+    grid-template-columns: 70px repeat(5, minmax(110px, 1fr));
+    padding: 10px;
+    gap: 4px;
+  }
+  .timetable-editor-grid__cell {
+    min-height: 68px;
+    padding: 8px;
+  }
+  .timetable-editor-grid__subject { font-size: 12px; }
+  .timetable-editor-grid__range { font-size: 9.5px; }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    transform: translateX(-100%);
+    transition: transform .25s ease;
+    z-index: 40;
+    box-shadow: var(--shadow-lg);
+    width: 272px;
+  }
+  .sidebar--open { transform: translateX(0); }
+  .overlay { display: block; }
+  .menu-btn { display: inline-flex; }
+  .layout__content { padding: 16px; }
+  .topbar { padding: 12px 16px; }
+
+  .print-toolbar {
+    top: 8px;
+    padding: 10px;
+  }
+  .print-toolbar__center {
+    order: 3;
+    flex: 1 1 100%;
+    justify-content: stretch;
+    margin-top: 4px;
+  }
+  .print-toolbar__center select { flex: 1; }
+  .print-toolbar__right {
+    flex: 1;
+    justify-content: flex-end;
+  }
+
+  .attendance-row__buttons { width: 100%; }
+  .calendar-cell { aspect-ratio: auto; min-height: 60px; padding: 6px; }
+  .calendar-cell__num { font-size: 12px; }
+
+  .messages-layout { grid-template-columns: 1fr; height: auto; }
+  .messages-sidebar {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    max-height: 260px;
+  }
+  .messages-chat { min-height: 400px; }
+
+  .topbar__kbd-hint { display: none; }
+}
+
+@media (max-width: 760px) {
+  .academic-columns { grid-template-columns: 1fr; }
+  .academic-panel__heading { align-items: flex-start; flex-direction: column; }
+}
+
 @media (max-width: 640px) {
+  .login-hero {
+    min-height: 280px;
+    padding: 28px 20px;
+  }
+  .login-hero__tagline h2 { font-size: 22px; }
+  .login-hero__tagline p  { font-size: 13px; }
+  .login-hero__stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    padding: 12px 0;
+  }
+  .login-hero__footer { display: none; }
+  .login-form-panel { padding: 28px 20px 36px; }
+  .login-form-panel__head h2 { font-size: 22px; }
+  .login-trust { gap: 12px; }
+
+  .class-card__meta { flex-direction: column; gap: 4px; }
+  .class-teacher__contacts { margin-left: 0; width: 100%; }
+
+  .receipt-preview { padding: 16px; }
+  .receipt-preview__meta,
+  .receipt-preview__student { grid-template-columns: 1fr; }
+
+  .page-header {
+    align-items: stretch;
+    gap: 12px;
+  }
+  .page-header h2 { font-size: 19px; }
+  .page-header__actions { width: 100%; }
+  .page-header__actions .btn { flex: 1 1 auto; }
+
+  .teacher-type-toggle { grid-template-columns: 1fr; }
+  .assignment-row { grid-template-columns: 1fr; }
+
+  .fee-item-row { grid-template-columns: 1fr; }
+  .fee-batch__amounts { width: 100%; justify-content: space-between; }
+  .fee-batch__amounts > div { text-align: left; }
+
+  .results-filter { flex-direction: column; align-items: stretch; }
+  .photo-uploader { justify-content: center; text-align: center; }
+  .photo-uploader__info { text-align: center; }
+
+  .analytics-row { grid-template-columns: 1fr 60px; }
+  .analytics-bar { grid-column: 1 / -1; }
+
+  .calendar-wrap { padding: 14px; }
+  .calendar-dot { width: 5px; height: 5px; }
+  .calendar-head__legend { display: none; }
+
+  .recharts-wrap { min-height: 220px; }
+
   .question-item__head {
     grid-template-columns: auto 1fr;
     grid-template-areas: 'num text' 'actions actions';
@@ -7934,134 +7697,139 @@ textarea { resize: vertical; min-height: 60px; }
     grid-column: 1 / -1;
     justify-content: flex-start;
   }
-  .bank-picker-item__options { grid-template-columns: 1fr; }
+  .question-item__options {
+    grid-template-columns: 1fr;
+    padding-left: 0;
+  }
   .template-card__head { flex-direction: column; }
+  .bank-picker-item__options { grid-template-columns: 1fr; }
+
+  .gradebook-toolbar { padding: 14px; }
+  .gradebook-toolbar__right { width: 100%; }
+  .gradebook-toolbar__right .btn { flex: 1; }
+  .gradebook-bulk__row { grid-template-columns: 1fr; }
+  .gradebook-input { width: 68px; padding: 6px 8px; font-size: 12.5px; }
+  .gradebook-table th,
+  .gradebook-table td { padding: 8px 10px; }
+
+  .grade-student-card__head {
+    flex-wrap: wrap;
+    padding: 12px 14px;
+  }
+  .grade-student-card__stats {
+    order: 3;
+    flex-basis: 100%;
+    justify-content: space-between;
+    padding-top: 10px;
+    border-top: 1px dashed var(--border);
+    margin-top: 4px;
+  }
+  .grade-student-card__stats > div {
+    text-align: left;
+  }
+  .grade-student-card__body { padding: 4px 14px 14px; }
+  .grade-detail-section .table-wrap { overflow-x: auto; }
+
+  .behaviour-card { padding: 14px; }
+  .behaviour-card__head { flex-direction: column; align-items: flex-start; }
+
+  .due-soon-item {
+    grid-template-columns: 48px 1fr;
+    row-gap: 6px;
+  }
+  .due-soon-item__due { grid-column: 2; }
+  .settings-block__head { flex-wrap: wrap; }
+  .settings-block__action { width: 100%; margin-top: 10px; margin-left: 50px; }
+  .settings-block__sub { margin-left: 0; }
+
+  .audit-summary-grid { grid-template-columns: 1fr; }
+  .audit-table-head { flex-direction: column; align-items: stretch; }
+  .audit-pagination { justify-content: flex-end; }
+  .fin-bar-row { grid-template-columns: 1fr; gap: 6px; }
+  .fin-bar-row__value { text-align: left; }
+
+  .meeting-card__head { flex-direction: column; }
+  .meeting-card__meta { text-align: left; }
+  .meeting-card__meta > span { justify-content: flex-start; }
+  .meeting-card__label { flex-basis: 100%; }
+  .meeting-card__actions { flex-direction: column-reverse; }
+  .meeting-card__actions .btn { width: 100%; }
+  .child-selector__info strong { max-width: 140px; }
+
+  .quiz-timer { flex-wrap: wrap; padding: 12px 14px; }
+  .quiz-timer__bar { flex: 1 1 100%; order: 3; }
+  .quiz-timer__value { font-size: 20px; }
 }
 
-/* ==================================================================
-   LIBRARY — covers, viewers, play badge
-   ================================================================== */
-
-.library-cover {
-  width: 100%;
-  height: 100%;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-}
-.library-cover img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-.library-cover--card { aspect-ratio: 16 / 10; }
-.library-cover--detail {
-  width: 140px;
-  height: 200px;
-  border-radius: 10px;
-  box-shadow: 0 4px 14px rgba(15, 23, 42, .12);
-  flex-shrink: 0;
+@media (max-width: 600px) {
+  .user-menu__name,
+  .topbar__date { display: none; }
+  .modal { padding: 16px; }
+  .card { padding: 16px; }
 }
 
-.library-cover__fallback {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  color: var(--muted);
-  width: 100%;
-  height: 100%;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: .6px;
-  font-weight: 700;
-}
-.library-cover__fallback svg { color: var(--accent); }
-
-.library-card__play {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  color: #fff;
-  text-shadow: 0 2px 8px rgba(0,0,0,.5);
-  background: rgba(0,0,0,.18);
-  transition: background .15s;
-  pointer-events: none;
-}
-.library-card:hover .library-card__play {
-  background: rgba(0,0,0,.32);
+@media (max-width: 520px) {
+  .academic-toolbar { gap: 0 12px; padding-inline: 12px; }
+  .academic-toolbar label { flex-basis: 100%; }
+  .academic-panel { padding: 14px; }
+  .progress-chart { padding: 14px; }
+  .progress-chart__heading { align-items: flex-start; flex-direction: column; }
+  .library-grid { grid-template-columns: 1fr; }
 }
 
-.resource-viewer {
-  margin-bottom: 18px;
+@media (max-width: 500px) {
+  .profile-form__actions { flex-direction: column-reverse; }
+  .profile-form__actions .btn { width: 100%; }
+
+  .toast-container {
+    top: 12px;
+    right: 12px;
+    left: 12px;
+    max-width: none;
+  }
+  .toast { max-width: none; }
 }
 
-.resource-viewer__embed {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  border-radius: 12px;
-  overflow: hidden;
-  background: #000;
-  border: 1px solid var(--border);
-}
-.resource-viewer__embed iframe {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  border: 0;
+@media (max-width: 420px) {
+  .login-demo__btns--grid { grid-template-columns: 1fr; }
+  .login-demo__btns--grid > button:nth-child(5) {
+    grid-column: auto;
+  }
 }
 
-.resource-viewer__pdf {
-  width: 100%;
-  height: 65vh;
-  border-radius: 12px;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-}
-.resource-viewer__pdf iframe {
-  width: 100%;
-  height: 100%;
-  border: 0;
-}
+/* ==========================================================================
+   65. PRINT
+   ========================================================================== */
 
-.resource-viewer__desc {
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--text-2);
-  margin: 14px 0 0;
-}
+@media print {
+  .sidebar,
+  .topbar,
+  .page-header__actions,
+  .print-toolbar,
+  .no-print { display: none !important; }
 
-.resource-viewer__note {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 12px 14px;
-  background: var(--accent-soft);
-  border: 1px solid var(--accent-ring);
-  border-radius: 10px;
-  color: var(--accent-text);
-  font-size: 13px;
-  line-height: 1.5;
-  margin-top: 14px;
-}
-.resource-viewer__note svg { flex-shrink: 0; margin-top: 2px; }
+  body { background: #fff; }
+  .layout__content { padding: 0; }
+  .card { box-shadow: none; border: 1px solid #ddd; }
 
-.resource-viewer--book {
-  margin-top: 4px;
-}
-.resource-viewer__book-grid {
-  display: flex;
-  gap: 20px;
-  align-items: flex-start;
-  flex-wrap: wrap;
-}
-.resource-viewer__book-info {
-  flex: 1;
-  min-width: 220px;
+  .report-head { background: #f4f6fb !important; color: #000 !important; }
+  .report-head__avatar { background: #e2e8f0; color: #000; }
+
+  .print-page { padding: 0; background: #fff; }
+  .report-card {
+    box-shadow: none;
+    border-radius: 0;
+    padding: 0;
+    max-width: 100%;
+  }
+  .id-sheet { gap: 20px; }
+  .id-card {
+    box-shadow: none;
+    border: 1px solid #0b1220;
+  }
+  .report-card__table .grade {
+    background: transparent !important;
+    color: #0b1220 !important;
+    border: 1px solid #94a3b8;
+  }
 }

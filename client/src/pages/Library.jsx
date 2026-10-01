@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   FiBook, FiSearch, FiPlus, FiX, FiBookmark, FiExternalLink,
   FiTrash2, FiCheck, FiAlertCircle, FiFilm, FiFileText,
-  FiLink, FiBookOpen, FiClipboard, FiStar,
+  FiLink, FiBookOpen, FiClipboard, FiStar, FiPlay,
 } from 'react-icons/fi';
 import { api } from '../api/api';
 import { useAuth } from '../context/AuthContext';
@@ -30,6 +30,46 @@ const emptyResource = {
   title: '', type: 'book', subject: '', className: '',
   author: '', description: '', url: '', coverUrl: '',
 };
+
+function getYoutubeId(url) {
+  if (!url) return null;
+  const m = String(url).match(
+    /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/
+  );
+  return m ? m[1] : null;
+}
+
+function isPdfUrl(url) {
+  if (!url) return false;
+  return /\.pdf(\?|#|$)/i.test(url);
+}
+
+function ResourceCover({ resource, size = 'card' }) {
+  const [broken, setBroken] = useState(false);
+  const meta = TYPE_META[resource.type] || TYPE_META.book;
+  const Icon = meta.icon;
+  const showImage = resource.coverUrl && !broken;
+
+  return (
+    <div
+      className={`library-cover library-cover--${size}`}
+      style={!showImage ? { background: 'linear-gradient(135deg, var(--accent-soft), var(--surface-3))' } : undefined}
+    >
+      {showImage ? (
+        <img
+          src={resource.coverUrl}
+          alt={resource.title}
+          onError={() => setBroken(true)}
+        />
+      ) : (
+        <div className="library-cover__fallback">
+          <Icon size={size === 'detail' ? 40 : 32} />
+          <span>{meta.label}</span>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Library() {
   const { user } = useAuth();
@@ -159,12 +199,19 @@ export default function Library() {
     });
   };
 
-  const summary = useMemo(() => ({
-    total: resources.length,
-    reading: readingList.filter((r) => r.list === 'reading').length,
-    favourites: readingList.filter((r) => r.list === 'favourite').length,
-    completed: readingList.filter((r) => r.progress >= 100).length,
-  }), [resources, readingList]);
+  /* ---- Summary counts (each stat has its own label to avoid confusion) ---- */
+  const summary = useMemo(() => {
+    const reading   = readingList.filter((r) => r.list === 'reading').length;
+    const favourites = readingList.filter((r) => r.list === 'favourite').length;
+    const completed = readingList.filter((r) => r.progress >= 100).length;
+    return {
+      total: resources.length,
+      reading,
+      favourites,
+      completed,
+      savedTotal: readingList.length,
+    };
+  }, [resources, readingList]);
 
   return (
     <div>
@@ -188,11 +235,15 @@ export default function Library() {
         </div>
       )}
 
+      {/* ---------- Stats: labels now match what they actually count ---------- */}
       <div className="stats-grid">
-        <StatCard label="Resources" value={summary.total} color="#2563eb" />
-        <StatCard label="On my reading list" value={summary.reading} color="#7c3aed" />
-        <StatCard label="Favourites" value={summary.favourites} color="#d97706" />
-        <StatCard label="Finished" value={summary.completed} color="#16a34a" />
+        <StatCard label="In the library"   value={summary.total}       color="#2563eb" />
+        <StatCard label="Currently reading" value={summary.reading}     color="#7c3aed"
+                  hint="Items in your Reading list" />
+        <StatCard label="Favourites"        value={summary.favourites}  color="#d97706"
+                  hint="Marked as favourites" />
+        <StatCard label="Finished"          value={summary.completed}   color="#16a34a"
+                  hint="Progress at 100%" />
       </div>
 
       {/* ---------- Tabs ---------- */}
@@ -209,7 +260,7 @@ export default function Library() {
           className={`tab ${tab === 'mine' ? 'tab--active' : ''}`}
           onClick={() => setTab('mine')}
         >
-          <FiBookmark size={16} /> My List ({readingList.length})
+          <FiBookmark size={16} /> My Saved Items ({summary.savedTotal})
         </button>
       </div>
 
@@ -263,7 +314,7 @@ export default function Library() {
                 />
               </label>
               <label className="form-grid__full">
-                External URL
+                External URL (videos / PDFs / articles)
                 <input
                   type="url"
                   value={form.url}
@@ -300,7 +351,9 @@ export default function Library() {
         </div>
       )}
 
-      {/* ---------- Browse tab ---------- */}
+      {/* ============================================================
+          BROWSE TAB
+      ============================================================ */}
       {tab === 'browse' && (
         <>
           <div className="card">
@@ -357,14 +410,13 @@ export default function Library() {
                 return (
                   <div className="library-card" key={r.id}>
                     <div className="library-card__cover">
-                      {r.coverUrl ? (
-                        <img src={r.coverUrl} alt="" />
-                      ) : (
-                        <div className="library-card__cover-placeholder">
-                          <Icon size={32} />
-                        </div>
-                      )}
+                      <ResourceCover resource={r} size="card" />
                       <span className="library-card__type">{meta.label}</span>
+                      {r.type === 'video' && (
+                        <span className="library-card__play">
+                          <FiPlay size={28} />
+                        </span>
+                      )}
                     </div>
                     <div className="library-card__body">
                       <h3 className="library-card__title">{r.title}</h3>
@@ -384,7 +436,7 @@ export default function Library() {
                         className="btn btn--ghost btn--sm"
                         onClick={() => openDetail(r)}
                       >
-                        <FiBookOpen size={12} /> Open
+                        <Icon size={12} /> Open
                       </button>
                       {r.bookmarked ? (
                         <span className={`pill ${r.progress >= 100 ? 'pill--paid' : 'pill--partial'}`}>
@@ -407,13 +459,15 @@ export default function Library() {
         </>
       )}
 
-      {/* ---------- My List tab ---------- */}
+      {/* ============================================================
+          MY SAVED ITEMS TAB
+      ============================================================ */}
       {tab === 'mine' && (
         <>
           {readingList.length === 0 ? (
             <div className="card empty-state">
               <FiBookmark size={32} />
-              <p>Your reading list is empty.</p>
+              <p>You haven't saved anything yet.</p>
               <p className="muted" style={{ fontSize: 13 }}>
                 Save resources from the Browse tab to see them here.
               </p>
@@ -434,12 +488,13 @@ export default function Library() {
                 <tbody>
                   {readingList.map((r, i) => {
                     const meta = TYPE_META[r.type] || TYPE_META.book;
+                    const Icon = meta.icon;
                     return (
                       <tr key={r.id}>
                         <td>{i + 1}</td>
                         <td>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <meta.icon size={14} />
+                            <Icon size={14} />
                             <div>
                               <strong>{r.title}</strong>
                               {r.author && (
@@ -493,10 +548,12 @@ export default function Library() {
         </>
       )}
 
-      {/* ---------- Detail modal ---------- */}
+      {/* ============================================================
+          DETAIL / READER MODAL
+      ============================================================ */}
       {detail && (
         <div className="modal-backdrop" onClick={() => setDetail(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal modal--wide" onClick={(e) => e.stopPropagation()}>
             <div className="modal__head">
               <div>
                 <h3>{detail.title}</h3>
@@ -510,21 +567,7 @@ export default function Library() {
               </button>
             </div>
 
-            {detail.description && (
-              <p style={{ marginBottom: 14, lineHeight: 1.6 }}>{detail.description}</p>
-            )}
-
-            {detail.url && (
-              <a
-                href={detail.url}
-                target="_blank"
-                rel="noreferrer"
-                className="btn btn--primary btn--full"
-                style={{ marginBottom: 16 }}
-              >
-                <FiExternalLink size={14} /> Open resource
-              </a>
-            )}
+            <ResourceViewer resource={detail} onBookmark={() => bookmark(detail.id)} />
 
             {detail.bookmarked ? (
               <>
@@ -592,6 +635,146 @@ export default function Library() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ==================================================================
+   ResourceViewer — smart viewer per resource type
+   ================================================================== */
+function ResourceViewer({ resource, onBookmark }) {
+  const { type, url, description } = resource;
+
+  /* 1. YouTube → inline embed */
+  const ytId = type === 'video' ? getYoutubeId(url) : null;
+  if (ytId) {
+    return (
+      <div className="resource-viewer">
+        <div className="resource-viewer__embed">
+          <iframe
+            src={`https://www.youtube.com/embed/${ytId}?rel=0`}
+            title={resource.title}
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        </div>
+        {description && (
+          <p className="resource-viewer__desc">{description}</p>
+        )}
+        <a
+          href={url}
+          target="_blank"
+          rel="noreferrer"
+          className="btn btn--ghost btn--full"
+          style={{ marginTop: 12 }}
+        >
+          <FiExternalLink size={14} /> Watch on YouTube
+        </a>
+      </div>
+    );
+  }
+
+  /* 2. PDF → inline iframe viewer */
+  if (isPdfUrl(url)) {
+    return (
+      <div className="resource-viewer">
+        <div className="resource-viewer__pdf">
+          <iframe src={url} title={resource.title} />
+        </div>
+        {description && (
+          <p className="resource-viewer__desc">{description}</p>
+        )}
+        <a
+          href={url}
+          target="_blank"
+          rel="noreferrer"
+          className="btn btn--ghost btn--full"
+          style={{ marginTop: 12 }}
+        >
+          <FiExternalLink size={14} /> Open PDF in new tab
+        </a>
+      </div>
+    );
+  }
+
+  /* 3. Book → cover + description */
+  if (type === 'book') {
+    const hasLink = !!url;
+    return (
+      <div className="resource-viewer resource-viewer--book">
+        <div className="resource-viewer__book-grid">
+          <ResourceCover resource={resource} size="detail" />
+          <div className="resource-viewer__book-info">
+            {description && (
+              <p className="resource-viewer__desc" style={{ marginTop: 0 }}>
+                {description}
+              </p>
+            )}
+            <div className="resource-viewer__note">
+              <FiBookOpen size={14} />
+              <span>
+                Physical copies are available in the school library. Ask at
+                the front desk with your student ID.
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {hasLink && (
+          <a
+            href={url}
+            target="_blank"
+            rel="noreferrer"
+            className="btn btn--primary btn--full"
+            style={{ marginTop: 16 }}
+          >
+            <FiExternalLink size={14} />
+            {url.includes('wikipedia.org') ? 'Read about this book' : 'Open source page'}
+          </a>
+        )}
+      </div>
+    );
+  }
+
+  /* 4. Article / link / past question with URL */
+  if (url) {
+    return (
+      <div className="resource-viewer">
+        {description && (
+          <p className="resource-viewer__desc" style={{ marginTop: 0 }}>
+            {description}
+          </p>
+        )}
+        <a
+          href={url}
+          target="_blank"
+          rel="noreferrer"
+          className="btn btn--primary btn--full"
+          style={{ marginTop: 12 }}
+        >
+          <FiExternalLink size={14} />
+          {type === 'past_question' ? 'Open past questions' :
+           type === 'article' ? 'Read the article' :
+           type === 'video' ? 'Watch video' :
+           'Open resource'}
+        </a>
+      </div>
+    );
+  }
+
+  /* 5. Fallback — no URL available */
+  return (
+    <div className="resource-viewer">
+      {description && (
+        <p className="resource-viewer__desc" style={{ marginTop: 0 }}>
+          {description}
+        </p>
+      )}
+      <div className="resource-viewer__note">
+        <FiAlertCircle size={14} />
+        <span>No online copy is available for this resource yet.</span>
+      </div>
     </div>
   );
 }

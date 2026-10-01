@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const pool = require('../db');
 const { protect, allow } = require('../middleware/auth');
-const { notify } = require('../utils/notify');
+const { getTeacherContext } = require('../utils/teacherContext');
 
 router.use(protect);
 
@@ -11,6 +11,21 @@ async function getTeacher(userId) {
     [userId]
   );
   return rows[0] || null;
+}
+
+/**
+ * A teacher can act on a class if:
+ *   - they are the form teacher of that class, OR
+ *   - they have at least one subject assignment in that class
+ */
+async function canAccessClass(userId, className) {
+  const teacher = await getTeacher(userId);
+  if (!teacher) return { ok: false, teacher: null };
+  if (teacher.form_class === className) return { ok: true, teacher };
+
+  const ctx = await getTeacherContext(userId);
+  const assigned = ctx?.assignments?.some((a) => a.className === className);
+  return { ok: !!assigned, teacher };
 }
 
 /* ============================================================
@@ -23,16 +38,12 @@ router.post('/', allow('teacher'), async (req, res) => {
     return res.status(400).json({ message: 'className, date and entries are required' });
   }
 
-  const teacher = await getTeacher(req.user.id);
+  const { ok, teacher } = await canAccessClass(req.user.id, className);
   if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
-
-  // Verify the teacher owns this class
-  const [classRows] = await pool.execute(
-    'SELECT id FROM classes WHERE name = ? AND teacher_id = ?',
-    [className, teacher.id]
-  );
-  if (!classRows.length) {
-    return res.status(403).json({ message: 'You do not teach this class' });
+  if (!ok) {
+    return res.status(403).json({
+      message: `You are not assigned to ${className}. Ask the admin to link you to this class.`,
+    });
   }
 
   const conn = await pool.getConnection();
@@ -57,7 +68,6 @@ router.post('/', allow('teacher'), async (req, res) => {
 
     await conn.commit();
 
-    // Notify absentees' guardians? Skip for now.
     res.json({
       message: `Attendance saved for ${entries.length} student(s)`,
       count: entries.length,
@@ -75,6 +85,8 @@ router.post('/', allow('teacher'), async (req, res) => {
 
 /* ============================================================
    TEACHER — Get attendance for a class + date
+   Any teacher can VIEW any class's attendance. Writing is
+   still gated by canAccessClass above.
    ============================================================ */
 router.get('/class/:className', allow('teacher'), async (req, res) => {
   const { className } = req.params;
@@ -82,18 +94,6 @@ router.get('/class/:className', allow('teacher'), async (req, res) => {
 
   if (!date) return res.status(400).json({ message: 'date query param required' });
 
-  const teacher = await getTeacher(req.user.id);
-  if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
-
-  const [classRows] = await pool.execute(
-    'SELECT id FROM classes WHERE name = ? AND teacher_id = ?',
-    [className, teacher.id]
-  );
-  if (!classRows.length) {
-    return res.status(403).json({ message: 'You do not teach this class' });
-  }
-
-  // Get all students in the class + their attendance status for the date
   const [rows] = await pool.execute(
     `SELECT
        s.id AS student_id,
@@ -124,21 +124,11 @@ router.get('/class/:className', allow('teacher'), async (req, res) => {
 
 /* ============================================================
    TEACHER — attendance summary for a class over a date range
+   Any teacher can view.
    ============================================================ */
 router.get('/summary/:className', allow('teacher'), async (req, res) => {
   const { className } = req.params;
   const { from, to } = req.query;
-
-  const teacher = await getTeacher(req.user.id);
-  if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
-
-  const [classRows] = await pool.execute(
-    'SELECT id FROM classes WHERE name = ? AND teacher_id = ?',
-    [className, teacher.id]
-  );
-  if (!classRows.length) {
-    return res.status(403).json({ message: 'You do not teach this class' });
-  }
 
   const [rows] = await pool.execute(
     `SELECT

@@ -3,6 +3,7 @@ const pool = require('../db');
 const { protect, allow } = require('../middleware/auth');
 const { getRoomParticipants, getAllRooms } = require('../socket');
 const { notifyClassStudents } = require('../utils/notify');
+const { getTeacherContext, canTeach } = require('../utils/teacherContext');
 
 router.use(protect);
 
@@ -20,11 +21,41 @@ async function getTeacher(userId) {
   return rows[0] || null;
 }
 
+/**
+ * Pick a class + subject for a new live session.
+ * Priority:
+ *   1. What the request explicitly asks for
+ *   2. The teacher's form class (with whatever subject they choose)
+ *   3. The teacher's first assignment
+ */
+function resolveTarget(ctx, requestedClass, requestedSubject) {
+  let className = requestedClass;
+  let subject = requestedSubject;
+
+  if (!className) {
+    if (ctx.formClass) {
+      className = ctx.formClass;
+    } else if (ctx.assignments.length > 0) {
+      className = ctx.assignments[0].className;
+      if (!subject) subject = ctx.assignments[0].subject;
+    }
+  }
+
+  if (!subject) subject = 'General';
+
+  // Verify
+  if (className && !canTeach(ctx, className, subject)) {
+    // Try to fix the subject by finding one the teacher actually teaches in this class
+    const fallback = ctx.assignments.find((a) => a.className === className);
+    if (fallback) subject = fallback.subject;
+  }
+
+  return { className, subject };
+}
+
 /* ==========================================================
    ADMIN — monitor all live classes across the school
    ========================================================== */
-
-// Every live session with participant details
 router.get('/admin/active', allow('admin'), async (req, res) => {
   const allRooms = getAllRooms();
   const [live] = await pool.execute(
@@ -38,7 +69,6 @@ router.get('/admin/active', allow('admin'), async (req, res) => {
   );
 });
 
-// Participants of a specific session
 router.get('/admin/sessions/:id/participants', allow('admin'), async (req, res) => {
   const [rows] = await pool.execute(
     'SELECT * FROM class_sessions WHERE id = ?',
@@ -51,7 +81,6 @@ router.get('/admin/sessions/:id/participants', allow('admin'), async (req, res) 
 /* ==========================================================
    SHARED READ ROUTES
    ========================================================== */
-
 router.get('/sessions', async (req, res) => {
   let query = 'SELECT * FROM class_sessions';
   const params = [];
@@ -65,12 +94,21 @@ router.get('/sessions', async (req, res) => {
     query += ' WHERE class_name = ?';
     params.push(rows[0].class_name);
   } else if (req.user.role === 'teacher') {
-    const teacher = await getTeacher(req.user.id);
-    if (!teacher) return res.json([]);
-    query += ' WHERE teacher_id = ?';
-    params.push(teacher.id);
+    const ctx = await getTeacherContext(req.user.id);
+    if (!ctx) return res.json([]);
+
+    const classSet = new Set();
+    if (ctx.formClass) classSet.add(ctx.formClass);
+    ctx.assignments.forEach((a) => classSet.add(a.className));
+
+    if (!classSet.size) return res.json([]);
+
+    const list = Array.from(classSet);
+    const ph = list.map(() => '?').join(',');
+    query += ` WHERE class_name IN (${ph}) OR teacher_id = ?`;
+    params.push(...list, ctx.teacherId);
   }
-  // ADMIN: sees all rows, no filter
+  /* ADMIN: sees everything */
 
   const [sessions] = await pool.execute(query, params);
 
@@ -78,6 +116,7 @@ router.get('/sessions', async (req, res) => {
     .map((s) => ({
       id: s.id,
       teacherId: s.teacher_id,
+      teacherName: s.teacher_name || 'Teacher',
       title: s.title,
       subject: s.subject,
       className: s.class_name,
@@ -136,25 +175,38 @@ router.get('/sessions/:id', async (req, res) => {
    TEACHER — plan a class for later (scheduled)
    ========================================================== */
 router.post('/sessions', allow('teacher'), async (req, res) => {
-  const { title, subject, description, startTime, endTime } = req.body;
+  const { title, subject, description, startTime, endTime, className } = req.body;
   if (!title) return res.status(400).json({ message: 'Title is required' });
 
-  const teacher = await getTeacher(req.user.id);
-  if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
-  if (!teacher.form_class) {
-    return res.status(400).json({ message: 'You have no class assigned. Contact the admin.' });
+  const ctx = await getTeacherContext(req.user.id);
+  if (!ctx) return res.status(404).json({ message: 'Teacher not found' });
+
+  const { className: targetClass, subject: targetSubject } = resolveTarget(ctx, className, subject);
+
+  if (!targetClass) {
+    return res.status(400).json({
+      message: 'You have no class assigned. Contact the admin.',
+    });
+  }
+  if (!canTeach(ctx, targetClass, targetSubject)) {
+    return res.status(403).json({
+      message: `You are not assigned to teach ${targetSubject} in ${targetClass}`,
+    });
   }
 
-  const roomId = makeRoomId(title, teacher.form_class);
+  const roomId = makeRoomId(title, targetClass);
 
   const [result] = await pool.execute(
-    `INSERT INTO class_sessions (teacher_id, title, subject, class_name, description, start_time, end_time, status, room_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 'scheduled', ?)`,
+    `INSERT INTO class_sessions
+       (teacher_id, teacher_name, title, subject, class_name, description,
+        start_time, end_time, status, room_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'scheduled', ?)`,
     [
-      teacher.id,
+      ctx.teacherId,
+      ctx.name,
       title,
-      subject || 'General',
-      teacher.form_class,
+      targetSubject,
+      targetClass,
       description || '',
       startTime || new Date().toISOString(),
       endTime || new Date(Date.now() + 3600000).toISOString(),
@@ -171,36 +223,43 @@ router.post('/sessions', allow('teacher'), async (req, res) => {
 
 /* ==========================================================
    TEACHER — start a class RIGHT NOW
-   Creates the session AND goes live in one call.
-   Students in the class are notified immediately.
    ========================================================== */
 router.post('/sessions/now', allow('teacher'), async (req, res) => {
-  const { title, subject, description, duration } = req.body;
+  const { title, subject, description, duration, className } = req.body;
   if (!title) return res.status(400).json({ message: 'Title is required' });
 
-  const teacher = await getTeacher(req.user.id);
-  if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
-  if (!teacher.form_class) {
+  const ctx = await getTeacherContext(req.user.id);
+  if (!ctx) return res.status(404).json({ message: 'Teacher not found' });
+
+  const { className: targetClass, subject: targetSubject } = resolveTarget(ctx, className, subject);
+
+  if (!targetClass) {
     return res.status(400).json({
       message: 'You have no class assigned. Contact the admin.',
+    });
+  }
+  if (!canTeach(ctx, targetClass, targetSubject)) {
+    return res.status(403).json({
+      message: `You are not assigned to teach ${targetSubject} in ${targetClass}`,
     });
   }
 
   const minutes = Number(duration) || 60;
   const startTime = new Date();
   const endTime = new Date(startTime.getTime() + minutes * 60 * 1000);
-  const roomId = makeRoomId(title, teacher.form_class);
+  const roomId = makeRoomId(title, targetClass);
 
   const [result] = await pool.execute(
     `INSERT INTO class_sessions
-      (teacher_id, title, subject, class_name, description,
+      (teacher_id, teacher_name, title, subject, class_name, description,
        start_time, end_time, status, room_id, started_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 'live', ?, NOW())`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'live', ?, NOW())`,
     [
-      teacher.id,
+      ctx.teacherId,
+      ctx.name,
       title,
-      subject || 'General',
-      teacher.form_class,
+      targetSubject,
+      targetClass,
       description || '',
       startTime,
       endTime,
@@ -208,11 +267,10 @@ router.post('/sessions/now', allow('teacher'), async (req, res) => {
     ]
   );
 
-  // Notify every student in this class
-  await notifyClassStudents(teacher.form_class, {
+  await notifyClassStudents(targetClass, {
     type: 'live_class',
     title: 'Live class started',
-    body: `${teacher.name} started "${title}"`,
+    body: `${ctx.name} started "${title}"`,
     link: '/student/classroom',
   });
 
@@ -231,12 +289,12 @@ router.post('/sessions/now', allow('teacher'), async (req, res) => {
    TEACHER — start a previously scheduled session
    ========================================================== */
 router.post('/sessions/:id/start', allow('teacher'), async (req, res) => {
-  const teacher = await getTeacher(req.user.id);
-  if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
+  const ctx = await getTeacherContext(req.user.id);
+  if (!ctx) return res.status(404).json({ message: 'Teacher not found' });
 
   const [rows] = await pool.execute(
     'SELECT * FROM class_sessions WHERE id = ? AND teacher_id = ?',
-    [req.params.id, teacher.id]
+    [req.params.id, ctx.teacherId]
   );
   if (!rows.length) return res.status(404).json({ message: 'Session not found' });
   if (rows[0].status === 'ended') {
@@ -251,7 +309,7 @@ router.post('/sessions/:id/start', allow('teacher'), async (req, res) => {
   await notifyClassStudents(rows[0].class_name, {
     type: 'live_class',
     title: 'Live class started',
-    body: `${teacher.name} started "${rows[0].title}"`,
+    body: `${ctx.name} started "${rows[0].title}"`,
     link: '/student/classroom',
   });
 
@@ -266,12 +324,12 @@ router.post('/sessions/:id/start', allow('teacher'), async (req, res) => {
    TEACHER — end a session
    ========================================================== */
 router.post('/sessions/:id/end', allow('teacher'), async (req, res) => {
-  const teacher = await getTeacher(req.user.id);
-  if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
+  const ctx = await getTeacherContext(req.user.id);
+  if (!ctx) return res.status(404).json({ message: 'Teacher not found' });
 
   const [rows] = await pool.execute(
     'SELECT * FROM class_sessions WHERE id = ? AND teacher_id = ?',
-    [req.params.id, teacher.id]
+    [req.params.id, ctx.teacherId]
   );
   if (!rows.length) return res.status(404).json({ message: 'Session not found' });
 
@@ -291,12 +349,12 @@ router.post('/sessions/:id/end', allow('teacher'), async (req, res) => {
    TEACHER — delete a session
    ========================================================== */
 router.delete('/sessions/:id', allow('teacher'), async (req, res) => {
-  const teacher = await getTeacher(req.user.id);
-  if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
+  const ctx = await getTeacherContext(req.user.id);
+  if (!ctx) return res.status(404).json({ message: 'Teacher not found' });
 
   await pool.execute(
     'DELETE FROM class_sessions WHERE id = ? AND teacher_id = ?',
-    [req.params.id, teacher.id]
+    [req.params.id, ctx.teacherId]
   );
 
   res.json({ message: 'Session deleted' });

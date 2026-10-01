@@ -28,11 +28,41 @@ const STATS = [
   { value: '98%',  label: 'Pass Rate' },
 ];
 
+/* ------------------------------------------------------------------
+   Demo accounts — grouped so it's obvious who teaches what.
+   Order: Student → Class Teacher → Subject Teacher → Admin → Parent
+------------------------------------------------------------------ */
 const DEMO_ACCOUNTS = {
-  student: { email: 'ada@school.com',     password: 'Student@123', label: 'Student' },
-  teacher: { email: 'teacher@school.com', password: 'Teacher@123', label: 'Teacher' },
-  admin:   { email: 'admin@school.com',   password: 'admin123',    label: 'Admin'   },
-  parent:  { email: 'parent@school.com',  password: 'Parent@123',  label: 'Parent'  },
+  student: {
+    email: 'ada@school.com',
+    password: 'Student@123',
+    label: 'Student',
+    hint: 'JSS 2A',
+  },
+  classTeacher: {
+    email: 'teacher@school.com',
+    password: 'Teacher@123',
+    label: 'Class Teacher',
+    hint: 'Adewale Johnson · JSS 2A',
+  },
+  subjectTeacher: {
+    email: 'emeka@school.com',
+    password: 'Teacher@123',
+    label: 'Subject Teacher',
+    hint: 'Emeka Nwosu · English',
+  },
+  admin: {
+    email: 'admin@school.com',
+    password: 'admin123',
+    label: 'Admin',
+    hint: 'Principal',
+  },
+  parent: {
+    email: 'parent@school.com',
+    password: 'Parent@123',
+    label: 'Parent',
+    hint: 'Mr. Peter Obi',
+  },
 };
 
 function readLoginTheme() {
@@ -81,8 +111,8 @@ export default function Login() {
     }
   };
 
-  const quickFill = (role) => {
-    const a = DEMO_ACCOUNTS[role];
+  const quickFill = (key) => {
+    const a = DEMO_ACCOUNTS[key];
     if (!a) return;
     setEmail(a.email);
     setPassword(a.password);
@@ -228,27 +258,60 @@ export default function Login() {
             </button>
           </form>
 
+          {/* ============================================================
+              DEMO ACCOUNTS
+              Each button now shows the person's name and role so it's
+              obvious which is a class teacher vs subject teacher.
+          ============================================================ */}
           <div className="login-demo">
             <div className="login-demo__head">
               <span>Try a demo account</span>
             </div>
 
             <div className="login-demo__btns login-demo__btns--grid">
+              {/* STUDENT */}
               <button type="button" onClick={() => quickFill('student')}>
                 <FiUser size={15} />
-                <div><strong>Student</strong><span>{DEMO_ACCOUNTS.student.email}</span></div>
+                <div>
+                  <strong>{DEMO_ACCOUNTS.student.label}</strong>
+                  <span>{DEMO_ACCOUNTS.student.hint}</span>
+                </div>
               </button>
-              <button type="button" onClick={() => quickFill('teacher')}>
+
+              {/* CLASS TEACHER */}
+              <button type="button" onClick={() => quickFill('classTeacher')}>
                 <FiUsers size={15} />
-                <div><strong>Teacher</strong><span>{DEMO_ACCOUNTS.teacher.email}</span></div>
+                <div>
+                  <strong>{DEMO_ACCOUNTS.classTeacher.label}</strong>
+                  <span>{DEMO_ACCOUNTS.classTeacher.hint}</span>
+                </div>
               </button>
+
+              {/* SUBJECT TEACHER */}
+              <button type="button" onClick={() => quickFill('subjectTeacher')}>
+                <FiBookOpen size={15} />
+                <div>
+                  <strong>{DEMO_ACCOUNTS.subjectTeacher.label}</strong>
+                  <span>{DEMO_ACCOUNTS.subjectTeacher.hint}</span>
+                </div>
+              </button>
+
+              {/* ADMIN */}
               <button type="button" onClick={() => quickFill('admin')}>
                 <FiShield size={15} />
-                <div><strong>Admin</strong><span>{DEMO_ACCOUNTS.admin.email}</span></div>
+                <div>
+                  <strong>{DEMO_ACCOUNTS.admin.label}</strong>
+                  <span>{DEMO_ACCOUNTS.admin.hint}</span>
+                </div>
               </button>
+
+              {/* PARENT */}
               <button type="button" onClick={() => quickFill('parent')}>
                 <FiHeart size={15} />
-                <div><strong>Parent</strong><span>{DEMO_ACCOUNTS.parent.email}</span></div>
+                <div>
+                  <strong>{DEMO_ACCOUNTS.parent.label}</strong>
+                  <span>{DEMO_ACCOUNTS.parent.hint}</span>
+                </div>
               </button>
             </div>
 
