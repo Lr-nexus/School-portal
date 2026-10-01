@@ -23,9 +23,6 @@ const daysAgo = (n) => {
 };
 const daysAhead = (n) => daysAgo(-n);
 
-/* ==================================================================
-   LOOKUP HELPERS
-   ================================================================== */
 async function getTeacherIdByStaff(staffNo) {
   const [rows] = await q('SELECT id, user_id, name FROM teachers WHERE staff_no = ?', [staffNo]);
   return rows[0] || null;
@@ -46,225 +43,262 @@ async function getDemoStudent() {
   return rows[0] || null;
 }
 
-/* ==================================================================
-   DATA — LIBRARY
-   ================================================================== */
 const LIBRARY = [
-  /* ---------- Textbooks (all classes) ---------- */
   {
     title: 'New General Mathematics for Junior Secondary Schools 2',
     type: 'book', subject: 'Mathematics', author: 'M.F. Macrae, A.O. Kalejaiye, Z.I. Chima',
-    description:
-      'The STAN-recommended mathematics textbook for JSS 2. Covers number bases, fractions, decimals, percentages, algebraic processes, geometry, statistics and probability with fully worked examples and revision exercises at the end of each chapter.',
+    description: 'The STAN-recommended mathematics textbook for JSS 2. Covers number bases, fractions, decimals, percentages, algebraic processes, geometry, statistics and probability with fully worked examples and revision exercises at the end of each chapter.',
+    url: 'https://www.google.com/search?q=New+General+Mathematics+for+Junior+Secondary+Schools+2',
   },
   {
     title: 'New General Mathematics for Junior Secondary Schools 3',
     type: 'book', subject: 'Mathematics', author: 'M.F. Macrae, A.O. Kalejaiye, Z.I. Chima',
-    description:
-      'JSS 3 mathematics textbook. Includes simultaneous equations, quadratic expressions, trigonometry, mensuration, and comprehensive BECE revision questions at the end of every unit.',
+    description: 'JSS 3 mathematics textbook. Includes simultaneous equations, quadratic expressions, trigonometry, mensuration, and comprehensive BECE revision questions at the end of every unit.',
+    url: 'https://www.google.com/search?q=New+General+Mathematics+for+Junior+Secondary+Schools+3',
   },
   {
     title: 'New Oxford Secondary English Course Book 2',
     type: 'book', subject: 'English Language', author: 'Ayo Banjo, Ayo Bamgbose, et al.',
-    description:
-      'Comprehensive English course for JSS 2. Covers comprehension, summary writing, essay composition, letter writing, and grammar drills with a full Nigerian-context reading section.',
+    description: 'Comprehensive English course for JSS 2. Covers comprehension, summary writing, essay composition, letter writing, and grammar drills with a full Nigerian-context reading section.',
+    url: 'https://www.google.com/search?q=New+Oxford+Secondary+English+Course+Book+2',
   },
   {
     title: 'New Oxford Secondary English Course Book 3',
     type: 'book', subject: 'English Language', author: 'Ayo Banjo, Ayo Bamgbose, et al.',
-    description:
-      'JSS 3 English textbook. Focuses on examination technique for BECE, advanced comprehension, argumentative essays, and further grammar and vocabulary development.',
+    description: 'JSS 3 English textbook. Focuses on examination technique for BECE, advanced comprehension, argumentative essays, and further grammar and vocabulary development.',
+    url: 'https://www.google.com/search?q=New+Oxford+Secondary+English+Course+Book+3',
   },
   {
     title: 'Basic Science for Junior Secondary Schools Book 2',
     type: 'book', subject: 'Basic Science', author: 'STAN (Science Teachers Association of Nigeria)',
-    description:
-      'Covers living and non-living things, matter, energy, force, plants and animals, and environmental science. Each chapter ends with practical activities and revision questions.',
+    description: 'Covers living and non-living things, matter, energy, force, plants and animals, and environmental science. Each chapter ends with practical activities and revision questions.',
+    url: 'https://www.google.com/search?q=STAN+Basic+Science+for+Junior+Secondary+Schools+Book+2',
   },
   {
     title: 'Basic Science for Junior Secondary Schools Book 3',
     type: 'book', subject: 'Basic Science', author: 'STAN (Science Teachers Association of Nigeria)',
-    description:
-      'JSS 3 Basic Science. Builds on Book 2 with deeper treatment of chemistry, physics and biology fundamentals, plus a full revision section for BECE.',
+    description: 'JSS 3 Basic Science. Builds on Book 2 with deeper treatment of chemistry, physics and biology fundamentals, plus a full revision section for BECE.',
+    url: 'https://www.google.com/search?q=STAN+Basic+Science+for+Junior+Secondary+Schools+Book+3',
   },
   {
     title: 'Fundamentals of Social Studies for Junior Secondary Schools',
     type: 'book', subject: 'Social Studies', author: 'E. O. Ogunleye, A. Adeyemi',
-    description:
-      'Nigerian civics, culture, family life, geography of West Africa, and citizenship education tailored for JSS students. Richly illustrated with maps, photographs and case studies.',
+    description: 'Nigerian civics, culture, family life, geography of West Africa, and citizenship education tailored for JSS students. Richly illustrated with maps, photographs and case studies.',
+    url: 'https://www.google.com/search?q=Fundamentals+of+Social+Studies+for+Junior+Secondary+Schools',
   },
   {
     title: 'Computer Studies for Junior Secondary Schools',
     type: 'book', subject: 'Computer Studies', author: 'O. O. Ogundele, S. A. Adeyinka',
-    description:
-      'Introduces computer hardware, software, keyboarding, word processing, spreadsheets, and the fundamentals of information technology. Includes hands-on laboratory exercises.',
+    description: 'Introduces computer hardware, software, keyboarding, word processing, spreadsheets, and the fundamentals of information technology. Includes hands-on laboratory exercises.',
+    url: 'https://www.google.com/search?q=Computer+Studies+for+Junior+Secondary+Schools',
   },
   {
     title: 'Basic Technology for Junior Secondary Schools',
     type: 'book', subject: 'Basic Science', author: 'S. O. Amachukwu, K. B. Adebayo',
-    description:
-      'Technical drawing, woodwork, metalwork, simple machines, and safe use of workshop tools. Designed to build practical skills alongside scientific reasoning.',
+    description: 'Technical drawing, woodwork, metalwork, simple machines, and safe use of workshop tools. Designed to build practical skills alongside scientific reasoning.',
+    url: 'https://www.google.com/search?q=Basic+Technology+for+Junior+Secondary+Schools',
   },
   {
     title: 'Nigerian Secondary School Atlas',
     type: 'book', subject: 'Social Studies', author: 'Longman Nigeria',
-    description:
-      'Colour physical and political maps of Nigeria, Africa and the world. Includes climatic charts, population data, and detailed map-reading exercises for JSS and SSS students.',
+    description: 'Colour physical and political maps of Nigeria, Africa and the world. Includes climatic charts, population data, and detailed map-reading exercises for JSS and SSS students.',
+    url: 'https://www.google.com/search?q=Longman+Nigerian+Secondary+School+Atlas',
   },
-
-  /* ---------- Nigerian literature ---------- */
   {
     title: 'Things Fall Apart', type: 'book', subject: 'English Language', author: 'Chinua Achebe',
-    description:
-      'The most widely read African novel. The story of Okonkwo and the arrival of British colonialism in Igbo society. Recommended reading for JSS 3 and senior secondary literature.',
+    description: 'The most widely read African novel. The story of Okonkwo and the arrival of British colonialism in Igbo society. Recommended reading for JSS 3 and senior secondary literature.',
+    url: 'https://en.wikipedia.org/wiki/Things_Fall_Apart',
+    coverUrl: 'https://covers.openlibrary.org/b/isbn/9780385474542-L.jpg',
   },
   {
     title: 'Arrow of God', type: 'book', subject: 'English Language', author: 'Chinua Achebe',
-    description:
-      'Achebe\'s third novel, exploring the clash between traditional Igbo religion and colonial Christianity through the tragic figure of Ezeulu, the chief priest of Ulu.',
+    description: "Achebe's third novel, exploring the clash between traditional Igbo religion and colonial Christianity through the tragic figure of Ezeulu, the chief priest of Ulu.",
+    url: 'https://en.wikipedia.org/wiki/Arrow_of_God',
+    coverUrl: 'https://covers.openlibrary.org/b/isbn/9780385014809-L.jpg',
   },
   {
     title: 'The Lion and the Jewel', type: 'book', subject: 'Literature', author: 'Wole Soyinka',
-    description:
-      'A comic play set in the village of Ilujinle. Explores the tension between tradition and modernity through the rivalry of Lakunle and Baroka for the hand of Sidi.',
+    description: 'A comic play set in the village of Ilujinle. Explores the tension between tradition and modernity through the rivalry of Lakunle and Baroka for the hand of Sidi.',
+    url: 'https://en.wikipedia.org/wiki/The_Lion_and_the_Jewel',
+    coverUrl: 'https://covers.openlibrary.org/b/isbn/9780199110834-L.jpg',
   },
   {
     title: 'The Gods Are Not to Blame', type: 'book', subject: 'Literature', author: 'Ola Rotimi',
-    description:
-      'A Nigerian adaptation of Sophocles\' Oedipus Rex. King Odewale\'s tragic discovery of his own patricide and incest. A staple of the WASSCE literature syllabus.',
+    description: "A Nigerian adaptation of Sophocles' Oedipus Rex. King Odewale's tragic discovery of his own patricide and incest. A staple of the WASSCE literature syllabus.",
+    url: 'https://en.wikipedia.org/wiki/The_Gods_Are_Not_to_Blame',
+    coverUrl: 'https://covers.openlibrary.org/b/isbn/9780199110254-L.jpg',
   },
   {
     title: 'Purple Hibiscus', type: 'book', subject: 'English Language', author: 'Chimamanda Ngozi Adichie',
-    description:
-      'Kambili\'s coming-of-age story against the backdrop of a violent, religious household and political turmoil in 1990s Nigeria. Winner of the Commonwealth Writers\' Prize.',
+    description: "Kambili's coming-of-age story against the backdrop of a violent, religious household and political turmoil in 1990s Nigeria. Winner of the Commonwealth Writers' Prize.",
+    url: 'https://en.wikipedia.org/wiki/Purple_Hibiscus',
+    coverUrl: 'https://covers.openlibrary.org/b/isbn/9781616956783-L.jpg',
   },
   {
     title: 'Half of a Yellow Sun', type: 'book', subject: 'English Language', author: 'Chimamanda Ngozi Adichie',
-    description:
-      'A sweeping novel about the Biafran War, told through the intertwined lives of Olanna, Odenigbo, Ugwu and Richard. Excellent background reading for Nigerian history.',
+    description: 'A sweeping novel about the Biafran War, told through the intertwined lives of Olanna, Odenigbo, Ugwu and Richard. Excellent background reading for Nigerian history.',
+    url: 'https://en.wikipedia.org/wiki/Half_of_a_Yellow_Sun',
+    coverUrl: 'https://covers.openlibrary.org/b/isbn/9781400095209-L.jpg',
   },
   {
     title: 'Eze Goes to School', type: 'book', subject: 'English Language', author: 'Onuora Nzekwu & Michael Crowder',
-    description:
-      'A classic children\'s novel following Eze\'s journey from his village to primary school. Warmly told, culturally rich, and still a favourite for JSS readers.',
+    description: "A classic children's novel following Eze's journey from his village to primary school. Warmly told, culturally rich, and still a favourite for JSS readers.",
+    url: 'https://en.wikipedia.org/wiki/Eze_Goes_to_School',
   },
   {
     title: 'Chike and the River', type: 'book', subject: 'English Language', author: 'Chinua Achebe',
-    description:
-      'A charming children\'s novella about a young boy in Onitsha who longs to cross the great Niger River. Simple prose, universal themes.',
+    description: "A charming children's novella about a young boy in Onitsha who longs to cross the great Niger River. Simple prose, universal themes.",
+    url: 'https://en.wikipedia.org/wiki/Chike_and_the_River',
   },
   {
     title: 'Without a Silver Spoon', type: 'book', subject: 'Literature', author: 'Eddie Iroh',
-    description:
-      'Winner of the UNESCO First Prize for Children\'s Literature. A story about honesty, determination and Nigerian childhood values.',
+    description: "Winner of the UNESCO First Prize for Children's Literature. A story about honesty, determination and Nigerian childhood values.",
+    url: 'https://www.google.com/search?q=Without+a+Silver+Spoon+Eddie+Iroh',
   },
   {
     title: 'Sugar Girl', type: 'book', subject: 'Literature', author: 'Kola Onadipe',
-    description:
-      'A classic Nigerian adventure novel for young readers. Ralia\'s escape and her journey through the Nigerian countryside.',
+    description: "A classic Nigerian adventure novel for young readers. Ralia's escape and her journey through the Nigerian countryside.",
+    url: 'https://www.google.com/search?q=Sugar+Girl+Kola+Onadipe',
   },
-
-  /* ---------- Past questions ---------- */
   {
     title: 'BECE Mathematics Past Questions 2018-2023',
     type: 'past_question', subject: 'Mathematics', className: 'JSS 3A',
     author: 'Lagos State Ministry of Education',
-    description:
-      'Six years of authentic BECE Mathematics past questions with step-by-step solutions. Ideal revision material for JSS 3 students preparing for the final examination.',
+    description: 'Six years of authentic BECE Mathematics past questions with step-by-step solutions. Ideal revision material for JSS 3 students preparing for the final examination.',
+    url: 'https://www.google.com/search?q=BECE+Mathematics+past+questions+pdf',
   },
   {
     title: 'BECE English Language Past Questions 2018-2023',
     type: 'past_question', subject: 'English Language', className: 'JSS 3A',
     author: 'Lagos State Ministry of Education',
-    description:
-      'Complete BECE English past questions — comprehension, lexis and structure, and essay sections — with model answers and examiner\'s notes.',
+    description: "Complete BECE English past questions — comprehension, lexis and structure, and essay sections — with model answers and examiner's notes.",
+    url: 'https://www.google.com/search?q=BECE+English+past+questions+pdf',
   },
   {
     title: 'BECE Basic Science Past Questions 2018-2023',
     type: 'past_question', subject: 'Basic Science', className: 'JSS 3A',
     author: 'Lagos State Ministry of Education',
-    description:
-      'Past BECE Basic Science papers covering biology, chemistry, and physics objectives. Each paper includes a detailed marking scheme.',
+    description: 'Past BECE Basic Science papers covering biology, chemistry, and physics objectives. Each paper includes a detailed marking scheme.',
+    url: 'https://www.google.com/search?q=BECE+Basic+Science+past+questions+pdf',
   },
   {
     title: 'BECE Social Studies Past Questions 2018-2023',
     type: 'past_question', subject: 'Social Studies', className: 'JSS 3B',
     author: 'Lagos State Ministry of Education',
-    description:
-      'Historic and recent BECE Social Studies questions. Covers civics, government, and Nigerian society. Includes answer keys.',
+    description: 'Historic and recent BECE Social Studies questions. Covers civics, government, and Nigerian society. Includes answer keys.',
+    url: 'https://www.google.com/search?q=BECE+Social+Studies+past+questions+pdf',
   },
   {
     title: 'Common Entrance Practice Tests (Volume 1)',
     type: 'past_question', subject: 'Mathematics', className: 'JSS 1A',
     author: 'National Examinations Council',
-    description:
-      'Practice papers for the National Common Entrance Examination. Mathematics, English, and General Paper sections with solutions.',
+    description: 'Practice papers for the National Common Entrance Examination. Mathematics, English, and General Paper sections with solutions.',
+    url: 'https://www.google.com/search?q=Common+Entrance+practice+tests+pdf',
   },
-
-  /* ---------- Articles, videos, links ---------- */
   {
-    title: 'Khan Academy — Mathematics Video Library',
+    title: 'Photosynthesis: Crash Course Biology #8',
+    type: 'video', subject: 'Basic Science', author: 'CrashCourse',
+    description: 'A 13-minute animated explanation of photosynthesis. Excellent supplement to the JSS 2 Basic Science chapter on plant nutrition.',
+    url: 'https://www.youtube.com/watch?v=sQK3Yr4Sc_k',
+    coverUrl: 'https://i.ytimg.com/vi/sQK3Yr4Sc_k/hqdefault.jpg',
+  },
+  {
+    title: 'Learn Python — Full Course for Beginners',
+    type: 'video', subject: 'Computer Studies', author: 'freeCodeCamp',
+    description: 'A friendly 4-hour crash course in Python. Recommended for JSS 3 students who want to go beyond the standard Computer Studies syllabus.',
+    url: 'https://www.youtube.com/watch?v=rfscVS0vtbw',
+    coverUrl: 'https://i.ytimg.com/vi/rfscVS0vtbw/hqdefault.jpg',
+  },
+  {
+    title: 'Basic Addition — Khan Academy',
     type: 'video', subject: 'Mathematics', author: 'Khan Academy',
-    description:
-      'Free instructional videos covering arithmetic, fractions, algebra, geometry and statistics. Aligns closely with the JSS curriculum.',
+    description: 'A short Khan Academy lesson introducing basic addition. Great refresher for JSS 1 students or anyone who needs a warm-up.',
+    url: 'https://www.youtube.com/watch?v=NybHckSEQBI',
+    coverUrl: 'https://i.ytimg.com/vi/NybHckSEQBI/hqdefault.jpg',
+  },
+  {
+    title: 'The Digestive System — Crash Course A&P',
+    type: 'video', subject: 'Basic Science', author: 'CrashCourse',
+    description: 'A fun, fast-paced tour of the human digestive system. Aligns well with the JSS 3 Basic Science unit on nutrition and digestion.',
+    url: 'https://www.youtube.com/watch?v=Og5xAdC8EUI',
+    coverUrl: 'https://i.ytimg.com/vi/Og5xAdC8EUI/hqdefault.jpg',
+  },
+  {
+    title: 'Khan Academy — Mathematics Learning Hub',
+    type: 'link', subject: 'Mathematics', author: 'Khan Academy',
+    description: 'Free instructional videos covering arithmetic, fractions, algebra, geometry and statistics. Aligns closely with the JSS curriculum.',
     url: 'https://www.khanacademy.org/math',
   },
   {
     title: 'BBC Bitesize — English Language Revision',
     type: 'link', subject: 'English Language', author: 'BBC',
-    description:
-      'Bite-sized lessons, quizzes and revision materials on grammar, reading comprehension, and writing skills.',
-    url: 'https://www.bbc.co.uk/bitesize',
+    description: 'Bite-sized lessons, quizzes and revision materials on grammar, reading comprehension, and writing skills.',
+    url: 'https://www.bbc.co.uk/bitesize/subjects/z3kw2hv',
   },
   {
-    title: 'CrashCourse Biology — Photosynthesis Explained',
-    type: 'video', subject: 'Basic Science', author: 'CrashCourse (YouTube)',
-    description:
-      'A 12-minute animated explanation of photosynthesis. Excellent supplement to the JSS 2 Basic Science chapter on plant nutrition.',
-    url: 'https://www.youtube.com/results?search_query=crashcourse+photosynthesis',
+    title: 'History of Nigeria — Pre-Colonial Kingdoms',
+    type: 'article', subject: 'Social Studies', author: 'Wikipedia',
+    description: 'A short, accessible introduction to the great kingdoms of pre-colonial Nigeria — Nok, Benin, Oyo, Kanem-Bornu and the Sokoto Caliphate.',
+    url: 'https://en.wikipedia.org/wiki/History_of_Nigeria',
   },
   {
-    title: 'Pre-Colonial Nigeria: An Overview',
-    type: 'article', subject: 'Social Studies', author: 'National Commission for Museums and Monuments',
-    description:
-      'A short, accessible introduction to the great kingdoms of pre-colonial Nigeria — Nok, Benin, Oyo, Kanem-Bornu and the Sokoto Caliphate.',
+    title: 'Introduction to Algebra — Khan Academy Article',
+    type: 'article', subject: 'Mathematics', author: 'Khan Academy',
+    description: 'A written walkthrough of what algebra is, why we use letters for numbers, and how to start solving simple equations.',
+    url: 'https://www.khanacademy.org/math/algebra',
   },
   {
-    title: 'Introduction to Python Programming for Beginners',
-    type: 'video', subject: 'Computer Studies', author: 'freeCodeCamp',
-    description:
-      'A friendly 4-hour crash course in Python. Recommended for JSS 3 students who want to go beyond the standard Computer Studies syllabus.',
-    url: 'https://www.youtube.com/results?search_query=python+for+beginners',
+    title: 'BBC Bitesize — Science Revision',
+    type: 'link', subject: 'Basic Science', author: 'BBC',
+    description: 'Revision resources covering biology, chemistry, and physics at KS3 (roughly equivalent to JSS).',
+    url: 'https://www.bbc.co.uk/bitesize/subjects/zng4d2p',
   },
 ];
 
 async function seedLibrary() {
-  const [[{ c }]] = await q('SELECT COUNT(*) AS c FROM library_resources');
-  if (c > 0) {
-    console.log(`   ⏭  Library already has ${c} resources — skipping`);
-    return;
-  }
   const adminUserId = await getAdminUserId();
+  let inserted = 0;
+  let patched = 0;
+
   for (const item of LIBRARY) {
-    await q(
-      `INSERT INTO library_resources
-         (title, type, subject, class_name, author, description, url, cover_url, uploaded_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        item.title, item.type, item.subject || null, item.className || null,
-        item.author || null, item.description || '',
-        item.url || null, item.coverUrl || null, adminUserId,
-      ]
+    const [existing] = await q(
+      'SELECT id, url, cover_url FROM library_resources WHERE title = ? LIMIT 1',
+      [item.title]
     );
+
+    if (!existing.length) {
+      await q(
+        `INSERT INTO library_resources
+           (title, type, subject, class_name, author, description, url, cover_url, uploaded_by)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          item.title, item.type, item.subject || null, item.className || null,
+          item.author || null, item.description || '',
+          item.url || null, item.coverUrl || null, adminUserId,
+        ]
+      );
+      inserted++;
+      continue;
+    }
+
+    const row = existing[0];
+    const needsUrl = !row.url && item.url;
+    const needsCover = !row.cover_url && item.coverUrl;
+    if (needsUrl || needsCover) {
+      await q(
+        `UPDATE library_resources
+         SET url = COALESCE(url, ?),
+             cover_url = COALESCE(cover_url, ?)
+         WHERE id = ?`,
+        [item.url || null, item.coverUrl || null, row.id]
+      );
+      patched++;
+    }
   }
-  console.log(`      ${LIBRARY.length} library resources added`);
+  console.log(`      ${inserted} added, ${patched} patched with URLs / covers`);
 }
 
-/* ==================================================================
-   DATA — QUESTION BANK (real JSS curriculum questions)
-   ================================================================== */
 const QUESTION_BANK = [
-  /* ---- Mathematics · JSS 2A · Adewale Johnson ---- */
   {
     staffNo: 'TCH/001', className: 'JSS 2A', subject: 'Mathematics',
     questions: [
@@ -280,7 +314,6 @@ const QUESTION_BANK = [
       { q: 'The perimeter of a square is 36 cm. Find the length of one side.', options: ['6 cm', '8 cm', '9 cm', '12 cm'], answer: 2 },
     ],
   },
-  /* ---- English Language · JSS 2A · Emeka Nwosu ---- */
   {
     staffNo: 'TCH/007', className: 'JSS 2A', subject: 'English Language',
     questions: [
@@ -296,7 +329,6 @@ const QUESTION_BANK = [
       { q: 'The opposite of "ancient" is:', options: ['old', 'modern', 'historical', 'olden'], answer: 1 },
     ],
   },
-  /* ---- Computer Studies · JSS 1A · Blessing Obi ---- */
   {
     staffNo: 'TCH/008', className: 'JSS 1A', subject: 'Computer Studies',
     questions: [
@@ -310,7 +342,6 @@ const QUESTION_BANK = [
       { q: 'Which device is used to type text into a computer?', options: ['mouse', 'keyboard', 'monitor', 'printer'], answer: 1 },
     ],
   },
-  /* ---- Basic Science · JSS 3B · Blessing Obi ---- */
   {
     staffNo: 'TCH/008', className: 'JSS 3B', subject: 'Basic Science',
     questions: [
@@ -324,7 +355,6 @@ const QUESTION_BANK = [
       { q: 'Which planet is closest to the Sun?', options: ['Venus', 'Mercury', 'Earth', 'Mars'], answer: 1 },
     ],
   },
-  /* ---- Mathematics · JSS 3B · Halima Yusuf ---- */
   {
     staffNo: 'TCH/006', className: 'JSS 3B', subject: 'Mathematics',
     questions: [
@@ -338,7 +368,6 @@ const QUESTION_BANK = [
       { q: 'Simplify: log₁₀(1000)', options: ['1', '2', '3', '4'], answer: 2 },
     ],
   },
-  /* ---- Basic Science · JSS 1B · Musa Ibrahim ---- */
   {
     staffNo: 'TCH/003', className: 'JSS 1B', subject: 'Basic Science',
     questions: [
@@ -352,7 +381,6 @@ const QUESTION_BANK = [
       { q: 'Which of these animals lays eggs?', options: ['cow', 'hen', 'goat', 'dog'], answer: 1 },
     ],
   },
-  /* ---- Social Studies · JSS 2B · Ngozi Okafor ---- */
   {
     staffNo: 'TCH/004', className: 'JSS 2B', subject: 'Social Studies',
     questions: [
@@ -372,7 +400,7 @@ async function seedQuestionBank() {
   let added = 0, skipped = 0;
   for (const group of QUESTION_BANK) {
     const teacher = await getTeacherIdByStaff(group.staffNo);
-    if (!teacher) { console.warn(`      ⚠️  Teacher ${group.staffNo} not found`); continue; }
+    if (!teacher) continue;
 
     for (const item of group.questions) {
       const [existing] = await q(
@@ -398,9 +426,6 @@ async function seedQuestionBank() {
   console.log(`      ${added} questions added${skipped ? `, ${skipped} already present` : ''}`);
 }
 
-/* ==================================================================
-   DATA — BEHAVIOUR REPORTS
-   ================================================================== */
 const BEHAVIOUR = [
   { staffNo: 'TCH/001', title: 'Helped a struggling classmate during group work', type: 'positive',
     note: 'Volunteered to explain long division to a classmate who was struggling. Demonstrated patience and leadership.' },
@@ -444,9 +469,6 @@ async function seedBehaviour() {
   console.log(`      ${added} behaviour notes added`);
 }
 
-/* ==================================================================
-   DATA — LESSON PLANS
-   ================================================================== */
 const LESSON_PLANS = [
   {
     staffNo: 'TCH/001', className: 'JSS 2A', subject: 'Mathematics',
@@ -539,9 +561,6 @@ async function seedLessonPlans() {
   console.log(`      ${added} lesson plans added`);
 }
 
-/* ==================================================================
-   DATA — MEETINGS
-   ================================================================== */
 async function seedMeetings() {
   const [[{ c }]] = await q('SELECT COUNT(*) AS c FROM meetings');
   if (c > 0) { console.log(`   ⏭  Meetings already has ${c} entries — skipping`); return; }
@@ -552,28 +571,26 @@ async function seedMeetings() {
   const teacher = await getTeacherIdByStaff('TCH/001');
   if (!teacher) return;
 
-  const students = await getStudentIdsByClass('JSS 2A');
+  const samples = [
+    { topic: "Discuss Ada's progress in Mathematics", message:
+      'Good afternoon. I would like to discuss how Ada is coping with the new algebra topics. I noticed she was a bit worried about the last test.',
+      status: 'pending', days: 3 },
+    { topic: 'Behaviour and homework routine', message:
+      'Could we please meet to talk about homework consistency at home? I want to support better.',
+      status: 'accepted', days: 5 },
+    { topic: 'End of term review', message: "I would like a brief review of the term and next term's targets.",
+      status: 'completed', days: 14 },
+  ];
 
   let added = 0;
-  for (let i = 0; i < Math.min(parents.length, 3); i++) {
+  for (let i = 0; i < Math.min(parents.length, samples.length); i++) {
     const p = parents[i];
     const [kids] = await q('SELECT id FROM students WHERE parent_id = ? LIMIT 1', [p.id]);
     if (!kids.length) continue;
     const childId = kids[0].id;
+    const s = samples[i];
 
-    const samples = [
-      { topic: 'Discuss Ada\'s progress in Mathematics', message:
-        'Good afternoon. I would like to discuss how Ada is coping with the new algebra topics. I noticed she was a bit worried about the last test.',
-        status: 'pending', days: 3 },
-      { topic: 'Behaviour and homework routine', message:
-        'Could we please meet to talk about homework consistency at home? I want to support better.',
-        status: 'accepted', days: 5 },
-      { topic: 'End of term review', message: 'I would like a brief review of the term and next term\'s targets.',
-        status: 'completed', days: 14 },
-    ];
-    const s = samples[i % samples.length];
-
-    const [res] = await q(
+    await q(
       `INSERT INTO meetings
          (parent_id, teacher_id, student_id, topic, message,
           preferred_date, preferred_time, duration_minutes, status,
@@ -593,9 +610,6 @@ async function seedMeetings() {
   console.log(`      ${added} meeting requests added`);
 }
 
-/* ==================================================================
-   DATA — CALENDAR EVENTS
-   ================================================================== */
 const CALENDAR_EVENTS = [
   { title: 'Mid-Term Examinations Begin',   category: 'Exam',    audience: 'all',     offset: 7  },
   { title: 'Mid-Term Break Starts',          category: 'Holiday', audience: 'all',     offset: 14 },
@@ -610,7 +624,7 @@ const CALENDAR_EVENTS = [
   { title: 'JSS 3 Mock BECE Exams',          category: 'Exam',    audience: 'student', offset: 45 },
   { title: "Children's Day Celebration",     category: 'Event',   audience: 'student', offset: 70 },
   { title: 'Staff Development Workshop',     category: 'Meeting', audience: 'teacher', offset: 20 },
-  { title: 'Teachers\' Appraisal Week',      category: 'Meeting', audience: 'teacher', offset: 60 },
+  { title: "Teachers' Appraisal Week",       category: 'Meeting', audience: 'teacher', offset: 60 },
 ];
 
 async function seedCalendarEvents() {
@@ -638,9 +652,6 @@ async function seedCalendarEvents() {
   console.log(`      ${added} calendar events added`);
 }
 
-/* ==================================================================
-   DATA — ASSIGNMENT TEMPLATES
-   ================================================================== */
 const ASSIGNMENT_TEMPLATES = [
   {
     staffNo: 'TCH/001', className: 'JSS 2A', subject: 'Mathematics', totalMarks: 20,
@@ -709,24 +720,21 @@ async function seedAssignmentTemplates() {
   console.log(`      ${added} assignment templates added${skipped ? `, ${skipped} already present` : ''}`);
 }
 
-/* ==================================================================
-   DATA — READING LIST BOOKMARKS for demo student
-   ================================================================== */
 async function seedBookmarks() {
   const student = await getDemoStudent();
   if (!student) return;
 
   const wanted = [
-    'Things Fall Apart',
-    'New General Mathematics for Junior Secondary Schools 2',
-    'BECE Mathematics Past Questions 2018-2023',
-    'Khan Academy — Mathematics Video Library',
-    'Purple Hibiscus',
+    { title: 'Things Fall Apart',                          list: 'reading',   progress: 40 },
+    { title: 'Purple Hibiscus',                            list: 'reading',   progress: 15 },
+    { title: 'BECE Mathematics Past Questions 2018-2023',  list: 'favourite', progress: 65 },
+    { title: 'Photosynthesis: Crash Course Biology #8',    list: 'favourite', progress: 100 },
+    { title: 'Khan Academy — Mathematics Learning Hub',    list: 'reading',   progress: 25 },
   ];
 
   let added = 0;
-  for (const title of wanted) {
-    const [res] = await q('SELECT id FROM library_resources WHERE title = ? LIMIT 1', [title]);
+  for (const item of wanted) {
+    const [res] = await q('SELECT id FROM library_resources WHERE title = ? LIMIT 1', [item.title]);
     if (!res.length) continue;
     const resourceId = res[0].id;
 
@@ -736,26 +744,16 @@ async function seedBookmarks() {
     );
     if (existing.length) continue;
 
-    const progress = title.startsWith('BECE') ? 65
-      : title.startsWith('Things') ? 40
-      : title.startsWith('Khan') ? 25 : 0;
-
-    const list = title.startsWith('Things') || title.startsWith('Purple') ? 'reading'
-      : title.startsWith('BECE') || title.startsWith('Khan') ? 'favourite' : 'reading';
-
     await q(
       `INSERT INTO library_bookmarks (user_id, resource_id, list, progress, notes)
-       VALUES (?, ?, ?, ?, ?)`,
-      [student.user_id, resourceId, list, progress, '']
+       VALUES (?, ?, ?, ?, '')`,
+      [student.user_id, resourceId, item.list, item.progress]
     );
     added++;
   }
   console.log(`      ${added} library bookmarks added for ${student.name}`);
 }
 
-/* ==================================================================
-   DATA — EXTRA ANNOUNCEMENTS
-   ================================================================== */
 const ANNOUNCEMENTS = [
   {
     title: 'Mid-Term Examination Timetable Released',
@@ -799,34 +797,21 @@ async function seedAnnouncements() {
   console.log(`      ${added} announcements added`);
 }
 
-/* ==================================================================
-   MAIN
-   ================================================================== */
 async function run() {
-  console.log('\n🌱 Seeding demo content (library, question bank, behaviour, etc.)…\n');
+  console.log('\n🌱 Seeding demo content…\n');
   const started = Date.now();
 
-  await step('Populating library resources',    seedLibrary);
-  await step('Populating question bank',         seedQuestionBank);
-  await step('Populating behaviour log',         seedBehaviour);
-  await step('Populating lesson plans',          seedLessonPlans);
-  await step('Populating meetings',              seedMeetings);
-  await step('Populating calendar events',       seedCalendarEvents);
-  await step('Populating assignment templates',  seedAssignmentTemplates);
-  await step('Adding library bookmarks',         seedBookmarks);
-  await step('Posting extra announcements',      seedAnnouncements);
+  await step('Populating library (with URLs + covers)', seedLibrary);
+  await step('Populating question bank',                 seedQuestionBank);
+  await step('Populating behaviour log',                 seedBehaviour);
+  await step('Populating lesson plans',                  seedLessonPlans);
+  await step('Populating meetings',                      seedMeetings);
+  await step('Populating calendar events',               seedCalendarEvents);
+  await step('Populating assignment templates',          seedAssignmentTemplates);
+  await step('Adding library bookmarks',                 seedBookmarks);
+  await step('Posting extra announcements',              seedAnnouncements);
 
   console.log(`\n✅ Demo content ready in ${Date.now() - started}ms\n`);
-  console.log('   What you\'ll now see populated:');
-  console.log('   ─────────────────────────────────────────────');
-  console.log('   • Library            → 30 real books, past questions, videos');
-  console.log('   • Question Bank      → 60 curriculum questions for every teacher');
-  console.log('   • Behaviour Log      → 8 real notes for JSS 2A students');
-  console.log('   • Lesson Plans       → 5 detailed plans for Maths & English');
-  console.log('   • Parent Meetings    → 3 requests in different statuses');
-  console.log('   • Calendar           → 14 events spread across the term');
-  console.log('   • Assignment Templates → 7 reusable templates');
-  console.log('   • Student Library List → 5 bookmarks for ada@school.com\n');
 }
 
 run()

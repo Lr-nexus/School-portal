@@ -7937,3 +7937,131 @@ textarea { resize: vertical; min-height: 60px; }
   .bank-picker-item__options { grid-template-columns: 1fr; }
   .template-card__head { flex-direction: column; }
 }
+
+/* ==================================================================
+   LIBRARY — covers, viewers, play badge
+   ================================================================== */
+
+.library-cover {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.library-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.library-cover--card { aspect-ratio: 16 / 10; }
+.library-cover--detail {
+  width: 140px;
+  height: 200px;
+  border-radius: 10px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, .12);
+  flex-shrink: 0;
+}
+
+.library-cover__fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--muted);
+  width: 100%;
+  height: 100%;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  font-weight: 700;
+}
+.library-cover__fallback svg { color: var(--accent); }
+
+.library-card__play {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  text-shadow: 0 2px 8px rgba(0,0,0,.5);
+  background: rgba(0,0,0,.18);
+  transition: background .15s;
+  pointer-events: none;
+}
+.library-card:hover .library-card__play {
+  background: rgba(0,0,0,.32);
+}
+
+.resource-viewer {
+  margin-bottom: 18px;
+}
+
+.resource-viewer__embed {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+  border: 1px solid var(--border);
+}
+.resource-viewer__embed iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.resource-viewer__pdf {
+  width: 100%;
+  height: 65vh;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.resource-viewer__pdf iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.resource-viewer__desc {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-2);
+  margin: 14px 0 0;
+}
+
+.resource-viewer__note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-ring);
+  border-radius: 10px;
+  color: var(--accent-text);
+  font-size: 13px;
+  line-height: 1.5;
+  margin-top: 14px;
+}
+.resource-viewer__note svg { flex-shrink: 0; margin-top: 2px; }
+
+.resource-viewer--book {
+  margin-top: 4px;
+}
+.resource-viewer__book-grid {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.resource-viewer__book-info {
+  flex: 1;
+  min-width: 220px;
+}
